@@ -1,5 +1,5 @@
 {
-  "include": ["**/*"],
+  "include": ["**/*", "package.json"],
   "compilerOptions": {
     "target": "esnext",
     "lib": ["ESNext"],

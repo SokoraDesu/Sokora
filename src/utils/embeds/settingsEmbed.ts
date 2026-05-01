@@ -156,6 +156,7 @@ export async function settingsEmbed(
   let disableCategory = false;
   let itrObjView = false;
   let objView = false;
+  let disabled = false;
   let precondReply: (() => any) | null;
 
   // Create a container
@@ -170,6 +171,7 @@ export async function settingsEmbed(
     objView?: boolean,
     itrObjView?: boolean,
     cID?: string,
+    disabled?: boolean,
   ) {
     if (objView || itrObjView)
       container
@@ -200,13 +202,15 @@ export async function settingsEmbed(
         container.addSectionComponents(
           new SectionBuilder()
             .addTextDisplayComponents(new TextDisplayBuilder().setContent(object.text))
-            .setButtonAccessory(component as ButtonBuilder),
+            .setButtonAccessory(component.setDisabled(disabled ?? false) as ButtonBuilder),
         );
       else
         container
           .addTextDisplayComponents(new TextDisplayBuilder().setContent(object.text))
           .addActionRowComponents(
-            new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(component),
+            new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
+              component.setDisabled(disabled ?? false),
+            ),
           );
     }
 
@@ -329,17 +333,9 @@ export async function settingsEmbed(
             ChannelType.GuildStageVoice,
             ChannelType.GuildText,
             ChannelType.GuildVoice,
-          ]);
+          ])
+          .setDefaultChannels(kominator(setting as string));
 
-        if (setting) component.setDefaultChannels(kominator(setting as string));
-        break;
-      case "USER":
-        component = new UserSelectMenuBuilder()
-          .setCustomId(data.id)
-          .setMaxValues(maxValues)
-          .setDefaultUsers(kominator(setting as string));
-
-        if (setting) component.setDefaultUsers(kominator(setting as string));
         break;
       case "ROLE":
         component = new RoleSelectMenuBuilder()
@@ -347,7 +343,6 @@ export async function settingsEmbed(
           .setMaxValues(maxValues)
           .setDefaultRoles(kominator(setting as string));
 
-        if (setting) component.setDefaultRoles(kominator(setting as string));
         break;
       case "SELECT": {
         const options = (settingObject as SingleSettingDefinition).choices!;
@@ -411,6 +406,7 @@ export async function settingsEmbed(
     cID?: string,
     disableCategory?: boolean,
     itrObjView?: boolean,
+    disabled?: boolean,
   ) => {
     const actionRow = new ActionRowBuilder<MessageActionRowComponentBuilder>();
     const category = new ButtonBuilder()
@@ -470,7 +466,8 @@ export async function settingsEmbed(
         new ButtonBuilder()
           .setCustomId("reset_start")
           .setLabel(itrObjView ? "Delete" : "Reset")
-          .setStyle(ButtonStyle.Danger),
+          .setStyle(ButtonStyle.Danger)
+          .setDisabled(disabled),
       );
 
     // [TODO] make buttons for when you're adding a new object
@@ -639,14 +636,34 @@ export async function settingsEmbed(
       objView ?? false,
       itrObjView ?? false,
       cID,
+      disabled,
     );
 
-    return await safeReply({ interaction: i, editOptions: { components: [newContainer] } });
+    return await safeReply({ interaction, editOptions: { components: [newContainer] } });
   });
 
   collector.on("end", async () => {
     try {
-      await interaction.deleteReply();
+      disabled = true;
+      const newContainer = new ContainerBuilder().setAccentColor(color);
+      await construct(
+        itrObjView
+          ? (await getLevelRewards(id))
+            ? ((await getLevelRewards(id))!.sort(
+                (reward1, reward2) => reward1.level - reward2.level,
+              ) as any)
+            : null
+          : settingsObj,
+        newContainer,
+        false,
+        await buttons(false, confirm, undefined, disableCategory, itrObjView),
+        objView ?? false,
+        itrObjView ?? false,
+        undefined,
+        disabled,
+      );
+
+      return await safeReply({ interaction, editOptions: { components: [newContainer] } });
     } catch (error) {
       if (Error.isError(error) && error.message.toLowerCase().includes("unknown message")) return;
       throw error;

@@ -1,8 +1,5 @@
 import { resetSetting } from "database/settings";
 import {
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
   ContainerBuilder,
   EmbedBuilder,
   NewsChannel,
@@ -16,7 +13,7 @@ import {
   type Guild,
 } from "discord.js";
 import { logChannel } from "utils/logChannel";
-import { replace } from "utils/replace";
+import { pagedButtons } from "utils/pagination";
 import { safeChannel, safeMember } from "utils/safeThings";
 import { colorize, Sokolors } from "../colorize";
 import { dotCheck } from "../dotCheck";
@@ -191,27 +188,7 @@ export async function serverEmbed(options: Options): Promise<ContainerBuilder> {
     );
   }
 
-  if (pages && pages > 1)
-    container.addActionRowComponents(
-      new ActionRowBuilder<ButtonBuilder>().addComponents(
-        new ButtonBuilder()
-          .setCustomId("left")
-          .setEmoji(replace("(leftArrow)"))
-          .setStyle(ButtonStyle.Primary)
-          .setDisabled(disableButtons),
-        new ButtonBuilder()
-          .setCustomId("pagecount")
-          .setLabel(`${page} of ${pages}`)
-          .setStyle(ButtonStyle.Secondary)
-          .setDisabled(true),
-        new ButtonBuilder()
-          .setCustomId("right")
-          .setEmoji(replace("(rightArrow)"))
-          .setStyle(ButtonStyle.Primary)
-          .setDisabled(disableButtons),
-      ),
-    );
-
+  if (pages && pages > 1) container.addActionRowComponents(pagedButtons(pages, page));
   container
     .addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# Server ID: ${guild.id}`))
     .setAccentColor(await colorize({ avatar: icon, hue: Sokolors.Blue }));
