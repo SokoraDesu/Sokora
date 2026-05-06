@@ -188,7 +188,9 @@ export async function serverEmbed(options: Options): Promise<ContainerBuilder> {
     );
   }
 
-  if (pages && pages > 1) container.addActionRowComponents(pagedButtons(pages, page));
+  if (pages && pages > 1)
+    container.addActionRowComponents(pagedButtons(pages, page, disableButtons));
+
   container
     .addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# Server ID: ${guild.id}`))
     .setAccentColor(await colorize({ avatar: icon, hue: Sokolors.Blue }));

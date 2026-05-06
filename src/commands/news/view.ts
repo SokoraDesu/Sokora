@@ -1,8 +1,5 @@
 import { listAllNews } from "database/news";
 import {
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
   EmbedBuilder,
   SlashCommandSubcommandBuilder,
   type ButtonInteraction,
@@ -11,7 +8,7 @@ import {
 import { buttonCheck, errorEmbed } from "embeds/errorEmbed";
 import { colorize, Sokolors } from "utils/colorize";
 import { dotCheck } from "utils/dotCheck";
-import { replace } from "utils/replace";
+import { pagedButtons } from "utils/pagination";
 
 export const data = new SlashCommandSubcommandBuilder()
   .setName("view")
@@ -30,15 +27,16 @@ export async function run(interaction: ChatInputCommandInteraction) {
     });
 
   const news = await listAllNews(interaction.guild.id);
+  const pages = news.length;
 
-  if (!news || !news.length)
+  if (!news || !pages)
     return await errorEmbed({
       interaction,
       title: "No news found.",
       reason: "Admins can post news with the **/news post** command.",
     });
 
-  if (page > news.length) page = news.length;
+  if (page > pages) page = pages;
   if (page < 1) page = 1;
 
   async function getEmbed() {
@@ -54,25 +52,15 @@ export async function run(interaction: ChatInputCommandInteraction) {
       .setImage(currentNews.imageURL || null)
       .setTimestamp(currentNews.updatedAt || currentNews.createdAt)
       .setFooter({
-        text: `${news.length > 1 ? `Page ${page} of ${news.length} • ` : ""}ID: ${currentNews.id}`,
+        text: `${pages > 1 ? `Page ${page} of ${pages} • ` : ""}ID: ${currentNews.id}`,
       })
       .setColor(await colorize({ hue: Sokolors.Blue }));
   }
 
-  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-    new ButtonBuilder()
-      .setCustomId("left")
-      .setEmoji(replace("(leftArrow)"))
-      .setStyle(ButtonStyle.Primary),
-    new ButtonBuilder()
-      .setCustomId("right")
-      .setEmoji(replace("(rightArrow)"))
-      .setStyle(ButtonStyle.Primary),
-  );
-
+  const row = pagedButtons(pages, page);
   const reply = await interaction.reply({
     embeds: [await getEmbed()],
-    components: news.length > 1 ? [row] : [],
+    components: pages > 1 ? [row] : [],
   });
 
   if (page < 1) return;
@@ -83,12 +71,12 @@ export async function run(interaction: ChatInputCommandInteraction) {
     switch (i.customId) {
       case "left":
         page--;
-        if (page < 1) page = news.length;
+        if (page < 1) page = pages;
         await i.update({ embeds: [await getEmbed()], components: [row] });
         break;
       case "right":
         page++;
-        if (page > news.length) page = 1;
+        if (page > pages) page = 1;
         await i.update({ embeds: [await getEmbed()], components: [row] });
         break;
     }

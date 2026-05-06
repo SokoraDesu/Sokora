@@ -422,12 +422,17 @@ export async function settingsEmbed(
             .setCustomId("reset_confirm")
             .setLabel(`Reset ${cID == "reset_category" ? "the category" : cID}?`)
             .setStyle(ButtonStyle.Danger)
-            .setDisabled(true),
+            .setDisabled(disabled ?? false),
           new ButtonBuilder()
             .setCustomId("reset_yes")
             .setLabel("Yes")
-            .setStyle(ButtonStyle.Secondary),
-          new ButtonBuilder().setCustomId("reset_no").setLabel("No").setStyle(ButtonStyle.Primary),
+            .setStyle(ButtonStyle.Secondary)
+            .setDisabled(disabled ?? false),
+          new ButtonBuilder()
+            .setCustomId("reset_no")
+            .setLabel("No")
+            .setStyle(ButtonStyle.Primary)
+            .setDisabled(disabled ?? false),
         ),
       ];
     }
@@ -440,7 +445,7 @@ export async function settingsEmbed(
             .setCustomId("cancel")
             .setLabel("Cancel")
             .setStyle(ButtonStyle.Secondary)
-            .setDisabled(false),
+            .setDisabled(disabled ?? false),
         ),
       ];
     }
@@ -467,13 +472,17 @@ export async function settingsEmbed(
           .setCustomId("reset_start")
           .setLabel(itrObjView ? "Delete" : "Reset")
           .setStyle(ButtonStyle.Danger)
-          .setDisabled(disabled),
+          .setDisabled(disabled ?? false),
       );
 
     // [TODO] make buttons for when you're adding a new object
     if (itrObjView)
       buttonArray.unshift(
-        new ButtonBuilder().setCustomId("objadd").setLabel("Add").setStyle(ButtonStyle.Success),
+        new ButtonBuilder()
+          .setCustomId("objadd")
+          .setLabel("Add")
+          .setStyle(ButtonStyle.Success)
+          .setDisabled(disabled ?? false),
       );
 
     return [actionRow.addComponents(buttonArray)];
