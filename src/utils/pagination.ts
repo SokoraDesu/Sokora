@@ -2,11 +2,17 @@ import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
-  EmbedBuilder,
+  LabelBuilder,
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle,
+  type AnySelectMenuInteraction,
   type ButtonInteraction,
-  type ContainerBuilder,
+  type InteractionCollector,
 } from "discord.js";
+import { modalSubmit } from "./modalSubmit";
 import { replace } from "./replace";
+import { safeReply } from "./safeThings";
 
 export function pagedButtons(pages: number, argPage?: number, disabled?: boolean) {
   return new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -17,7 +23,7 @@ export function pagedButtons(pages: number, argPage?: number, disabled?: boolean
       .setDisabled(disabled),
     new ButtonBuilder()
       .setCustomId("pagecount")
-      .setLabel(`${argPage ?? 1} of ${pages}`)
+      .setLabel(`${argPage ? argPage + 1 : 1} of ${pages}`)
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(disabled),
     new ButtonBuilder()
@@ -32,20 +38,45 @@ export async function handleButtons(options: {
   i: ButtonInteraction;
   page: number;
   pages: number;
-  responseFunc: EmbedBuilder | ContainerBuilder;
-  row?: ActionRowBuilder<ButtonBuilder>;
+  collector: InteractionCollector<ButtonInteraction | AnySelectMenuInteraction>;
 }) {
-  const { i, page, pages, responseFunc, row } = options;
+  const { i, page, pages, collector } = options;
   let returnPage = page ?? 0;
-  let response = {};
-
-  if (responseFunc instanceof EmbedBuilder)
-    response = { embeds: [responseFunc], components: [row] };
-  else response = { components: [responseFunc] };
 
   if (i.customId == "left") returnPage = returnPage < 0 ? pages - 1 : returnPage - 1;
-  else if (i.customId == "right") returnPage = returnPage >= pages ? 0 : returnPage + 1;
-  await i.update(response);
+  else if (i.customId == "right") returnPage = returnPage >= pages - 1 ? 0 : returnPage + 1;
+  else if (i.customId == "pagecount") {
+    const modal = new ModalBuilder()
+      .setCustomId("pageselect")
+      .setTitle(`•  Go to page`)
+      .addLabelComponents(
+        new LabelBuilder()
+          .setLabel("Page")
+          .setTextInputComponent(
+            new TextInputBuilder()
+              .setCustomId("pageinput")
+              .setPlaceholder("What page do you want to travel to?")
+              .setMaxLength(100)
+              .setStyle(TextInputStyle.Short)
+              .setRequired(true),
+          ),
+      );
+
+    await i.showModal(modal);
+    const modalInteraction = await modalSubmit(i);
+
+    // After modal interaction
+    collector.resetTimer({ time: 60000 });
+    if (!modalInteraction) return returnPage;
+    const value = modalInteraction.fields.getTextInputValue("pageinput");
+    returnPage = typeof parseInt(value) === "number" ? parseInt(value) - 1 : returnPage;
+
+    // [TODO] make this not conflict with existing updatey thingies
+    await safeReply({
+      interaction: modalInteraction,
+      replyOptions: { content: "yay", flags: ["Ephemeral"] },
+    });
+  }
 
   return returnPage;
 }

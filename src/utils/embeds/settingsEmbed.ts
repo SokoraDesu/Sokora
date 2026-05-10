@@ -1,3 +1,5 @@
+// [TODO] fix all errors
+
 import { getLevelRewards } from "database/leveling";
 import {
   getSetting,

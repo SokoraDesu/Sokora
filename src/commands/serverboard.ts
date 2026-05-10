@@ -59,7 +59,6 @@ export async function run(interaction: ChatInputCommandInteraction) {
   const argPage = interaction.options.getNumber("page") as number;
   let page = (argPage - 1 <= 0 ? 0 : argPage - 1 > pages ? pages - 1 : argPage - 1) || 0;
 
-  console.log(page);
   async function getContainer(disableButtons?: boolean) {
     return await serverEmbed({
       guild: guildList[page].guild,
@@ -67,7 +66,7 @@ export async function run(interaction: ChatInputCommandInteraction) {
         show: guildList[page].showInvite,
         channel: guildList[page].inviteChannelId,
       },
-      page: page + 1,
+      page,
       pages,
       roles: false,
       disableButtons,
@@ -82,14 +81,10 @@ export async function run(interaction: ChatInputCommandInteraction) {
   const collector = reply.createMessageComponentCollector({ time: 60000 });
   collector.on("collect", async (i: ButtonInteraction) => {
     if (await buttonCheck({ i, interaction, reply })) return;
-    console.log(guildList[page].guild);
     collector.resetTimer({ time: 60000 });
-    page = await handleButtons({
-      i,
-      page: page + 1,
-      pages,
-      responseFunc: await getContainer(false),
-    });
+    page = await handleButtons({ i, page, pages, collector });
+
+    await i.update({ components: [await getContainer(false)] });
   });
 
   collector.on("end", async () => {
