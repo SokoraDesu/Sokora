@@ -7,7 +7,7 @@ import {
 } from "discord.js";
 import { buttonCheck, errorEmbed } from "embeds/errorEmbed";
 import { serverEmbed } from "embeds/serverEmbed";
-import { handleButtons } from "utils/pagination";
+import { handlePages } from "utils/pagination";
 import { safeGuild, safeReply } from "utils/safeThings";
 
 export const data = new SlashCommandBuilder()
@@ -56,9 +56,7 @@ export async function run(interaction: ChatInputCommandInteraction) {
         "By some magical miracle, all the servers using Sokora turned off their visibility. Use /settings serverboard `shown: True` to make your server publicly visible.",
     });
 
-  const argPage = interaction.options.getNumber("page") ?? 0;
-  let page = (argPage <= 0 ? 0 : argPage > pages ? pages - 1 : argPage) || 0;
-
+  let page = Math.max(0, Math.min(interaction.options.getNumber("page") || 0, pages) - 1);
   async function getContainer(disableButtons?: boolean) {
     return await serverEmbed({
       guild: guildList[page].guild,
@@ -77,28 +75,35 @@ export async function run(interaction: ChatInputCommandInteraction) {
     components: [await getContainer(false)],
     flags: "IsComponentsV2",
   });
+
   if (pages == 1) return;
   const collector = reply.createMessageComponentCollector({ time: 60000 });
   collector.on("collect", async (i: ButtonInteraction) => {
     if (await buttonCheck({ i, interaction, reply })) return;
     collector.resetTimer({ time: 60000 });
-    page = await handleButtons({ i, page, pages, collector });
+    page = await handlePages({ i, page, pages, collector });
 
-    return await safeReply({
-      interaction,
-      editOptions: { components: [await getContainer(false)] },
-    });
+    await safeReply({ interaction: i, editOptions: { components: [await getContainer(false)] } });
   });
 
   collector.on("end", async () => {
     try {
-      return await safeReply({
-        interaction,
-        editOptions: { components: [await getContainer(true)] },
-      });
+      await interaction.editReply({ components: [await getContainer(true)] });
     } catch (error) {
       if (Error.isError(error) && error.message.toLowerCase().includes("unknown message")) return;
       throw error;
     }
   });
+
+  /*
+  page = await pageContainer({
+    interaction,
+    reply,
+    collector,
+    page,
+    pages,
+    normalResponse: { components: [await getContainer(false)] },
+    endResponse: { components: [await getContainer(true)] },
+  });
+  */
 }

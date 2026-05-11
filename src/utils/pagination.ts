@@ -2,7 +2,10 @@ import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  ChatInputCommandInteraction,
   ContainerBuilder,
+  InteractionEditReplyOptions,
+  InteractionResponse,
   LabelBuilder,
   ModalBuilder,
   TextDisplayBuilder,
@@ -12,10 +15,18 @@ import {
   type ButtonInteraction,
   type InteractionCollector,
 } from "discord.js";
+import { buttonCheck } from "embeds/errorEmbed";
 import { colorize, Sokolors } from "./colorize";
 import { modalSubmit } from "./modalSubmit";
 import { replace } from "./replace";
 import { safeReply } from "./safeThings";
+
+type HandlePagesOptions = {
+  i: ButtonInteraction;
+  page: number;
+  pages: number;
+  collector: InteractionCollector<ButtonInteraction | AnySelectMenuInteraction>;
+};
 
 export function pagedButtons(pages: number, argPage?: number, disabled?: boolean) {
   return new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -37,18 +48,13 @@ export function pagedButtons(pages: number, argPage?: number, disabled?: boolean
   );
 }
 
-export async function handleButtons(options: {
-  i: ButtonInteraction;
-  page: number;
-  pages: number;
-  collector: InteractionCollector<ButtonInteraction | AnySelectMenuInteraction>;
-}) {
+export async function handlePages(options: HandlePagesOptions) {
   const { i, page, pages, collector } = options;
   const noErrPages = pages - 1;
-  let returnPage = page ?? 0;
+  let funcPage = Math.max(0, Math.min(page || 0, pages) - 1);
 
-  if (i.customId == "left") returnPage = returnPage < 0 ? noErrPages : returnPage - 1;
-  else if (i.customId == "right") returnPage = returnPage >= noErrPages ? 0 : returnPage + 1;
+  if (i.customId == "left") funcPage = funcPage < 0 ? noErrPages : funcPage - 1;
+  else if (i.customId == "right") funcPage = funcPage >= noErrPages ? 0 : funcPage + 1;
   else if (i.customId == "pagecount") {
     const modal = new ModalBuilder()
       .setCustomId("pageselect")
@@ -66,7 +72,7 @@ export async function handleButtons(options: {
 
     await i.showModal(modal);
     const modalInteraction = await modalSubmit(i);
-    if (!modalInteraction) return returnPage;
+    if (!modalInteraction) return funcPage;
     collector.resetTimer({ time: 60000 });
     const value = modalInteraction.fields.getTextInputValue("pageinput");
 
@@ -74,12 +80,12 @@ export async function handleButtons(options: {
       // minus 1 because all these numbers revolve around arrays starting from 0.
       // thus, if a user provides 2, this hunk of code and machinery produces 1.
       const valueNum = parseInt(value) - 1;
-      returnPage = valueNum < 0 ? noErrPages : valueNum >= noErrPages ? noErrPages : valueNum;
+      funcPage = valueNum < 0 ? noErrPages : valueNum >= noErrPages ? noErrPages : valueNum;
     }
 
     const container = new ContainerBuilder()
       .addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(`## You're viewing page ${returnPage + 1}.`),
+        new TextDisplayBuilder().setContent(`## You're viewing page ${funcPage + 1}.`),
       )
       .setAccentColor(await colorize({ hue: Sokolors.Green }));
 
@@ -89,5 +95,37 @@ export async function handleButtons(options: {
     });
   }
 
-  return returnPage;
+  return funcPage;
+}
+
+export async function pageContainer(options: {
+  interaction: ChatInputCommandInteraction;
+  reply: InteractionResponse;
+  collector: InteractionCollector<ButtonInteraction | AnySelectMenuInteraction>;
+  page: number;
+  pages: number;
+  normalResponse: InteractionEditReplyOptions;
+  endResponse: InteractionEditReplyOptions;
+}) {
+  const { interaction, reply, collector, page, pages, normalResponse, endResponse } = options;
+  let funcPage = Math.max(0, Math.min(page || 0, pages) - 1);
+
+  collector.on("collect", async (i: ButtonInteraction) => {
+    if (await buttonCheck({ i, interaction, reply })) return;
+    collector.resetTimer({ time: 60000 });
+    funcPage = await handlePages({ i, page: funcPage, pages, collector });
+
+    await safeReply({ interaction: i, editOptions: normalResponse });
+  });
+
+  collector.on("end", async () => {
+    try {
+      await interaction.editReply(endResponse);
+    } catch (error) {
+      if (Error.isError(error) && error.message.toLowerCase().includes("unknown message")) return;
+      throw error;
+    }
+  });
+
+  return funcPage;
 }

@@ -1,8 +1,5 @@
 import { getGuildLeaderboard } from "database/leveling";
 import {
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
   EmbedBuilder,
   SlashCommandBuilder,
   type ButtonInteraction,
@@ -10,8 +7,8 @@ import {
 } from "discord.js";
 import { buttonCheck, errorEmbed } from "embeds/errorEmbed";
 import { colorize, Sokolors } from "utils/colorize";
-import { replace } from "utils/replace";
-import { safeUser } from "utils/safeThings";
+import { handlePages, pagedButtons } from "utils/pagination";
+import { safeReply, safeUser } from "utils/safeThings";
 
 export const data = new SlashCommandBuilder()
   .setName("leaderboard")
@@ -38,14 +35,15 @@ export async function run(interaction: ChatInputCommandInteraction) {
     else return b.xp - a.xp;
   });
 
-  const totalPages = Math.ceil(leaderboardData.length / 6);
-  let page = Math.max(1, Math.min(interaction.options.getNumber("page") || 1, totalPages));
+  const usersPerPage = 6;
+  const pages = Math.ceil(leaderboardData.length / usersPerPage);
+  let page = Math.max(0, Math.min(interaction.options.getNumber("page") || 0, pages) - 1);
+
   const generateEmbed = async () => {
-    const start = (page - 1) * 6;
-    const pageData = leaderboardData.slice(start, start + 6);
+    const start = page * usersPerPage;
+    const pageData = leaderboardData.slice(start, start + usersPerPage);
     const embed = new EmbedBuilder()
       .setAuthor({ name: "Leaderboard" })
-      .setFooter({ text: `Page ${page} of ${totalPages}` })
       .setColor(await colorize({ hue: Sokolors.Blue }));
 
     for (let i = 0; i < pageData.length; i++) {
@@ -59,31 +57,22 @@ export async function run(interaction: ChatInputCommandInteraction) {
     return embed;
   };
 
-  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-    new ButtonBuilder()
-      .setCustomId("left")
-      .setEmoji(replace("(leftArrow)"))
-      .setStyle(ButtonStyle.Primary),
-    new ButtonBuilder()
-      .setCustomId("right")
-      .setEmoji(replace("(rightArrow)"))
-      .setStyle(ButtonStyle.Primary),
-  );
-
   const reply = await interaction.reply({
     embeds: [await generateEmbed()],
-    components: totalPages > 1 ? [row] : [],
+    components: pages > 1 ? [pagedButtons(pages, page)] : [],
   });
 
-  if (totalPages <= 1) return;
+  if (pages <= 1) return;
   const collector = reply.createMessageComponentCollector({ time: 60000 });
   collector.on("collect", async (i: ButtonInteraction) => {
     if (await buttonCheck({ i, interaction, reply })) return;
     collector.resetTimer({ time: 60000 });
+    page = await handlePages({ i, page, pages, collector });
 
-    if (i.customId == "left") page = page > 1 ? page - 1 : totalPages;
-    else page = page < totalPages ? page + 1 : 1;
-    await i.update({ embeds: [await generateEmbed()], components: [row] });
+    await safeReply({
+      interaction: i,
+      editOptions: { embeds: [await generateEmbed()], components: [pagedButtons(pages, page)] },
+    });
   });
 
   collector.on("end", async () => {

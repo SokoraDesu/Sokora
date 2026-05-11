@@ -7,9 +7,6 @@ import {
 } from "database/moderation";
 import { TypeOfDefinition } from "database/types";
 import {
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
   EmbedBuilder,
   SlashCommandSubcommandBuilder,
   type ButtonInteraction,
@@ -23,21 +20,20 @@ import { capitalize } from "utils/capitalize";
 import { colorize, Sokolors } from "utils/colorize";
 import { dotCheck } from "utils/dotCheck";
 import { mention } from "utils/mention";
+import { handlePages, pagedButtons } from "utils/pagination";
 import { pluralOrNot } from "utils/pluralOrNot";
 import { randomize } from "utils/randomize";
-import { replace } from "utils/replace";
-import { safeGuild, safeMember } from "utils/safeThings";
+import { safeGuild, safeMember, safeReply } from "utils/safeThings";
 
 async function generateEmbed(options: {
   cases: TypeOfDefinition<Case>[];
   page: number;
   type: ModType | null;
   guildID: string;
-  totalPages: number;
   user: User | null;
   id: number | null;
 }) {
-  const { cases, page, type, guildID, totalPages, user, id } = options;
+  const { cases, page, type, guildID, user, id } = options;
   const actionsEmojis: { [key in ModType]: string } = {
     WARN: "⚠️",
     MUTE: "🔇",
@@ -54,8 +50,9 @@ async function generateEmbed(options: {
     "0 + 0 = ?",
   ];
 
-  const start = (page - 1) * 5;
-  const displayedCases = cases.sort((a, b) => b.id - a.id).slice(start, start + 5);
+  const casesPerPage = 5;
+  const start = page * casesPerPage;
+  const displayedCases = cases.sort((a, b) => b.id - a.id).slice(start, start + casesPerPage);
   const avatar = user ? user.avatarURL() : (await safeGuild(client, guildID))?.iconURL();
   let fields = displayedCases.map(c => {
     const val = [
@@ -89,7 +86,7 @@ async function generateEmbed(options: {
       iconURL: avatar!,
     })
     .setFooter({
-      text: `${totalPages > 1 ? `Page ${page} of ${totalPages}` : ""}${user ? `\nUser ID: ${user.id} • Server ID: ${guildID}` : `${totalPages > 1 ? ` • Server ID: ${guildID}` : `Server ID: ${guildID}`}`}`,
+      text: user ? `User ID: ${user.id} • Server ID: ${guildID}` : `Server ID: ${guildID}`,
     })
     .setColor(await colorize({ hue: Sokolors.Blue }));
 
@@ -154,54 +151,41 @@ export async function run(interaction: ChatInputCommandInteraction) {
   const user = interaction.options.getUser("user");
   const modType = interaction.options.getString("type") as ModType;
   const actionID = interaction.options.getNumber("id");
-  // if (actionID && actionID?.startsWith("#")) actionID = actionID.slice(1);
-
   let cases;
+
   if (actionID) cases = await getCase(guildID, actionID);
   else if (user) cases = await listUserCases(guildID, user.id, modType);
   else cases = await listGuildCases(guildID, modType);
 
-  const totalPages = Math.ceil(cases.length / 5);
-  let page = Math.max(1, Math.min(interaction.options.getNumber("page") || 1, totalPages));
-  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-    new ButtonBuilder()
-      .setCustomId("left")
-      .setEmoji(replace("(leftArrow)"))
-      .setStyle(ButtonStyle.Primary),
-    new ButtonBuilder()
-      .setCustomId("right")
-      .setEmoji(replace("(rightArrow)"))
-      .setStyle(ButtonStyle.Primary),
-  );
-
+  const pages = Math.ceil(cases.length / 5);
+  let page = Math.max(0, Math.min(interaction.options.getNumber("page") || 0, pages) - 1);
   const reply = await interaction.reply({
-    embeds: [
-      await generateEmbed({ cases, page, totalPages, guildID, type: modType, user, id: actionID }),
-    ],
-    components: totalPages > 1 ? [row] : [],
+    embeds: [await generateEmbed({ cases, page, guildID, type: modType, user, id: actionID })],
+    components: pages > 1 ? [pagedButtons(pages, page)] : [],
   });
 
-  if (totalPages <= 1) return;
+  if (pages <= 1) return;
   const collector = reply.createMessageComponentCollector({ time: 60000 });
   collector.on("collect", async (i: ButtonInteraction) => {
     if (await buttonCheck({ i, interaction, reply })) return;
     collector.resetTimer({ time: 60000 });
+    page = await handlePages({ i, page, pages, collector });
 
-    if (i.customId == "left") page = page > 1 ? page - 1 : totalPages;
-    else page = page < totalPages ? page + 1 : 1;
-    await i.update({
-      embeds: [
-        await generateEmbed({
-          cases,
-          page,
-          totalPages,
-          guildID,
-          type: modType,
-          user,
-          id: actionID,
-        }),
-      ],
-      components: [row],
+    await safeReply({
+      interaction: i,
+      editOptions: {
+        embeds: [await generateEmbed({ cases, page, guildID, type: modType, user, id: actionID })],
+        components: [pagedButtons(pages, page)],
+      },
     });
+  });
+
+  collector.on("end", async () => {
+    try {
+      await interaction.editReply({ components: [] });
+    } catch (error) {
+      if (Error.isError(error) && error.message.toLowerCase().includes("unknown message")) return;
+      throw error;
+    }
   });
 }

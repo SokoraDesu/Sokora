@@ -8,7 +8,8 @@ import {
 import { buttonCheck, errorEmbed } from "embeds/errorEmbed";
 import { colorize, Sokolors } from "utils/colorize";
 import { dotCheck } from "utils/dotCheck";
-import { handleButtons, pagedButtons } from "utils/pagination";
+import { handlePages, pagedButtons } from "utils/pagination";
+import { safeReply } from "utils/safeThings";
 
 export const data = new SlashCommandSubcommandBuilder()
   .setName("view")
@@ -25,10 +26,9 @@ export async function run(interaction: ChatInputCommandInteraction) {
       reason: "This command can only be used in a server.",
     });
 
-  const argPage = interaction.options.getNumber("page") ?? 0;
   const news = await listAllNews(interaction.guild.id);
   const pages = news.length;
-  let page = (argPage <= 0 ? 0 : argPage > pages ? pages - 1 : argPage) || 0;
+  let page = Math.max(0, Math.min(interaction.options.getNumber("page") || 0, pages) - 1);
 
   if (!news || !pages)
     return await errorEmbed({
@@ -58,14 +58,17 @@ export async function run(interaction: ChatInputCommandInteraction) {
     components: pages > 1 ? [pagedButtons(pages, page)] : [],
   });
 
-  if (page < 0) return;
+  if (pages <= 1) return;
   const collector = reply.createMessageComponentCollector({ time: 60000 });
   collector.on("collect", async (i: ButtonInteraction) => {
     if (await buttonCheck({ i, interaction, reply })) return;
     collector.resetTimer({ time: 60000 });
-    page = await handleButtons({ i, page, pages, collector });
+    page = await handlePages({ i, page, pages, collector });
 
-    await i.update({ embeds: [await getEmbed()], components: [pagedButtons(pages, page)] });
+    await safeReply({
+      interaction: i,
+      editOptions: { embeds: [await getEmbed()], components: [pagedButtons(pages, page)] },
+    });
   });
 
   collector.on("end", async () => {
