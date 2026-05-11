@@ -100,7 +100,11 @@ export async function serverEmbed(options: Options): Promise<ContainerBuilder> {
   const dot = dotCheck({ string: icon, doubleSpace: true });
   const container = new ContainerBuilder();
   const start = new TextDisplayBuilder().setContent(
-    [`## ${guild.name}`, generalValues, safetyValues.join(" • ")].join("\n"),
+    [
+      `## ${pages ? `#${page! + 1}  •  ` : dot}${guild.name}`,
+      generalValues,
+      safetyValues.join(" • "),
+    ].join("\n"),
   );
 
   if (icon)

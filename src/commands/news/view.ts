@@ -8,7 +8,7 @@ import {
 import { buttonCheck, errorEmbed } from "embeds/errorEmbed";
 import { colorize, Sokolors } from "utils/colorize";
 import { dotCheck } from "utils/dotCheck";
-import { pagedButtons } from "utils/pagination";
+import { handleButtons, pagedButtons } from "utils/pagination";
 
 export const data = new SlashCommandSubcommandBuilder()
   .setName("view")
@@ -18,7 +18,6 @@ export const data = new SlashCommandSubcommandBuilder()
   );
 
 export async function run(interaction: ChatInputCommandInteraction) {
-  let page = interaction.options.getNumber("page") ?? 1;
   if (!interaction.guild)
     return await errorEmbed({
       interaction,
@@ -26,8 +25,10 @@ export async function run(interaction: ChatInputCommandInteraction) {
       reason: "This command can only be used in a server.",
     });
 
+  const argPage = interaction.options.getNumber("page") ?? 0;
   const news = await listAllNews(interaction.guild.id);
   const pages = news.length;
+  let page = (argPage <= 0 ? 0 : argPage > pages ? pages - 1 : argPage) || 0;
 
   if (!news || !pages)
     return await errorEmbed({
@@ -36,11 +37,8 @@ export async function run(interaction: ChatInputCommandInteraction) {
       reason: "Admins can post news with the **/news post** command.",
     });
 
-  if (page > pages) page = pages;
-  if (page < 1) page = 1;
-
   async function getEmbed() {
-    const currentNews = news[page - 1];
+    const currentNews = news[page];
     const avatar = currentNews.authorPFP;
     return new EmbedBuilder()
       .setAuthor({
@@ -51,35 +49,23 @@ export async function run(interaction: ChatInputCommandInteraction) {
       .setDescription(currentNews.body)
       .setImage(currentNews.imageURL || null)
       .setTimestamp(currentNews.updatedAt || currentNews.createdAt)
-      .setFooter({
-        text: `${pages > 1 ? `Page ${page} of ${pages} • ` : ""}ID: ${currentNews.id}`,
-      })
+      .setFooter({ text: `ID: ${currentNews.id}` })
       .setColor(await colorize({ hue: Sokolors.Blue }));
   }
 
-  const row = pagedButtons(pages, page);
   const reply = await interaction.reply({
     embeds: [await getEmbed()],
-    components: pages > 1 ? [row] : [],
+    components: pages > 1 ? [pagedButtons(pages, page)] : [],
   });
 
-  if (page < 1) return;
+  if (page < 0) return;
   const collector = reply.createMessageComponentCollector({ time: 60000 });
   collector.on("collect", async (i: ButtonInteraction) => {
     if (await buttonCheck({ i, interaction, reply })) return;
     collector.resetTimer({ time: 60000 });
-    switch (i.customId) {
-      case "left":
-        page--;
-        if (page < 1) page = pages;
-        await i.update({ embeds: [await getEmbed()], components: [row] });
-        break;
-      case "right":
-        page++;
-        if (page > pages) page = 1;
-        await i.update({ embeds: [await getEmbed()], components: [row] });
-        break;
-    }
+    page = await handleButtons({ i, page, pages, collector });
+
+    await i.update({ embeds: [await getEmbed()], components: [pagedButtons(pages, page)] });
   });
 
   collector.on("end", async () => {

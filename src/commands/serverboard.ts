@@ -8,7 +8,7 @@ import {
 import { buttonCheck, errorEmbed } from "embeds/errorEmbed";
 import { serverEmbed } from "embeds/serverEmbed";
 import { handleButtons } from "utils/pagination";
-import { safeGuild } from "utils/safeThings";
+import { safeGuild, safeReply } from "utils/safeThings";
 
 export const data = new SlashCommandBuilder()
   .setName("serverboard")
@@ -56,8 +56,8 @@ export async function run(interaction: ChatInputCommandInteraction) {
         "By some magical miracle, all the servers using Sokora turned off their visibility. Use /settings serverboard `shown: True` to make your server publicly visible.",
     });
 
-  const argPage = interaction.options.getNumber("page") as number;
-  let page = (argPage - 1 <= 0 ? 0 : argPage - 1 > pages ? pages - 1 : argPage - 1) || 0;
+  const argPage = interaction.options.getNumber("page") ?? 0;
+  let page = (argPage <= 0 ? 0 : argPage > pages ? pages - 1 : argPage) || 0;
 
   async function getContainer(disableButtons?: boolean) {
     return await serverEmbed({
@@ -84,12 +84,18 @@ export async function run(interaction: ChatInputCommandInteraction) {
     collector.resetTimer({ time: 60000 });
     page = await handleButtons({ i, page, pages, collector });
 
-    await i.update({ components: [await getContainer(false)] });
+    return await safeReply({
+      interaction,
+      editOptions: { components: [await getContainer(false)] },
+    });
   });
 
   collector.on("end", async () => {
     try {
-      await interaction.editReply({ components: [await getContainer(true)] });
+      return await safeReply({
+        interaction,
+        editOptions: { components: [await getContainer(true)] },
+      });
     } catch (error) {
       if (Error.isError(error) && error.message.toLowerCase().includes("unknown message")) return;
       throw error;
