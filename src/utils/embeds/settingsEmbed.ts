@@ -50,6 +50,7 @@ import { mention } from "utils/mention";
 import { modalSubmit } from "utils/modalSubmit";
 import { safeMember, safeReply } from "utils/safeThings";
 import { buttonCheck } from "./errorEmbed";
+// import { forceType } from "utils/types";
 
 type Component =
   | ButtonBuilder
@@ -287,7 +288,7 @@ export async function settingsEmbed(
     }
 
     const typedSetting = (settingsObj as Record<string, SingleSettingDefinition>)[name];
-    let settingObject: SingleSettingDefinition | SingleSettingDefinition["settings"] = typedSetting;
+    let settingObject: SingleSettingDefinition | (SingleSettingDefinition & { type: "OBJECT" })["settings"] = typedSetting;
 
     if (typedSetting.type === "OBJECT")
       switch (name) {
@@ -318,7 +319,9 @@ export async function settingsEmbed(
       .setCustomId(data.id)
       .setLabel("Edit")
       .setStyle(ButtonStyle.Secondary);
-
+    
+    // Commented for now cuz idk if it can cause problems with the soon-to-exist implementation of OBJECT
+    // if (!forceType<SingleSettingDefinition>(settingObject)) return;
     switch (settingObject.type) {
       case "BOOL":
         component = component
@@ -347,7 +350,7 @@ export async function settingsEmbed(
 
         break;
       case "SELECT": {
-        const options = (settingObject as SingleSettingDefinition).choices!;
+        const options = (settingObject as SingleSettingDefinition & { type: "SELECT" }).choices;
         component = new StringSelectMenuBuilder()
           .setCustomId(data.id)
           .setMaxValues(options.length)
@@ -631,7 +634,7 @@ export async function settingsEmbed(
           );
     }
 
-    if (objView) settingsObj = settingsObj["rewards"].settings!;
+    if (objView) settingsObj = (settingsObj["rewards"] as SingleSettingDefinition & { type: "OBJECT" }).settings;
     const newContainer = new ContainerBuilder().setAccentColor(color);
     await construct(
       itrObjView
