@@ -5,8 +5,8 @@
  */
 export function kominator(string: string | undefined): string[] {
   if (!string || string.trim() == "") return [];
-  const ret = string.split(",").map(str => str.replaceAll('"', "").trim());
-  return ret;
+  const returnValue = string.split(",").map(string_ => string_.replaceAll('"', "").trim());
+  return returnValue;
 }
 
 /**
@@ -15,5 +15,5 @@ export function kominator(string: string | undefined): string[] {
  * @returns A string with all elements of the array, joined.
  */
 export function dekominator(strings: string[]): string {
-  return strings.map(str => str.trim()).join(",");
+  return strings.map(string_ => string_.trim()).join(",");
 }

@@ -16,7 +16,7 @@ import { dotCheck } from "utils/dotCheck";
 import { kominator } from "utils/kominator";
 import { mention } from "utils/mention";
 import { safeChannel, safeMember, safeRole } from "utils/safeThings";
-import { Event } from "utils/types";
+import type { Event } from "utils/types";
 
 const cooldowns = new Map<string, number>();
 export default (async function run(message) {
@@ -35,8 +35,8 @@ export default (async function run(message) {
       for (const easterEgg of easterEggs) {
         if (!(!enabledEggs || kominator(enabledEggs).includes(easterEgg.name))) continue;
         try {
-          if (typeof easterEgg.run == "function")
-            if (Math.random() <= 0.15) await easterEgg.run(message);
+          if (typeof easterEgg.run == "function" && Math.random() <= 0.15)
+            await easterEgg.run(message);
         } catch (error) {
           return await errorEmbed({
             client,
@@ -59,7 +59,7 @@ export default (async function run(message) {
   if (cooldown > 0) {
     const key = `${guild.id}-${author.id}`;
     const now = Date.now();
-    if (now - (cooldowns.get(key) || 0) < cooldown * 1000) return;
+    if (now - (cooldowns.get(key) ?? 0) < cooldown * 1000) return;
     cooldowns.set(key, now);
   }
 

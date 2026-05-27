@@ -25,7 +25,7 @@ export async function colorize(options: {
   }
 
   if (!avatar) return genColor();
-  function randomizeColor(hue: number, saturation: number, lightness: number) {
+  function randomizeColor(hue: number, saturation: number, lightness: number): RGBTuple {
     const [h, s, l] = [
       hue + 10 * Math.random(),
       saturation + 10 * Math.random(),
@@ -34,20 +34,21 @@ export async function colorize(options: {
     return Bun.color(`hsl(${h}, ${s}%, ${l}%)`, "[rgb]") as RGBTuple;
   }
 
-  const buffer = Buffer.from(await (await fetch(avatar!)).arrayBuffer());
+  const buffer = Buffer.from(await (await fetch(avatar)).arrayBuffer());
   if (!buffer) return genColor();
 
   let color = (await getSwatches(buffer, { quality: 5 })).Vibrant?.color;
-  if (!color) color = (await getColor(buffer, { quality: 5 })) as Color | undefined;
+  color ??= (await getColor(buffer, { quality: 5 })) as Color | undefined;
   if (!color)
     if (user) {
       const accentColor = user.hexAccentColor;
       if (!accentColor) return genColor();
-      const hsl = Bun.color(accentColor, "hsl")!;
+      const hsl = Bun.color(accentColor, "hsl");
+      if (!hsl) throw new Error(`Invalid HSL obtained from ${accentColor}.`);
       return randomizeColor(
-        parseInt(hsl[0].replace("hsl(", "")),
-        parseInt(hsl[1]),
-        parseInt(hsl[2].replace(")", "")),
+        Number.parseInt(hsl[0].replace("hsl(", "")),
+        Number.parseInt(hsl[1]),
+        Number.parseInt(hsl[2].replace(")", "")),
       );
     } else return genColor();
 

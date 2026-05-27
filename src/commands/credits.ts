@@ -12,7 +12,7 @@ export const data = new SlashCommandBuilder()
   .setDescription("Lists everyone who contributed to Sokora.")
   .setContexts(0);
 
-export async function run(interaction: ChatInputCommandInteraction) {
+export async function run(interaction: ChatInputCommandInteraction): Promise<void> {
   const user = interaction.client.user;
   const container = new ContainerBuilder()
     .addTextDisplayComponents(

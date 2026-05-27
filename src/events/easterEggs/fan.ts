@@ -1,7 +1,7 @@
 import type { Message, TextChannel } from "discord.js";
 import { randomize } from "utils/randomize";
 
-export async function run(message: Message) {
+export async function run(message: Message): Promise<void> {
   if (message.content.trim().toLowerCase() != "i'm a big fan") return;
   const GIFs = randomize([
     "https://tenor.com/bC37i.gif",

@@ -16,15 +16,18 @@ import type { Event } from "utils/types";
 const MESSAGE_LENGTH_CAP = 1024;
 export default (async function run(oldMessage, newMessage) {
   if (oldMessage.partial) return;
-  const author = oldMessage.author!;
+  const author = oldMessage.author;
   if (author.bot) return;
 
-  const guild = oldMessage.guild!;
-  if (!(await getSetting(guild.id, "moderation", "events"))?.toString().includes("messageUpdate"))
+  const guild = oldMessage.guild;
+  if (
+    !guild ||
+    !(await getSetting(guild.id, "moderation", "events"))?.toString().includes("messageUpdate")
+  )
     return;
 
-  const oldContent = oldMessage.content!;
-  const newContent = newMessage.content!;
+  const oldContent = oldMessage.content;
+  const newContent = newMessage.content;
   if (oldContent == newContent) return;
   const oldLength = oldContent.length;
   const newLength = newContent.length;

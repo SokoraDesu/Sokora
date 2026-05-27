@@ -1,5 +1,11 @@
-type TVer = `${number}/${number}/${number}` | "Work in progress";
-type TParsedVersion = { minor: boolean; ver: string; codename: null | string; date: TVer };
+type TDate = `${number}/${number}/${number}`;
+type TVersion = TDate | "Work in progress";
+interface TParsedVersion {
+  minor: boolean;
+  ver: string;
+  codename: null | string;
+  date: TVersion;
+}
 type TParsedChangelog = TParsedVersion & {
   body: Record<"Fixed" | "Added" | "Removed" | "Changed", string>;
 };
@@ -11,25 +17,25 @@ const changelog = await Bun.file("./CHANGELOG.md").text();
  * @param ver Version to get changelog for.
  * @returns An object with changelog data.
  */
-export function getChangelog(ver: string): TParsedChangelog {
+export function getChangelog(version: string): TParsedChangelog {
   const _ = changelog.split("\n").filter(s => !s.startsWith("<!--"));
-  const i = _.findIndex(s => s.startsWith(`## ${ver}`));
-  const i2 = _.slice(i).filter(s => s.trim() !== "");
-  const i3 = i2.slice(1).findIndex(s => s.startsWith("## "));
-  const lines = i2.slice(0, (i3 === -1 ? i2.length : i3 + 1) + 1);
+  const index = _.findIndex(s => s.startsWith(`## ${version}`));
+  const index2 = _.slice(index).filter(s => s.trim() !== "");
+  const index3 = index2.slice(1).findIndex(s => s.startsWith("## "));
+  const lines = index2.slice(0, (index3 === -1 ? index2.length : index3 + 1) + 1);
   const base = lines.slice(1);
   const categories = base.filter(s => s.startsWith("### ")).map(s => s.replace("### ", ""));
   const entries: [keyof TParsedChangelog["body"], string][] = [];
-  categories.forEach(cat => {
-    const i = base.findIndex(s => s.startsWith("### " + cat));
-    const i2 = base.slice(i + 1).findIndex(s => s.startsWith("### "));
+  for (const cat of categories) {
+    const index = base.findIndex(s => s.startsWith("### " + cat));
+    const index2_ = base.slice(index + 1).findIndex(s => s.startsWith("### "));
     const newBase = base
-      .slice(i, i2 === -1 ? base.length : i + 1 + i2)
+      .slice(index, index2_ === -1 ? base.length : index + 1 + index2_)
       .slice(1)
       .filter(s => !s.startsWith("## ")) // patch
       .join("\n");
     if (newBase !== "") entries.push([cat as keyof TParsedChangelog["body"], newBase]);
-  });
+  }
 
   return {
     ...parseVersion(lines[0]),
@@ -37,11 +43,11 @@ export function getChangelog(ver: string): TParsedChangelog {
   };
 }
 
-function parseVersion(str: string): TParsedVersion {
-  const [ver, codename, date] = str.replace("## ", "").split(" - ");
-  const minor = ver.endsWith(".0");
-  if (!date) return { ver, date: codename as any, minor, codename: null };
-  return { ver, date: date as any, codename, minor };
+function parseVersion(string_: string): TParsedVersion {
+  const [version, codename, date] = string_.replace("## ", "").split(" - ");
+  const minor = version.endsWith(".0");
+  if (!date) return { ver: version, date: codename as TDate, minor, codename: null };
+  return { ver: version, date: date as TDate, codename, minor };
 }
 
 /**

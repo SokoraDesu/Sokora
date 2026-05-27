@@ -7,7 +7,7 @@ import { dotCheck } from "utils/dotCheck";
 import { kominator } from "utils/kominator";
 import { replaceVariables } from "utils/replace";
 import { safeChannel } from "utils/safeThings";
-import { Event } from "utils/types";
+import type { Event } from "utils/types";
 
 export default (async function run(member) {
   const guild = member.guild;
@@ -48,7 +48,7 @@ export default (async function run(member) {
     await channel.send({ embeds: [embed] });
   }
 
-  if (!(await getSetting(guildID, "welcome", "join_dm")) as boolean) return;
+  if (!(await getSetting(guildID, "welcome", "join_dm"))) return;
   const dmChannel = await user.createDM().catch(() => null);
   if (!dmChannel || user.bot) return;
 

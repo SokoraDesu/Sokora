@@ -4,6 +4,8 @@ import {
   SlashCommandBuilder,
   type ButtonInteraction,
   type ChatInputCommandInteraction,
+  type InteractionResponse,
+  type Message,
 } from "discord.js";
 import { buttonCheck, errorEmbed } from "embeds/errorEmbed";
 import { colorize, Sokolors } from "utils/colorize";
@@ -16,14 +18,16 @@ export const data = new SlashCommandBuilder()
   .addNumberOption(option => option.setName("page").setDescription("Page number to display."))
   .setContexts(0);
 
-export async function run(interaction: ChatInputCommandInteraction) {
+export async function run(
+  interaction: ChatInputCommandInteraction,
+): Promise<Message | InteractionResponse | undefined> {
   const guild = interaction.guild;
   const guildID = guild?.id;
   if (!guildID)
     return await errorEmbed({ interaction, title: "This command can only be used in a server." });
 
   const leaderboardData = await getGuildLeaderboard(guildID);
-  if (!leaderboardData.length)
+  if (leaderboardData.length === 0)
     return await errorEmbed({
       interaction,
       title: "No data found.",
@@ -31,28 +35,25 @@ export async function run(interaction: ChatInputCommandInteraction) {
     });
 
   leaderboardData.sort((a, b) => {
-    if (b.level != a.level) return b.level - a.level;
-    else return b.xp - a.xp;
+    return b.level == a.level ? b.xp - a.xp : b.level - a.level;
   });
 
   const usersPerPage = 6;
   const pages = Math.ceil(leaderboardData.length / usersPerPage);
   let page = Math.max(0, Math.min(interaction.options.getNumber("page") || 0, pages) - 1);
 
-  const generateEmbed = async () => {
+  const generateEmbed = async (): Promise<EmbedBuilder> => {
     const start = page * usersPerPage;
     const pageData = leaderboardData.slice(start, start + usersPerPage);
     const embed = new EmbedBuilder()
       .setAuthor({ name: "Leaderboard" })
       .setColor(await colorize({ hue: Sokolors.Blue }));
 
-    for (let i = 0; i < pageData.length; i++) {
-      const userData = pageData[i];
+    for (const [index, userData] of pageData.entries())
       embed.addFields({
-        name: `#${start + i + 1} • ${(await safeUser(interaction.client, userData.userID)).tag}`,
+        name: `#${start + index + 1} • ${(await safeUser(interaction.client, userData.userID)).tag}`,
         value: `Level **${Math.floor(userData.level)}** • **${Math.floor(userData.xp)}** XP`,
       });
-    }
 
     return embed;
   };
@@ -64,13 +65,13 @@ export async function run(interaction: ChatInputCommandInteraction) {
 
   if (pages <= 1) return;
   const collector = reply.createMessageComponentCollector({ time: 60000 });
-  collector.on("collect", async (i: ButtonInteraction) => {
-    if (await buttonCheck({ i, interaction, reply })) return;
+  collector.on("collect", async (buttonInteraction: ButtonInteraction) => {
+    if (await buttonCheck({ i: buttonInteraction, interaction, reply })) return;
     collector.resetTimer({ time: 60000 });
-    page = await handlePages({ i, page, pages, collector });
+    page = await handlePages({ i: buttonInteraction, page, pages, collector });
 
     await safeReply({
-      interaction: i,
+      interaction: buttonInteraction,
       editOptions: { embeds: [await generateEmbed()], components: [pagedButtons(pages, page)] },
     });
   });

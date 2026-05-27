@@ -3,8 +3,10 @@ import { getSetting } from "database/settings";
 import {
   EmbedBuilder,
   SlashCommandSubcommandBuilder,
-  TextChannel,
   type ChatInputCommandInteraction,
+  type InteractionResponse,
+  type Message,
+  type TextChannel,
 } from "discord.js";
 import { errorEmbed } from "embeds/errorEmbed";
 import { colorize, Sokolors } from "utils/colorize";
@@ -20,16 +22,25 @@ export const data = new SlashCommandSubcommandBuilder()
       .setRequired(true),
   );
 
-export async function run(interaction: ChatInputCommandInteraction) {
-  const guild = interaction.guild!;
-  if (!(await safeMember(guild, interaction.user.id)).permissions.has("ManageGuild"))
+export async function run(
+  interaction: ChatInputCommandInteraction,
+): Promise<Message | InteractionResponse | undefined> {
+  const guild = interaction.guild;
+  if (!guild || !(await safeMember(guild, interaction.user.id)).permissions.has("ManageGuild"))
     return await errorEmbed({
       interaction,
       title: "You can't execute this command.",
       reason: "You need the **Manage Server** permission.",
     });
 
-  const id = interaction.options.getNumber("id")!;
+  const id = interaction.options.getNumber("id");
+  if (!id)
+    return await errorEmbed({
+      interaction,
+      title: "No ID provided.",
+      reason:
+        "You somehow ran the command without an ID being provided. That is an error. You might want to report this, as it is not supposed to ever happen.",
+    });
   const news = await getNews(guild.id, id);
   if (!news)
     return await errorEmbed({ interaction, title: "The specified news post doesn't exist." });

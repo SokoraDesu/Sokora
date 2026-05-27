@@ -1,10 +1,13 @@
-import {
+import type {
   AnySelectMenuInteraction,
   BaseFetchOptions,
   ButtonInteraction,
+  Channel,
   ChatInputCommandInteraction,
   Client,
+  Collection,
   Guild,
+  GuildMember,
   InteractionEditReplyOptions,
   InteractionReplyOptions,
   InteractionResponse,
@@ -12,6 +15,8 @@ import {
   Message,
   MessagePayload,
   ModalSubmitInteraction,
+  Role,
+  User,
 } from "discord.js";
 
 /**
@@ -20,8 +25,10 @@ import {
  * @param id The ID of the channel.
  * @returns A channel.
  */
-export async function safeChannel(option: Guild | Client, id: string) {
-  return (option.channels.cache.get(id) ?? (await option.channels.fetch(id)))!;
+export async function safeChannel(option: Guild | Client, id: string): Promise<Channel> {
+  const res = option.channels.cache.get(id) ?? (await option.channels.fetch(id));
+  if (!res) throw new Error(`Channel ${id} was NOT found.`);
+  return res;
 }
 
 /**
@@ -30,8 +37,10 @@ export async function safeChannel(option: Guild | Client, id: string) {
  * @param id The ID of the role.
  * @returns A role.
  */
-export async function safeRole(guild: Guild, id: string) {
-  return (guild.roles.cache.get(id) ?? (await guild.roles.fetch(id)))!;
+export async function safeRole(guild: Guild, id: string): Promise<Role> {
+  const res = guild.roles.cache.get(id) ?? (await guild.roles.fetch(id));
+  if (!res) throw new Error(`Role ${id} was NOT found.`);
+  return res;
 }
 
 /**
@@ -40,11 +49,11 @@ export async function safeRole(guild: Guild, id: string) {
  * @param id The ID of the member.
  * @returns A member.
  */
-export async function safeMember(guild: Guild, id: string) {
+export async function safeMember(guild: Guild, id: string): Promise<GuildMember> {
   return guild.members.cache.get(id) ?? (await guild.members.fetch(id));
 }
 
-export async function safeMembers(guild: Guild) {
+export async function safeMembers(guild: Guild): Promise<Collection<string, GuildMember>> {
   return guild.members.cache ?? (await guild.members.fetch());
 }
 
@@ -54,7 +63,11 @@ export async function safeMembers(guild: Guild) {
  * @param id The ID of the user.
  * @returns A user.
  */
-export async function safeUser(client: Client, id: string, force?: BaseFetchOptions) {
+export async function safeUser(
+  client: Client,
+  id: string,
+  force?: BaseFetchOptions,
+): Promise<User> {
   return client.users.cache.get(id) ?? (await client.users.fetch(id, force));
 }
 
@@ -64,7 +77,7 @@ export async function safeUser(client: Client, id: string, force?: BaseFetchOpti
  * @param id The ID of the guild.
  * @returns A guild.
  */
-export async function safeGuild(client: Client, id: string) {
+export async function safeGuild(client: Client, id: string): Promise<Guild> {
   return client.guilds.cache.get(id) ?? (await client.guilds.fetch(id));
 }
 
@@ -85,12 +98,9 @@ export async function safeReply(options: {
     | ModalSubmitInteraction;
   replyOptions?: string | MessagePayload | InteractionReplyOptions;
   editOptions?: string | MessagePayload | InteractionEditReplyOptions;
-}): Promise<Message<boolean> | InteractionResponse<boolean>> {
+}): Promise<Message | InteractionResponse> {
   const { interaction, replyOptions, editOptions } = options;
-  const reply = (replyOptions! || editOptions!) as
-    | string
-    | MessagePayload
-    | InteractionReplyOptions;
+  const reply = (replyOptions ?? editOptions) as string | MessagePayload | InteractionReplyOptions;
 
   if (interaction.replied || interaction.deferred) {
     if (editOptions) return await interaction.editReply(editOptions);
@@ -98,7 +108,7 @@ export async function safeReply(options: {
   }
 
   if (interaction.isButton() || interaction.isAnySelectMenu())
-    return await interaction.update((replyOptions! || editOptions!) as InteractionUpdateOptions);
+    return await interaction.update((replyOptions ?? editOptions) as InteractionUpdateOptions);
 
   return await interaction.reply(reply);
 }

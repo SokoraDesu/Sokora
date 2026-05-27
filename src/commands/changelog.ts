@@ -1,14 +1,14 @@
 import {
   ActionRowBuilder,
   ButtonBuilder,
-  ButtonInteraction,
   ButtonStyle,
-  ClientUser,
   ContainerBuilder,
   SeparatorBuilder,
   SlashCommandBuilder,
   TextDisplayBuilder,
+  type ButtonInteraction,
   type ChatInputCommandInteraction,
+  type ClientUser,
 } from "discord.js";
 import { buttonCheck } from "embeds/errorEmbed";
 import { colorize, Sokolors } from "utils/colorize";
@@ -20,10 +20,12 @@ export const data = new SlashCommandBuilder()
   .setDescription("Shows Sokora's changelog.")
   .setContexts(0);
 
+type Label = "Added" | "Changed" | "Fixed" | "Removed";
+
 async function genChangelog(
   user: ClientUser,
   changelog: ReturnType<typeof getChangelog>,
-  viewing: keyof ReturnType<typeof getChangelog>["body"],
+  viewing: Label,
   list: ReturnType<typeof getVersions>,
 ): Promise<ContainerBuilder> {
   return new ContainerBuilder()
@@ -45,7 +47,7 @@ async function genChangelog(
                 Added: ButtonStyle.Success,
                 Removed: ButtonStyle.Danger,
                 Changed: ButtonStyle.Secondary,
-              }[v]!,
+              }[v as Label],
             )
             .setDisabled(v === viewing),
         ),
@@ -73,19 +75,14 @@ async function genChangelog(
     );
 }
 
-function getDefaultCategoryToView(
-  changelog: ReturnType<typeof getChangelog>,
-): keyof ReturnType<typeof getChangelog>["body"] {
-  return changelog.body["Added"]
-    ? "Added"
-    : changelog.body["Changed"]
-      ? "Changed"
-      : changelog.body["Fixed"]
-        ? "Fixed"
-        : "Removed";
+function getDefaultCategoryToView(changelog: ReturnType<typeof getChangelog>): Label {
+  if (changelog.body.Added) return "Added";
+  else if (changelog.body.Changed) return "Changed";
+  else if (changelog.body.Removed) return "Removed";
+  else return "Fixed";
 }
 
-export async function run(interaction: ChatInputCommandInteraction) {
+export async function run(interaction: ChatInputCommandInteraction): Promise<void> {
   const user = interaction.client.user;
   const logList = getVersions();
   const changelog = getChangelog(logList[0].ver);
@@ -100,28 +97,28 @@ export async function run(interaction: ChatInputCommandInteraction) {
     components: [container],
     flags: ["Ephemeral", "IsComponentsV2"],
   });
-  const collector = reply.createMessageComponentCollector({ time: 60000 });
-  collector.on("collect", async (i: ButtonInteraction) => {
-    if (await buttonCheck({ i, interaction, reply })) return;
-    collector.resetTimer({ time: 60000 });
+  const collector = reply.createMessageComponentCollector({ time: 60_000 });
+  collector.on("collect", async (buttonInteraction: ButtonInteraction) => {
+    if (await buttonCheck({ i: buttonInteraction, interaction, reply })) return;
+    collector.resetTimer({ time: 60_000 });
 
-    const split = i.customId.replace("-", "").split("+");
-    const newVer = ["Added", "Changed", "Fixed", "Removed"].some(s =>
-      i.customId.startsWith(s + "+"),
+    const split = buttonInteraction.customId.replace("-", "").split("+");
+    const newVersion = ["Added", "Changed", "Fixed", "Removed"].some(s =>
+      buttonInteraction.customId.startsWith(s + "+"),
     )
       ? split[1]
       : split[0];
 
-    const found = logList.findIndex(v => v.ver === newVer);
-    const idx = Math.max(0, Math.min(found - 2, logList.length - 3));
-    const log = getChangelog(newVer);
-    return await i.update({
+    const foundIndex = logList.findIndex(v => v.ver === newVersion);
+    const indexToSliceOn = Math.max(0, Math.min(foundIndex - 2, logList.length - 3));
+    const log = getChangelog(newVersion);
+    return await buttonInteraction.update({
       components: [
         await genChangelog(
           user,
           log,
-          split[1] ? (split[0] as any) : getDefaultCategoryToView(log),
-          logList.slice(idx, idx + 5).filter(v => v !== undefined),
+          split[1] ? (split[0] as Label) : getDefaultCategoryToView(log),
+          logList.slice(indexToSliceOn, indexToSliceOn + 5).filter(v => v !== undefined),
         ),
       ],
     });

@@ -1,6 +1,6 @@
-import { Satisfies } from "utils/types";
+import type { Satisfies } from "utils/types";
 import { db, values } from ".";
-import { TableDefinition, TypeOfDefinition } from "./types";
+import type { TableDefinition, TypeOfDefinition } from "./types";
 
 export type Case = Satisfies<
   TableDefinition,
@@ -28,9 +28,9 @@ export async function createCase(
   moderator: string,
   reason = "",
   expiresAt?: Date | null,
-) {
+): Promise<number> {
   const id: number =
-    (values(
+    (values<number>(
       await db`SELECT id FROM moderation WHERE "guild" = ${guildID} ORDER BY "id" DESC LIMIT 1;`,
       true,
     )[0] ?? 0) + 1;
@@ -49,39 +49,45 @@ export async function createCase(
   return id;
 }
 
-export async function listGuildCases(guildID: number | string, modType?: ModType) {
+export async function listGuildCases(
+  guildID: number | string,
+  modType?: ModType,
+): Promise<TypeOfDefinition<Case>[]> {
   const typeFilter = db`AND "type" = ${modType}`;
-  return values(
+  return values<TypeOfDefinition<Case>>(
     await db`
       SELECT * FROM moderation
       WHERE "guild" = ${guildID}
       ${modType ? typeFilter : db``}
       ORDER BY "id" DESC;`,
-  ) as TypeOfDefinition<Case>[];
+  );
 }
 
 export async function listUserCases(
   guildID: number | string,
   userID: number | string,
   modType?: ModType,
-) {
+): Promise<TypeOfDefinition<Case>[]> {
   const typeFilter = db`AND "type" = ${modType}`;
-  return values(
+  return values<TypeOfDefinition<Case>>(
     await db`
       SELECT * FROM moderation
       WHERE "guild" = ${guildID}
       AND "userID" = ${userID}
       ${modType ? typeFilter : db``}
       ORDER BY "id" DESC;`,
-  ) as TypeOfDefinition<Case>[];
+  );
 }
 
-export async function getCase(guildID: number | string, id?: number) {
-  const modCase = values(
+export async function getCase(
+  guildID: number | string,
+  id?: number,
+): Promise<TypeOfDefinition<Case>[]> {
+  const modCase = values<TypeOfDefinition<Case>>(
     await db`SELECT * FROM moderation WHERE "guild" = ${guildID} AND "id" = ${id};`,
-  ) as TypeOfDefinition<Case>[];
+  );
 
-  if (modCase.length) return modCase;
+  if (modCase.length > 0) return modCase;
   return [];
 }
 
@@ -90,16 +96,16 @@ export async function editCase(
   id: number,
   reason: string,
   expiresAt?: Date | null,
-) {
+): Promise<void> {
   await db`UPDATE moderation SET reason = ${reason}, expiresAt = ${expiresAt} WHERE "guild" = ${guildID} AND "id" = ${id};`;
 }
 
-export async function removeCase(guildID: string | number, id: number) {
+export async function removeCase(guildID: string | number, id: number): Promise<void> {
   await db`DELETE FROM moderation WHERE "guild" = ${guildID} AND id = ${id};`;
 }
 
-export async function getPendingBans(currentTime: number) {
-  return values(
+export async function getPendingBans(currentTime: number): Promise<TypeOfDefinition<Case>[]> {
+  return values<TypeOfDefinition<Case>>(
     await db`SELECT * FROM moderation WHERE "type" = 'BAN' AND "expiresAt" IS NOT NULL AND "expiresAt" > ${new Date(currentTime)};`,
-  ) as TypeOfDefinition<Case>[];
+  );
 }

@@ -11,10 +11,17 @@ export const data = new SlashCommandSubcommandBuilder()
   .setName("variables")
   .setDescription("Show a list of (variables) used to dynamically show data on certain messages.");
 
-export async function run(interaction: ChatInputCommandInteraction) {
+export async function run(interaction: ChatInputCommandInteraction): Promise<void> {
+  const guild = interaction.guild;
+  if (!guild) return;
+
+  const user = interaction.user;
+  if (!user) return;
+
   const example = "Welcome to (servername), **(name)**!";
   const exampleTwo =
     "Hi **(username)**! Thanks for joining *(servername)* at (currentdate, simple), **(serverowner)** and the ***(count)*** members are happy to meet you!";
+
   const exampleThree =
     "Thank you so much to (725985503177867295, user) for making this announcement the (1770053619077, detailed_timestamp). We love you!";
 
@@ -33,21 +40,21 @@ export async function run(interaction: ChatInputCommandInteraction) {
         name: "👀 • Simple example",
         value: [
           `A simple example: \`${example}\` will result in:`,
-          `> ${await replaceVariables(example, interaction.guild!, interaction.user)}`,
+          `> ${await replaceVariables(example, guild, user)}`,
         ].join("\n"),
       },
       {
         name: "🎛 • Another example",
         value: [
           `Adding more stuff:\n\`${exampleTwo}\`\nwill result in:`,
-          `> ${await replaceVariables(exampleTwo, interaction.guild!, interaction.user)}`,
+          `> ${await replaceVariables(exampleTwo, guild, user)}`,
         ].join("\n"),
       },
       {
         name: "🛜 • Dynamic mentioning",
         value: [
           `You can use a similar syntax to mention specific users, roles, channels, or timestamps, since Discord disallows this natively:\n\`${exampleThree}\`\nwill result in:`,
-          `> ${await replaceVariables(exampleThree, interaction.guild!, interaction.user)}`,
+          `> ${await replaceVariables(exampleThree, guild, user)}`,
         ].join("\n"),
       },
       {
@@ -58,9 +65,7 @@ export async function run(interaction: ChatInputCommandInteraction) {
           "`(count)` - member count",
           "`(servername)` - name of this server",
           `\`(serverowner)\` - ${
-            interaction.member?.user.id == interaction.guild?.ownerId
-              ? "your name!"
-              : "name of this server's owner"
+            user.id == guild.ownerId ? "your name!" : "name of this server's owner"
           }`,
           "`(currentdate)` - current date in the 'July 10, 2025' format",
           "`(currentdate, simple)` - current date in the '7/10/25' format",

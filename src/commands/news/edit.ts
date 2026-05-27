@@ -8,6 +8,8 @@ import {
   TextInputBuilder,
   TextInputStyle,
   type ChatInputCommandInteraction,
+  type InteractionResponse,
+  type Message,
   type Role,
   type TextChannel,
 } from "discord.js";
@@ -29,17 +31,26 @@ export const data = new SlashCommandSubcommandBuilder()
       .setRequired(true),
   );
 
-export async function run(interaction: ChatInputCommandInteraction) {
-  const guild = interaction.guild!;
+export async function run(
+  interaction: ChatInputCommandInteraction,
+): Promise<Message | InteractionResponse | undefined> {
+  const guild = interaction.guild;
   const userID = interaction.user.id;
-  if (!(await safeMember(guild, userID)).permissions.has("ManageGuild"))
+  if (!guild || !(await safeMember(guild, userID)).permissions.has("ManageGuild"))
     return await errorEmbed({
       interaction,
       title: "You can't execute this command.",
       reason: "You need the **Manage Server** permission.",
     });
 
-  const id = interaction.options.getNumber("id")!;
+  const id = interaction.options.getNumber("id");
+  if (!id)
+    return await errorEmbed({
+      interaction,
+      title: "No ID provided.",
+      reason:
+        "You somehow ran the command without an ID being provided. That is an error. You might want to report this, as it is not supposed to ever happen.",
+    });
   const news = await getNews(guild.id, id);
   if (!news)
     return await errorEmbed({ interaction, title: "The specified news post doesn't exist." });
@@ -76,15 +87,14 @@ export async function run(interaction: ChatInputCommandInteraction) {
     await errorEmbed({ interaction, error, forward: true, fileName: "edit.ts" });
   }
 
-  const i = await modalSubmit(interaction);
-  if (!i) return;
+  const modalInteraction = await modalSubmit(interaction);
+  if (!modalInteraction) return;
 
   const role = (await getSetting(guild.id, "news", "role")) as string;
-  let roleToSend: Role | undefined;
-  if (role) roleToSend = await safeRole(guild, role);
+  const roleToSend: Role | null = role ? await safeRole(guild, role) : null;
 
-  const title = i.fields.getTextInputValue("title");
-  const body = i.fields.getTextInputValue("body");
+  const title = modalInteraction.fields.getTextInputValue("title");
+  const body = modalInteraction.fields.getTextInputValue("body");
   const avatar = news.authorPFP;
   const editedEmbed = new EmbedBuilder()
     .setTitle("News post edited.")
@@ -103,7 +113,7 @@ export async function run(interaction: ChatInputCommandInteraction) {
       },
       true,
     );
-    return await i.reply({ embeds: [editedEmbed], flags: "Ephemeral" });
+    return await modalInteraction.reply({ embeds: [editedEmbed], flags: "Ephemeral" });
   }
 
   const embed = new EmbedBuilder()
@@ -113,7 +123,7 @@ export async function run(interaction: ChatInputCommandInteraction) {
     })
     .setTitle(title)
     .setDescription(body)
-    .setTimestamp(news.updatedAt || news.createdAt)
+    .setTimestamp(news.updatedAt ?? news.createdAt)
     .setFooter({ text: `Edited news post from ${guild.name} • ID: ${news.id}` })
     .setColor(await colorize({ hue: Sokolors.Blue }));
 
@@ -128,5 +138,5 @@ export async function run(interaction: ChatInputCommandInteraction) {
   });
 
   await updateNews(guild.id, id, title, body);
-  await i.reply({ embeds: [editedEmbed], flags: "Ephemeral" });
+  await modalInteraction.reply({ embeds: [editedEmbed], flags: "Ephemeral" });
 }

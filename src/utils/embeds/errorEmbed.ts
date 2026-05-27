@@ -28,20 +28,20 @@ import { errorType } from "../errorType";
 export async function errorEmbed(options: {
   interaction?: ChatInputCommandInteraction | ButtonInteraction | AnySelectMenuInteraction;
   client?: Client;
-  error?: unknown | Error;
+  error?: unknown;
   title?: string;
   reason?: string;
   log?: boolean;
   forward?: boolean;
   fileName?: string;
   dmOwner?: boolean;
-}) {
+}): Promise<Message | InteractionResponse | undefined> {
   const { interaction, title, reason, log, forward, fileName, dmOwner } = options;
-  const client = options.client ? options.client : interaction ? interaction.client : null;
-  if (!client && !interaction)
-    return console.error(
-      "You need to provide either a client or an interaction for errorEmbed to work.",
-    );
+  const client = options.client ?? interaction?.client;
+  if (!client) {
+    console.error("You need to provide either a client or an interaction for errorEmbed to work.");
+    return;
+  }
 
   const error = errorType(options.error);
   const stack = error.stack;
@@ -89,21 +89,22 @@ export async function errorEmbed(options: {
   }
 
   if (forward) {
-    const devErrorChannel = process.env.DEV_ERROR_CHANNEL_ID;
-    if (!devErrorChannel) {
+    const developmentErrorChannel = process.env.DEV_ERROR_CHANNEL_ID;
+    if (!developmentErrorChannel) {
       console.log(
         "hey, you don't have DEV_ERROR_CHANNEL_ID set in .env and the bot tried to forward an error message to undefined :D",
       );
-      return console.error(error);
+      console.error(error);
+      return;
     }
 
-    const channel = await safeChannel(client ?? interaction!.client, devErrorChannel);
+    const channel = await safeChannel(client, developmentErrorChannel);
     if (!channel?.isTextBased() || !channel.isSendable()) return;
     await channel.send({ components: [container], files, flags: "IsComponentsV2" });
   }
 
   if (dmOwner) {
-    const dm = await (await interaction?.guild!.fetchOwner())?.createDM().catch(() => null);
+    const dm = await (await interaction?.guild?.fetchOwner())?.createDM().catch(() => null);
     if (dm) await dm.send({ components: [container], files, flags: "IsComponentsV2" });
   }
 
@@ -120,7 +121,7 @@ export async function buttonCheck(options: {
   interaction: ChatInputCommandInteraction | ButtonInteraction | ModalSubmitInteraction;
   reply: Message | InteractionResponse;
   noExecuteError?: boolean;
-}) {
+}): Promise<Awaited<ReturnType<typeof errorEmbed>>> {
   const { i, interaction, reply, noExecuteError } = options;
   if (i.message.id != (await reply.fetch()).id)
     return await errorEmbed({

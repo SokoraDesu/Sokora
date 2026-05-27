@@ -1,10 +1,10 @@
-import { Message } from "discord.js";
+import type { Message } from "discord.js";
 
 export async function fetchMedia(
   message: Message,
 ): Promise<{ image: string | null; video: string | null; thumbnail: string | null }> {
   const regex = /(http|https):\/\/([\w_-]+(?:(?:\.[\w_-]+)+))([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])/;
-  const match = message.content ? message.content.match(regex) : null;
+  const match = message.content ? regex.exec(message.content) : null;
   const url = match ? match[0] : null;
   let thumbnail = null;
   let image = null;
@@ -34,17 +34,16 @@ export async function fetchMedia(
     else if (isTenor || isWebsite) {
       const content = await (await fetch(url)).text();
       const metaContentMatch =
-        content.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i) ||
-        content.match(
-          /<meta[^>]+property=["']og:video:secure_url["'][^>]+content=["']([^"']+)["'][^>]*>/i,
-        ) ||
-        content.match(/<meta\s+property=["']twitter:image["']\s+content=["']([^"']+)["']/i);
+        /<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i.exec(content) ??
+        /<meta[^>]+property=["']og:video:secure_url["'][^>]+content=["']([^"']+)["'][^>]*>/i.exec(
+          content,
+        ) ??
+        /<meta\s+property=["']twitter:image["']\s+content=["']([^"']+)["']/i.exec(content);
 
       const metaContent = metaContentMatch ? metaContentMatch[1] : undefined;
-      if (metaContent) {
+      if (metaContent)
         if (isTenor) video = metaContent;
         else if (isWebsite) thumbnail = metaContent;
-      }
     }
   }
 

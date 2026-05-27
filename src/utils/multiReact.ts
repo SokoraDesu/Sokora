@@ -11,11 +11,11 @@ export async function multiReact(message: Message, ...emojis: string[]): Promise
   if (!guild) return;
   if (!(await safeMember(guild, message.client.user.id)).permissions.has("AddReactions")) return;
 
-  for (const i of emojis) {
-    if (typeof i == "object") {
-      await message.react(i);
+  for (const index of emojis) {
+    if (typeof index == "object") {
+      await message.react(index);
       continue;
     }
-    for (const reaction of i) if (reaction != " ") await message.react(reaction);
+    for (const reaction of index) if (reaction != " ") await message.react(reaction);
   }
 }

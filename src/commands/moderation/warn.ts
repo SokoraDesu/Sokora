@@ -17,18 +17,19 @@ export const data = new SlashCommandSubcommandBuilder()
       ),
   );
 
-export async function run(interaction: ChatInputCommandInteraction) {
-  const user = interaction.options.getUser("user")!;
+export async function run(interaction: ChatInputCommandInteraction): Promise<void> {
+  const user = interaction.options.getUser("user", true);
   const reason = interaction.options.getString("reason");
-  const guild = interaction.guild!;
+  const guild = interaction.guild;
 
   if (
-    await errorCheck("Moderate Members", {
+    !guild ||
+    (await errorCheck("Moderate Members", {
       interaction,
       user,
       action: "Warn",
       errorOptions: { allErrors: true, botError: false, ownerError: true, outsideError: true },
-    })
+    }))
   )
     return;
 

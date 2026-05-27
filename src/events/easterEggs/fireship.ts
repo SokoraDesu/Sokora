@@ -1,6 +1,6 @@
 import type { Message, TextChannel } from "discord.js";
 
-export async function run(message: Message) {
+export async function run(message: Message): Promise<void> {
   const content = message.content.trim().toLowerCase();
   if (
     content.startsWith("this has been") &&

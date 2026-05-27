@@ -1,8 +1,8 @@
-import { Satisfies } from "utils/types";
+import type { Satisfies } from "utils/types";
 import { db, values } from ".";
 import { dekominator } from "../kominator";
 import { getSetting, setSetting } from "./settings";
-import { LevelReward, TableDefinition, TypeOfDefinition } from "./types";
+import type { LevelReward, TableDefinition, TypeOfDefinition } from "./types";
 
 type Def = Satisfies<
   TableDefinition,
@@ -16,16 +16,22 @@ type Def = Satisfies<
   }
 >;
 
-const getQuery = async (guild: string | number, userID: string) =>
-  values(await db`SELECT * FROM leveling WHERE "guild" = ${guild} AND "userID" = ${userID};`);
+const getQuery = async (guild: string | number, userID: string): Promise<TypeOfDefinition<Def>[]> =>
+  values<TypeOfDefinition<Def>>(
+    await db`SELECT * FROM leveling WHERE "guild" = ${guild} AND "userID" = ${userID};`,
+  );
 
 export async function getUserXp(guildID: string, userID: string): Promise<number> {
-  const res = (await getQuery(guildID, userID)) as TypeOfDefinition<Def>[];
-  if (!res.length) return 0;
+  const res = await getQuery(guildID, userID);
+  if (res.length === 0) return 0;
   return res[0].xp;
 }
 
-export async function setUserXp(guildID: string | number, userID: string, xp: number) {
+export async function setUserXp(
+  guildID: string | number,
+  userID: string,
+  xp: number,
+): Promise<void> {
   await db.begin(async tx => {
     await tx`DELETE FROM leveling WHERE "guild" = ${guildID} AND "userID" = ${userID};`;
     await tx`INSERT INTO leveling ("guild", "userID", "xp") VALUES (${guildID}, ${userID}, ${xp});`;
@@ -35,9 +41,9 @@ export async function setUserXp(guildID: string | number, userID: string, xp: nu
 export async function getGuildLeaderboard(
   guildID: string,
 ): Promise<{ guild: string; userID: string; xp: number; level: number }[]> {
-  const xpData = values(
+  const xpData = values<TypeOfDefinition<Def>>(
     await db`SELECT * FROM leveling WHERE "guild" = ${guildID};`,
-  ) as TypeOfDefinition<Def>[];
+  );
 
   const difficulty = (await getSetting(guildID, "leveling", "difficulty")) as number;
   return xpData.map(x => {
@@ -45,11 +51,11 @@ export async function getGuildLeaderboard(
   });
 }
 
-const formula = (difficulty: number, level: number) =>
+const formula = (difficulty: number, level: number): number =>
   difficulty * (20 * level ** 2 + 200 * level + 100);
 
-export function calculateLevel(arg: { difficulty: number; xp: number }) {
-  const { difficulty, xp } = arg;
+export function calculateLevel(argument: { difficulty: number; xp: number }): number {
+  const { difficulty, xp } = argument;
   let level = 0;
   let baseXp = 0;
   while (baseXp <= xp) {
@@ -83,24 +89,23 @@ export async function addLevelRewards(guildID: string, rewards: LevelReward[]): 
     rewards.map(reward => `${reward.level}${reward.channel ? "#" : "@"}${reward.id}`),
   );
   const content = (await getSetting(guildID, "leveling", "rewards")) as string[];
-  if (!content) return await setSetting(guildID, "leveling", "rewards", encodedRewards);
+  if (!content) {
+    await setSetting(guildID, "leveling", "rewards", encodedRewards);
+    return;
+  }
 
-  return await setSetting(
-    guildID,
-    "leveling",
-    "rewards",
-    dekominator([...encodedRewards, ...content]),
-  );
+  // eslint-disable-next-line @typescript-eslint/no-misused-spread
+  await setSetting(guildID, "leveling", "rewards", dekominator([...encodedRewards, ...content]));
 }
 
 export async function removeLevelRewards(guildID: string, rewards: LevelReward[]): Promise<void> {
-  const encodedRewards = rewards.map(
-    reward => `${reward.level}${reward.channel ? "#" : "@"}${reward.id}`,
+  const encodedRewards = new Set(
+    rewards.map(reward => `${reward.level}${reward.channel ? "#" : "@"}${reward.id}`),
   );
   const content = (await getSetting(guildID, "leveling", "rewards")) as string[];
   if (!content) return;
   const newRewards = [];
-  for (const reward of content) if (!encodedRewards.includes(reward)) newRewards.push(reward);
+  for (const reward of content) if (!encodedRewards.has(reward)) newRewards.push(reward);
 
-  return await setSetting(guildID, "leveling", "rewards", dekominator(newRewards));
+  await setSetting(guildID, "leveling", "rewards", dekominator(newRewards));
 }

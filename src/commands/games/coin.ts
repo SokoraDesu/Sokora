@@ -10,7 +10,7 @@ export const data = new SlashCommandSubcommandBuilder()
   .setName("coin")
   .setDescription("Flip a coin.");
 
-export async function run(interaction: ChatInputCommandInteraction) {
+export async function run(interaction: ChatInputCommandInteraction): Promise<void> {
   const user = interaction.user;
   const avatar = user.displayAvatarURL();
   const embed = new EmbedBuilder()

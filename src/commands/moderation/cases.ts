@@ -5,12 +5,14 @@ import {
   type Case,
   type ModType,
 } from "database/moderation";
-import { TypeOfDefinition } from "database/types";
+import type { TypeOfDefinition } from "database/types";
 import {
   EmbedBuilder,
   SlashCommandSubcommandBuilder,
   type ButtonInteraction,
   type ChatInputCommandInteraction,
+  type InteractionResponse,
+  type Message,
   type User,
 } from "discord.js";
 import { buttonCheck, errorEmbed } from "embeds/errorEmbed";
@@ -32,9 +34,9 @@ async function generateEmbed(options: {
   guildID: string;
   user: User | null;
   id: number | null;
-}) {
+}): Promise<EmbedBuilder> {
   const { cases, page, type, guildID, user, id } = options;
-  const actionsEmojis: { [key in ModType]: string } = {
+  const actionsEmojis: Record<ModType, string> = {
     WARN: "⚠️",
     MUTE: "🔇",
     KICK: "📤",
@@ -43,7 +45,7 @@ async function generateEmbed(options: {
     UNMUTE: "🔊",
   };
 
-  const nothingMsg = [
+  const nothingMessage = [
     "Nothing to see here...",
     "Ayay, no cases on this horizon cap'n!",
     "Clean as a whistle!",
@@ -55,25 +57,25 @@ async function generateEmbed(options: {
   const displayedCases = cases.sort((a, b) => b.id - a.id).slice(start, start + casesPerPage);
   const avatar = user ? user.avatarURL() : (await safeGuild(client, guildID))?.iconURL();
   let fields = displayedCases.map(c => {
-    const val = [
+    const value = [
       `**Moderator**: ${mention(c.moderator, "USER")}`,
       c.reason ? `**Reason**: ${c.reason}` : "*No reason provided*",
       `**Time of action**: ${mention(c.timestamp.valueOf(), "SIMPLE_TIMESTAMP")}`,
     ];
 
-    if (!user) val.unshift(`**User**: ${mention(c.userID, "USER")}`);
-    if (c.expiresAt) val.push(`**Duration**: ${ms(Number(c.expiresAt), "fullPrecision")}`);
+    if (!user) value.unshift(`**User**: ${mention(c.userID, "USER")}`);
+    if (c.expiresAt) value.push(`**Duration**: ${ms(Number(c.expiresAt), "fullPrecision")}`);
 
     return {
       name: `${actionsEmojis[c.type as ModType]} • ${capitalize(c.type.toLowerCase())} #${c.id}`,
-      value: val.join("\n"),
+      value: value.join("\n"),
     };
   });
 
-  if (cases.length == 0)
+  if (cases.length === 0)
     fields = [
       {
-        name: `💨 • ${randomize(nothingMsg)}`,
+        name: `💨 • ${randomize(nothingMessage)}`,
         value: type
           ? `*No ${type.toLowerCase()}s were made in the entire server!*`
           : "*No actions were taken in the entire server. How clean!*",
@@ -83,7 +85,7 @@ async function generateEmbed(options: {
   const embed = new EmbedBuilder()
     .setAuthor({
       name: `${dotCheck({ string: avatar, doubleSpace: true })}${id ? capitalize(displayedCases[0].type?.toLowerCase()) : type ? `${capitalize(type.toLowerCase())} cases` : pluralOrNot("Case", cases.length)} ${id ? `#${id}` : user ? `of ${user.username}` : "in the server"}`,
-      iconURL: avatar!,
+      iconURL: avatar ?? undefined,
     })
     .setFooter({
       text: user ? `User ID: ${user.id} • Server ID: ${guildID}` : `Server ID: ${guildID}`,
@@ -138,8 +140,11 @@ export const data = new SlashCommandSubcommandBuilder()
   )
   .addNumberOption(option => option.setName("page").setDescription("Page number to display."));
 
-export async function run(interaction: ChatInputCommandInteraction) {
-  const guild = interaction.guild!;
+export async function run(
+  interaction: ChatInputCommandInteraction,
+): Promise<undefined | InteractionResponse | Message> {
+  const guild = interaction.guild;
+  if (!guild) return;
   if (!(await safeMember(guild, interaction.user.id)).permissions.has("ModerateMembers"))
     return await errorEmbed({
       interaction,
@@ -166,13 +171,13 @@ export async function run(interaction: ChatInputCommandInteraction) {
 
   if (pages <= 1) return;
   const collector = reply.createMessageComponentCollector({ time: 60000 });
-  collector.on("collect", async (i: ButtonInteraction) => {
-    if (await buttonCheck({ i, interaction, reply })) return;
+  collector.on("collect", async (buttonInteraction: ButtonInteraction) => {
+    if (await buttonCheck({ i: buttonInteraction, interaction, reply })) return;
     collector.resetTimer({ time: 60000 });
-    page = await handlePages({ i, page, pages, collector });
+    page = await handlePages({ i: buttonInteraction, page, pages, collector });
 
     await safeReply({
-      interaction: i,
+      interaction: buttonInteraction,
       editOptions: {
         embeds: [await generateEmbed({ cases, page, guildID, type: modType, user, id: actionID })],
         components: [pagedButtons(pages, page)],

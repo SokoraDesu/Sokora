@@ -6,6 +6,8 @@ import {
   SlashCommandSubcommandBuilder,
   type ButtonInteraction,
   type ChatInputCommandInteraction,
+  type InteractionResponse,
+  type Message,
 } from "discord.js";
 import { buttonCheck, errorEmbed } from "embeds/errorEmbed";
 import { colorize, Sokolors } from "utils/colorize";
@@ -33,12 +35,15 @@ function getWinner(choice1: RPSChoice, choice2: RPSChoice): 0 | 1 | 2 {
     (choice1 == "scissors" && choice2 == "paper")
   )
     return 1;
+
   return 2;
 }
 
-export async function run(interaction: ChatInputCommandInteraction) {
+export async function run(
+  interaction: ChatInputCommandInteraction,
+): Promise<Message | InteractionResponse | undefined> {
   let opponent = interaction.options.getUser("opponent");
-  if (!opponent) opponent = interaction.client.user;
+  opponent ??= interaction.client.user;
   const user = interaction.user;
   const userAvatar = user.displayAvatarURL();
   const optionsRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -71,17 +76,27 @@ export async function run(interaction: ChatInputCommandInteraction) {
 
   const reply = await interaction.reply({ embeds: [baseEmbed], components: [optionsRow] });
   const playerChoices = new Map<string, RPSChoice>();
-  const collector = reply.createMessageComponentCollector({ time: 60000 });
+  const collector = reply.createMessageComponentCollector({ time: 60_000 });
 
-  collector.on("collect", async (i: ButtonInteraction) => {
+  collector.on("collect", async (buttonInteraction: ButtonInteraction) => {
     if (!reply) return;
-    if (await buttonCheck({ i, interaction, reply, noExecuteError: true })) return;
-    if (i.user.id != opponent.id && i.user.id != user.id)
-      return await errorEmbed({ interaction: i, title: "You aren't participating." });
+    if (await buttonCheck({ i: buttonInteraction, interaction, reply, noExecuteError: true }))
+      return;
 
-    playerChoices.set(i.user.id, i.customId.split("_")[1] as RPSChoice);
-    if (!opponent.bot) {
-      await i.reply({
+    if (buttonInteraction.user.id != opponent.id && buttonInteraction.user.id != user.id)
+      return await errorEmbed({
+        interaction: buttonInteraction,
+        title: "You aren't participating.",
+      });
+
+    playerChoices.set(
+      buttonInteraction.user.id,
+      buttonInteraction.customId.split("_")[1] as RPSChoice,
+    );
+
+    if (opponent.bot) collector.stop("game-complete");
+    else {
+      await buttonInteraction.reply({
         embeds: [
           new EmbedBuilder()
             .setTitle("Choice recorded!")
@@ -90,7 +105,7 @@ export async function run(interaction: ChatInputCommandInteraction) {
         flags: "Ephemeral",
       });
       if (playerChoices.size == 2) collector.stop("game-complete");
-    } else collector.stop("game-complete");
+    }
   });
 
   collector.on("end", async (_, reason) => {
@@ -106,8 +121,10 @@ export async function run(interaction: ChatInputCommandInteraction) {
           components: [],
         });
 
-      const p1Choice = playerChoices.get(user.id)!;
-      const p2Choice = opponent.bot ? randomize(rpsChoices) : playerChoices.get(opponent.id)!;
+      const p1Choice = playerChoices.get(user.id);
+      const p2Choice = opponent.bot ? randomize(rpsChoices) : playerChoices.get(opponent.id);
+      if (!p1Choice || !p2Choice) return;
+
       const winner = getWinner(p1Choice, p2Choice);
       const avatar = winner == 1 ? userAvatar : opponent.displayAvatarURL();
       const resultEmbed = new EmbedBuilder()
@@ -118,7 +135,11 @@ export async function run(interaction: ChatInputCommandInteraction) {
         .setDescription(
           [
             `**${user.username}** ${rpsEmojis[p1Choice]} vs ${rpsEmojis[p2Choice]} **${opponent.username}**\n`,
-            `${winner == 0 ? "**It's a tie!**" : winner == 1 ? `**${user.username}**, you win!` : opponent.bot ? `**Sokora** wins!` : `**${opponent.username}**, you win!`}`,
+            {
+              0: "**It's a tie!**",
+              1: `**${user.username}**, you win!`,
+              2: opponent.bot ? `**Sokora** wins!` : `**${opponent.username}**, you win!`,
+            }[winner],
           ].join("\n"),
         )
         .setColor(

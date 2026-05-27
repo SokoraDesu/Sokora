@@ -28,18 +28,17 @@ export async function sendChannelNews(
     title: string;
     body: string;
     author: string;
-    authorPFP: string;
+    authorPFP?: string;
     id: number;
     imageURL?: string | null;
   },
   edit?: boolean,
-) {
+): Promise<void> {
   const { title, body, author, authorPFP, imageURL, id } = newsOptions;
   const role = (await getSetting(guild.id, "news", "role")) as string;
-  let roleToSend: Role | undefined;
-  if (role) roleToSend = await safeRole(guild, role);
+  const roleToSend: Role | null = role ? await safeRole(guild, role) : null;
 
-  const news = (await getNews(guild.id, id))!;
+  const news = await getNews(guild.id, id);
   const avatar = authorPFP;
   const embed = new EmbedBuilder()
     .setAuthor({
@@ -48,8 +47,8 @@ export async function sendChannelNews(
     })
     .setTitle(title)
     .setDescription(body)
-    .setImage(edit ? (news.imageURL ?? null) : (imageURL ?? null))
-    .setTimestamp(edit ? news.createdAt : new Date())
+    .setImage(edit ? (news?.imageURL ?? null) : (imageURL ?? null))
+    .setTimestamp(edit ? news?.createdAt : new Date())
     .setFooter({ text: `Latest news from ${guild.name} • ID: ${id}` })
     .setColor(await colorize({ hue: Sokolors.Blue }));
 
@@ -73,7 +72,10 @@ export async function sendChannelNews(
     content: roleToSend ? mention(roleToSend.id, "ROLE") : undefined,
   });
 
-  if (edit) return await updateNews(guild.id, id, title, body, message.id);
-  return await postNews(guild.id, title, body, author, authorPFP, message.id, imageURL, id);
+  if (edit) {
+    await updateNews(guild.id, id, title, body, message.id);
+    return;
+  }
+  await postNews(guild.id, title, body, author, authorPFP, message.id, imageURL, id);
 }
 // We should have some sort of a middleware folder where we place all functions like this (interacts with the db but looks like it comes from a command file)

@@ -1,6 +1,6 @@
-import { Satisfies } from "utils/types";
+import type { Satisfies } from "utils/types";
 import { db, values } from ".";
-import { TableDefinition, TypeOfDefinition } from "./types";
+import type { TableDefinition, TypeOfDefinition } from "./types";
 
 type Def = Satisfies<
   TableDefinition,
@@ -11,7 +11,7 @@ type Def = Satisfies<
       title: "TEXT";
       body: "TEXT";
       author: "TEXT";
-      authorPFP: "TEXT";
+      authorPFP: "mTEXT";
       createdAt: "TIMESTAMP";
       updatedAt: "mTIMESTAMP";
       messageID: "TEXT";
@@ -26,14 +26,14 @@ const sendQuery = async (
   title: string,
   body: string,
   author: string,
-  authorPFP: string,
+  authorPFP: string | undefined,
   createdAt: Date,
   updatedAt: Date | null,
   messageID: string,
   imageURL: string | null | undefined,
   id: number,
   sql_: Bun.SQL = db, // what's this supposed to do?
-) => {
+): Promise<void> => {
   const insObject = {
     guildID,
     title,
@@ -50,12 +50,16 @@ const sendQuery = async (
 };
 
 export const listAllNews = async (guildID: string): Promise<TypeOfDefinition<Def>[]> =>
-  values(await db`SELECT * FROM news WHERE "guildID" = ${guildID} ORDER BY "id" DESC;`);
+  values<TypeOfDefinition<Def>>(
+    await db`SELECT * FROM news WHERE "guildID" = ${guildID} ORDER BY "id" DESC;`,
+  );
 
 export const getLatestNews = async (guildID: string): Promise<TypeOfDefinition<Def>[]> =>
-  values(await db`SELECT * FROM news WHERE "guildID" = ${guildID} ORDER BY "id" DESC LIMIT 1;`);
+  values<TypeOfDefinition<Def>>(
+    await db`SELECT * FROM news WHERE "guildID" = ${guildID} ORDER BY "id" DESC LIMIT 1;`,
+  );
 
-const deleteQuery = async (guildID: string, id: number, sql_: Bun.SQL = db) =>
+const deleteQuery = async (guildID: string, id: number, sql_: Bun.SQL = db): Promise<Bun.SQL> =>
   await sql_`DELETE FROM news WHERE "guildID" = ${guildID} AND "id" = ${id};`;
 
 export async function postNews(
@@ -63,12 +67,12 @@ export async function postNews(
   title: string,
   body: string,
   author: string,
-  authorPFP: string,
+  authorPFP: string | undefined,
   messageID: string,
   imageURL: string | null | undefined,
   id: number,
-) {
-  return await sendQuery(
+): Promise<void> {
+  await sendQuery(
     guildID,
     title,
     body,
@@ -82,10 +86,10 @@ export async function postNews(
   );
 }
 
-export async function getNews(guildID: string, id: number) {
-  return values(
+export async function getNews(guildID: string, id: number): Promise<TypeOfDefinition<Def> | null> {
+  return values<TypeOfDefinition<Def>>(
     await db`SELECT * FROM news WHERE "guildID" = ${guildID} AND "id" = ${id};`,
-  )[0] as TypeOfDefinition<Def> | null;
+  )[0];
 }
 
 export async function updateNews(
@@ -94,27 +98,31 @@ export async function updateNews(
   title?: string,
   body?: string,
   messageID?: string,
-  imageURL?: string | null | undefined,
-) {
-  const lastElem = (await getNews(guildID, id))!;
+  imageURL?: string | null,
+): Promise<void> {
+  const lastElement = await getNews(guildID, id);
+  if (!lastElement)
+    throw new Error(
+      `Trying to update news with ID ${id} on GUILD ${guildID} failed because getNews(guildID, id) somehow returned null`,
+    );
   await db.begin(async tx => {
     await deleteQuery(guildID, id, tx);
     await sendQuery(
-      lastElem.guildID,
-      title ?? lastElem.title,
-      body ?? lastElem.body,
-      lastElem.author,
-      lastElem.authorPFP,
-      lastElem.createdAt,
+      lastElement.guildID,
+      title ?? lastElement.title,
+      body ?? lastElement.body,
+      lastElement.author,
+      lastElement.authorPFP,
+      lastElement.createdAt,
       new Date(),
-      messageID ?? lastElem.messageID,
-      imageURL ?? lastElem.imageURL,
+      messageID ?? lastElement.messageID,
+      imageURL ?? lastElement.imageURL,
       id,
       tx,
     );
   });
 }
 
-export async function deleteNews(guildID: string, id: number) {
+export async function deleteNews(guildID: string, id: number): Promise<void> {
   await deleteQuery(guildID, id);
 }

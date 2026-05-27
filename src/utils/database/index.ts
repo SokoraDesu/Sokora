@@ -1,71 +1,83 @@
 import { SQL } from "bun";
-import { createHash } from "crypto";
-import fs from "fs";
+import { createHash } from "node:crypto";
+import fs from "node:fs";
 
-export const db = new SQL(process.env.DATABASE_URL!);
-const migrationsDir = "./migrations";
+if (!process.env.DATABASE_URL) throw new Error("No DATABASE_URL");
+
+export const db = new SQL(process.env.DATABASE_URL);
+const migrationsDirectory = "./migrations";
 const preferredHashType = "sha1";
 
 /**
- * Retrieves the ACTUAL values from a query result because postgre adds unwanted data at the end
+ * Retrieves the ACTUAL values from a query result because PostgreSQL adds unwanted data at the end
  * @param queryResult The returned object from a bun SQL query without using .values()
  * @param singles If true when selecting only one column, returns an array of only the column values instead. Else, returns like normal
  * @returns An array containing the objects (or direct values if singles) of the query result
  */
-export function values(queryResult: Record<string, any>, singles?: boolean) {
-  // [TODO] figure out how to get the type of a raw query result.
-  const actualValues: Record<string, any>[] = Object.values(queryResult).filter(
+export function values<T = Record<string, unknown>>(
+  queryResult: Record<string, unknown>,
+  singles?: boolean,
+): T[] {
+  const actualValues: Record<string, T>[] = Object.values(queryResult).filter(
     v => v !== null && typeof v === "object" && !Array.isArray(v),
-  );
-  return singles && actualValues.length && Object.values(actualValues[0]).length === 1
-    ? actualValues.map(v => Object.values(v)[0])
-    : actualValues;
+  ) as Record<string, T>[];
+  return (
+    singles && actualValues.length > 0 && Object.values(actualValues[0]).length === 1
+      ? actualValues.map(v => Object.values(v)[0])
+      : actualValues
+  ) as T[];
 }
 
 async function getHash(file: string, hashAlgo?: string): Promise<string> {
-  const hash = createHash(hashAlgo || "sha256");
+  const hash = createHash(hashAlgo ?? "sha256");
   return new Promise((resolve, reject) => {
     const stream = fs.createReadStream(file);
     stream.on("data", data => hash.update(data));
     stream.on("error", reject);
-    stream.on("end", () => resolve(hash.digest("hex")));
+    stream.on("end", () => {
+      resolve(hash.digest("hex"));
+    });
   });
 }
 
 const migrationFiles = fs
-  .readdirSync(migrationsDir)
+  .readdirSync(migrationsDirectory)
   .filter(f => f.endsWith(".sql"))
-  .sort()
-  .map(f => `${migrationsDir}/${f}`);
+  .toSorted()
+  .map(f => `${migrationsDirectory}/${f}`);
 
-const migrations: { [hash: string]: string } = Object.fromEntries(
-  await Promise.all(
-    migrationFiles.map(async file => [await getHash(file, preferredHashType), file]),
-  ),
+const migrationsEntries = await Promise.all(
+  migrationFiles.map(async file => [await getHash(file, preferredHashType), file]),
 );
+const migrations = Object.fromEntries(migrationsEntries) as Record<string, string>;
 
 const hashList = Object.keys(migrations);
 
-async function applyMigrations(after?: string) {
+async function applyMigrations(after?: string): Promise<void> {
   const fileList = hashList.slice(after ? hashList.indexOf(after) + 1 : 0).map(h => migrations[h]);
   console.log(`Applying ${fileList.length} migrations...`);
   for (const file of fileList)
     try {
       await db.file(file);
-    } catch (e) {
-      console.error(`Failed to apply '${file}':\n${e}`);
-      process.exit(1);
+    } catch (error) {
+      throw new Error(`Failed to apply '${file}'.`, { cause: error });
     }
 
-  await db`UPDATE _info SET value = ${hashList[hashList.length - 1]} WHERE "key" = 'version';`;
+  await db`UPDATE _info SET value = ${hashList.at(-1)} WHERE "key" = 'version';`;
   console.log("Database updated successfully");
 }
 
-export async function updateDatabase() {
+export async function updateDatabase(): Promise<void> {
   try {
-    const DBversion = values(await db`SELECT value FROM _info WHERE "key" = 'version';`, true)[0];
-    if (!DBversion) throw new Error(); // Goes into initializing the DB
-    if (DBversion == hashList[hashList.length - 1]) return console.log("Database up-to-date");
+    const DBversion = values<string>(
+      await db`SELECT value FROM _info WHERE "key" = 'version';`,
+      true,
+    )[0];
+    if (!DBversion) throw new Error("No DBVersion was assigned."); // Goes into initializing the DB
+    if (DBversion == hashList.at(-1)) {
+      console.log("Database up-to-date");
+      return;
+    }
     console.log("Updating database...");
     await applyMigrations(DBversion);
   } catch {

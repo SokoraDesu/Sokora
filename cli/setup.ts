@@ -1,5 +1,5 @@
-import * as fs from "fs";
-import { createInterface } from "readline";
+import * as fs from "node:fs";
+import { createInterface } from "node:readline";
 
 const readHiddenInput = async (prompt: string): Promise<string> => {
   console.log(prompt);
@@ -23,34 +23,36 @@ const readHiddenInput = async (prompt: string): Promise<string> => {
       }
     });
 
-    rl.question("", input => resolve(input));
+    rl.question("", input => {
+      resolve(input);
+    });
   });
 };
 
-const replaceInEnv = (key: string, value: string) => {
+const replaceInEnvironment = (key: string, value: string): void => {
   try {
-    const envContent = fs.readFileSync(".env", "utf-8");
-    const updatedContent = envContent.replace(key, value);
-    fs.writeFileSync(".env", updatedContent, "utf-8");
+    const environmentContent = fs.readFileSync(".env", "utf8");
+    const updatedContent = environmentContent.replace(key, value);
+    fs.writeFileSync(".env", updatedContent, "utf8");
   } catch (error) {
     console.error(`Error updating .env file: ${error}`);
   }
 };
 
-const main = async () => {
+const main = async (): Promise<void> => {
   fs.copyFileSync("example.env", ".env");
   const token = await readHiddenInput(
     "Paste your bot token below: (you can get one from https://discord.com/developers/applications)",
   );
-  replaceInEnv("YOUR_TOKEN", token);
+  replaceInEnvironment("YOUR_TOKEN", token);
   const useDocker = confirm(
     "Are you going to use Docker (Y) or setup manually (N, or any other key)?",
   );
-  if (useDocker) {
+  if (useDocker)
     console.log(
       "Then just run Docker Compose on this directory, it should all work out of the box.",
     );
-  } else {
+  else {
     const pgUser = await readHiddenInput("Enter your PostgreSQL user below");
     const pgPass = await readHiddenInput("Enter your PostgreSQL pass below");
     const pgName = await readHiddenInput("Enter your PostgreSQL database name below");
@@ -60,7 +62,7 @@ const main = async () => {
     const pgPort = await readHiddenInput(
       'IF using a host different than "5432", enter it here, otherwise hit Return in your keyboard',
     );
-    replaceInEnv(
+    replaceInEnvironment(
       "postgres://user:pass@localhost:port/dbname",
       `postgres://${pgUser}:${pgPass}@${pgHost.trim() == "" ? "localhost" : pgHost}:${pgPort.trim() == "" ? "5432" : pgPort}/${pgName}`,
     );
@@ -68,12 +70,16 @@ const main = async () => {
   const errorsId = await readHiddenInput(
     "Enter an error channel ID. Sokora will send detailed error logs here whenever a command breaks. (Optional.)",
   );
-  if (errorsId.trim() != "") replaceInEnv("YOUR_CHANNEL_ID", errorsId);
+  if (errorsId.trim() != "") replaceInEnvironment("YOUR_CHANNEL_ID", errorsId);
   const ownerId = await readHiddenInput(
     "Enter your user ID. Sokora might give it some use. (Optional.)",
   );
-  if (ownerId.trim() != "") replaceInEnv("YOUR_USER_ID", ownerId);
+  if (ownerId.trim() != "") replaceInEnvironment("YOUR_USER_ID", ownerId);
   console.log("You're good to go, happy coding!");
 };
 
-main().catch(console.error);
+try {
+  await main();
+} catch (error) {
+  console.error(error);
+}

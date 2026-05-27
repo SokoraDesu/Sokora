@@ -8,6 +8,8 @@ import {
   TextInputBuilder,
   TextInputStyle,
   type ChatInputCommandInteraction,
+  type InteractionResponse,
+  type Message,
 } from "discord.js";
 import { errorEmbed } from "embeds/errorEmbed";
 import { colorize, Sokolors } from "utils/colorize";
@@ -20,10 +22,12 @@ export const data = new SlashCommandSubcommandBuilder()
   .setName("post")
   .setDescription("Post your news.");
 
-export async function run(interaction: ChatInputCommandInteraction) {
-  const guild = interaction.guild!;
+export async function run(
+  interaction: ChatInputCommandInteraction,
+): Promise<Message | InteractionResponse | undefined> {
+  const guild = interaction.guild;
   const userID = interaction.user.id;
-  if (!(await safeMember(guild, userID)).permissions.has("ManageGuild"))
+  if (!guild || !(await safeMember(guild, userID)).permissions.has("ManageGuild"))
     return await errorEmbed({
       interaction,
       title: "You can't execute this command.",
@@ -67,18 +71,18 @@ export async function run(interaction: ChatInputCommandInteraction) {
     await errorEmbed({ interaction, error, forward: true, fileName: "post.ts" });
   }
 
-  const i = await modalSubmit(interaction);
-  if (!i) return;
+  const modalInteraction = await modalSubmit(interaction);
+  if (!modalInteraction) return;
 
   const title = await replaceVariables(
-    i.fields.getTextInputValue("title"),
-    interaction.guild!,
+    modalInteraction.fields.getTextInputValue("title"),
+    interaction.guild,
     interaction.user,
   );
 
   const body = await replaceVariables(
-    i.fields.getTextInputValue("body"),
-    interaction.guild!,
+    modalInteraction.fields.getTextInputValue("body"),
+    interaction.guild,
     interaction.user,
   );
 
@@ -86,16 +90,16 @@ export async function run(interaction: ChatInputCommandInteraction) {
     await sendChannelNews(guild, interaction, {
       title,
       body,
-      author: i.user.displayName,
-      authorPFP: i.user.avatarURL()!,
-      imageURL: i.fields.getUploadedFiles("image")?.at(0)?.url ?? null,
+      author: modalInteraction.user.displayName,
+      authorPFP: modalInteraction.user.avatarURL() ?? undefined,
+      imageURL: modalInteraction.fields.getUploadedFiles("image")?.at(0)?.url ?? null,
       id: ((await getLatestNews(guild.id))[0]?.id ?? 0) + 1,
     });
   } catch (error) {
     return await errorEmbed({ interaction, error, forward: true, fileName: "post.ts" });
   }
 
-  await i.reply({
+  await modalInteraction.reply({
     embeds: [
       new EmbedBuilder()
         .setTitle("News post created.")

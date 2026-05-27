@@ -1,9 +1,12 @@
 import { deletePublicServer, listPublicServers } from "database/settings";
 import {
-  ButtonInteraction,
   SlashCommandBuilder,
+  type ButtonInteraction,
   type ChatInputCommandInteraction,
+  type ContainerBuilder,
   type Guild,
+  type InteractionResponse,
+  type Message,
 } from "discord.js";
 import { buttonCheck, errorEmbed } from "embeds/errorEmbed";
 import { serverEmbed } from "embeds/serverEmbed";
@@ -16,7 +19,9 @@ export const data = new SlashCommandBuilder()
   .addNumberOption(number => number.setName("page").setDescription("The page you want to see."))
   .setContexts(0);
 
-export async function run(interaction: ChatInputCommandInteraction) {
+export async function run(
+  interaction: ChatInputCommandInteraction,
+): Promise<Message | InteractionResponse | undefined> {
   const guildList: { guild: Guild; showInvite: boolean; inviteChannelId: string | null }[] = (
     await Promise.all(
       (await listPublicServers()).map(async entry => {
@@ -45,7 +50,7 @@ export async function run(interaction: ChatInputCommandInteraction) {
     )
   )
     .filter(entry => entry != null)
-    .sort((a, b) => b.guild.memberCount - a.guild.memberCount);
+    .toSorted((a, b) => b.guild.memberCount - a.guild.memberCount);
 
   const pages = guildList.length;
   if (!pages)
@@ -57,7 +62,7 @@ export async function run(interaction: ChatInputCommandInteraction) {
     });
 
   let page = Math.max(0, Math.min(interaction.options.getNumber("page") || 0, pages) - 1);
-  async function getContainer(disableButtons?: boolean) {
+  async function getContainer(disableButtons?: boolean): Promise<ContainerBuilder> {
     return await serverEmbed({
       guild: guildList[page].guild,
       invite: {
@@ -78,12 +83,15 @@ export async function run(interaction: ChatInputCommandInteraction) {
 
   if (pages == 1) return;
   const collector = reply.createMessageComponentCollector({ time: 60000 });
-  collector.on("collect", async (i: ButtonInteraction) => {
-    if (await buttonCheck({ i, interaction, reply })) return;
+  collector.on("collect", async (buttonInteraction: ButtonInteraction) => {
+    if (await buttonCheck({ i: buttonInteraction, interaction, reply })) return;
     collector.resetTimer({ time: 60000 });
-    page = await handlePages({ i, page, pages, collector });
+    page = await handlePages({ i: buttonInteraction, page, pages, collector });
 
-    await safeReply({ interaction: i, editOptions: { components: [await getContainer(false)] } });
+    await safeReply({
+      interaction: buttonInteraction,
+      editOptions: { components: [await getContainer(false)] },
+    });
   });
 
   collector.on("end", async () => {

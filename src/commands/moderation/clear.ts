@@ -2,6 +2,8 @@ import {
   ChannelType,
   SlashCommandSubcommandBuilder,
   type ChatInputCommandInteraction,
+  type InteractionResponse,
+  type Message,
   type User,
 } from "discord.js";
 import { errorEmbed } from "embeds/errorEmbed";
@@ -35,10 +37,14 @@ export const data = new SlashCommandSubcommandBuilder()
     user.setName("user").setDescription("Only clear messages from this specific user."),
   );
 
-export async function run(interaction: ChatInputCommandInteraction) {
-  const guild = interaction.guild!;
-  const channelOption = interaction.options.getChannel("channel")!;
-  let channel = await safeChannel(guild, interaction.channel!.id);
+export async function run(
+  interaction: ChatInputCommandInteraction,
+): Promise<Message | InteractionResponse | undefined> {
+  const guild = interaction.guild;
+  if (!guild || !interaction.channel) return;
+
+  const channelOption = interaction.options.getChannel("channel");
+  let channel = await safeChannel(guild, interaction.channel.id);
   if (channelOption) channel = await safeChannel(guild, channelOption.id);
 
   if (
@@ -50,7 +56,15 @@ export async function run(interaction: ChatInputCommandInteraction) {
   )
     return;
 
-  const amount = interaction.options.getNumber("amount")!;
+  const amount = interaction.options.getNumber("amount");
+  if (!amount)
+    return await errorEmbed({
+      interaction,
+      title: "No amount provided.",
+      reason:
+        "You somehow ran the command without an amount being provided. That is an error. You might want to report this, as it is not supposed to ever happen.",
+    });
+
   if (amount > 100)
     return await errorEmbed({
       interaction,
@@ -74,7 +88,7 @@ export async function run(interaction: ChatInputCommandInteraction) {
         .filter(m => m.author.id == targetUser.id && !m.partial)
         .first(amount);
 
-      if (userMessages.length == 0)
+      if (userMessages.length === 0)
         return await errorEmbed({
           interaction,
           title: "No messages found.",
@@ -84,9 +98,7 @@ export async function run(interaction: ChatInputCommandInteraction) {
       await channel.bulkDelete(userMessages, true);
       deletedAmount = userMessages.length;
     } else {
-      await channel
-        .bulkDelete(amount, true)
-        .then(async messages => (deletedAmount = messages.size));
+      await channel.bulkDelete(amount, true).then(messages => (deletedAmount = messages.size));
 
       if (deletedAmount == 0)
         return await errorEmbed({

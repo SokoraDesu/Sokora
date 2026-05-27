@@ -8,7 +8,6 @@ RUN bun install
 
 COPY cli ./cli
 COPY src ./src
-COPY static ./static
 COPY migrations ./migrations
 
 CMD ["bun", "dev"]

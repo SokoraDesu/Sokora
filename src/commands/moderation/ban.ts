@@ -1,5 +1,10 @@
 import { getSetting } from "database/settings";
-import { SlashCommandSubcommandBuilder, type ChatInputCommandInteraction } from "discord.js";
+import {
+  SlashCommandSubcommandBuilder,
+  type ChatInputCommandInteraction,
+  type InteractionResponse,
+  type Message,
+} from "discord.js";
 import { errorEmbed } from "embeds/errorEmbed";
 import { errorCheck, modEmbed } from "embeds/modEmbed";
 import ms from "enhanced-ms";
@@ -30,9 +35,21 @@ export const data = new SlashCommandSubcommandBuilder()
       ),
   );
 
-export async function run(interaction: ChatInputCommandInteraction) {
-  const user = interaction.options.getUser("user")!;
-  const guild = interaction.guild!;
+export async function run(
+  interaction: ChatInputCommandInteraction,
+): Promise<Message | InteractionResponse | undefined> {
+  const guild = interaction.guild;
+  if (!guild || !interaction.member) return;
+
+  const user = interaction.options.getUser("user");
+  if (!user)
+    return await errorEmbed({
+      interaction,
+      title: "No user provided.",
+      reason:
+        "You somehow ran the command without a user being provided. That is an error. You might want to report this, as it is not supposed to ever happen.",
+    });
+
   const userOrMember = (await safeMembers(guild)).has(user.id);
   const duration = interaction.options.getString("duration");
   const reason = interaction.options.getString("reason");
@@ -67,7 +84,7 @@ export async function run(interaction: ChatInputCommandInteraction) {
       interaction.client,
       guild.id,
       user.id,
-      interaction.member!.user.id,
+      interaction.member.user.id,
       durationMs,
     );
   }
@@ -86,7 +103,7 @@ export async function run(interaction: ChatInputCommandInteraction) {
         reason: "The duration is invalid.",
       });
 
-    if (delSec > 604800)
+    if (delSec > 604_800)
       return await errorEmbed({
         interaction,
         title: `The bot can't remove messages of ${user.username} while banning.`,

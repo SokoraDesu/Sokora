@@ -4,6 +4,8 @@
 
 - Basic knowledge of [TypeScript](https://typescriptlang.org/) and [discord.js](https://discord.js.org/).
 - [Bun](https://bun.sh) installed.
+- [PostgreSQL](https://www.postgresql.org/download/) installed.
+- Port 5432 on your machine free, Sokora needs it.
 
 ## Get started with contributing
 
@@ -20,9 +22,9 @@
 
 ### PostgreSQL
 
-- Check if you already have PostgreSQL installed on your machine. If not, refer to your platform's package manager or get it here: https://www.postgresql.org/download/
+- Check if you already have PostgreSQL installed on your machine. If not, refer to your platform's package manager or get it from [postgresql.org](https://www.postgresql.org/download/).
 - If you're on Windows, proceed with the set up, remember your port (or keep it as `5432`) as it will be used later on.
-- Launch `sudo -u postgre psql`. (or SQL Shell in the start menu of Windows, you'd have to log into the postgre account)
+- Launch `sudo -u postgre psql` (or SQL Shell in the start menu of Windows, you'd have to log into the postgre account).
 - Create a new user with this command: `CREATE USER name CREATEDB PASSWORD 'pass';`, where `CREATEDB` gives the user the permission to create new databases and `PASSWORD` lets the bot connect to the database.
   - Absent semicolons cause it to silently fail. Make sure to type them.
   - Check if the user has been created by typing `\du`.
@@ -33,19 +35,17 @@ Follow to the next section to create a .env variable that'll let Sokora access t
 
 ### Setting up .env
 
-- Run `bun run setup` and our CLI tool will install dependencies and write .env for you. It'll ask you to paste in your bot's token and the PostgreSQL credentials.
+- Run `bun run setup` and our CLI tool will install dependencies and write .env for you. It'll ask you to paste in your bot's token and the PostgreSQL credentials (assuming you're NOT planning to run from Docker; it'll ask that first).
   - For the credentials, provide in order:
     - The user you created (`name`).
     - The database name (`dbname`).
     - The password you created (`pass`).
     - The host (leave empty unless you know it's not `localhost` for some reason, which it should be set to by default).
-    - The port (check what it is by running `psql -U name -d dbname -c "SHOW port;"`)
+    - The port (check what it is by running `psql -U name -d dbname -c "SHOW port;"`).
 
 ### Running
 
-- Run `bun dev`.
-
-Be sure to open a pull request when you're ready to push your changes. Be descriptive of the changes you've made.
+Just run `bun dev`.
 
 ## Contribution guide
 
@@ -59,16 +59,21 @@ A few, simple guidelines onto how to contribute to Sokora.
 
 A few guides onto how code contributed to Sokora should look like.
 
-- Keep a consistent indentation of two spaces. Don't use tabs.
-- Use `K&R` style for bracket placement (`function() {}` instead of `function() \n {}`).
-- Avoid arrow parenthesis, this means preferring, for example, `.filter(s => s.trim())` above `.filter((s) => s.trim())`. Use parenthesis only if they're necessary, for example when you need to explicitly type a parameter.
+- Ensure to run the static formatter and analyzer (via `bun run ql`) before committing.
 - Use `camelCase` for both variables and function names.
 - Keep lines reasonably short, don't fear linebreaks. Of course, longer lines are valid where needed.
 - Use early returns to avoid nesting.
-- Avoid curly braces in one-line `if` statements.
-- Non-nullish assertions are valid when needed.
-- Use the functions `safeChannel` and `safeMember` from `safeThings` instead of using the cache or fetching.
-- Prefer `Promise.all` over having several `await` statements.
+- Avoid curly braces when an `if`/`else`/`throw`/`return` statement can be one-lined.
+- Avoid non-nullish assertions, they are valid only when absolutely needed.
+- Use the functions from `safeThings` instead of using the cache or fetching to:
+  - Reply to an interaction (`safeReply`)
+  - Get members (`safeMembers`)
+  - Get a channel (`safeChannel`)
+  - Get a role (`safeRole`)
+  - Get an individual member (`safeMember`)
+  - Get a user (`safeUser`)
+  - Get a guild (`safeGuild`)
+- Prefer, when possible, `Promise.all` over having several `await` statements.
 
 ### Subete commit system (WIP)
 
@@ -89,5 +94,7 @@ Full layout: `![<type>@[scope] [part]] <description>`, where:
 `![fix@settings] types have been fixed`
 
 ---
+
+Be sure to open a pull request when you're ready to push your changes. Be descriptive of the changes you've made.
 
 ![PLEASE SUBMIT A PR, NO DIRECT COMMITS](https://user-images.githubusercontent.com/51555391/176925763-cdfd57ba-ae1e-4bf3-85e9-b3ebd30b1d59.png)

@@ -1,111 +1,124 @@
 import {
-  ApplicationCommandData,
   SlashCommandBuilder,
-  SlashCommandSubcommandBuilder,
   SlashCommandSubcommandGroupBuilder,
+  type ChatInputCommandInteraction,
   type Client,
+  type SlashCommandSubcommandBuilder,
 } from "discord.js";
-import { readdirSync } from "fs";
-import { join } from "path";
-import { pathToFileURL } from "url";
+import { readdirSync } from "node:fs";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 
-export const commands: { data: ApplicationCommandData; run: any; autocomplete: any }[] = [];
-
-export const subCommands: {
-  data: SlashCommandSubcommandBuilder | SlashCommandSubcommandGroupBuilder;
-  run: any;
-  autocomplete: any;
-}[] = [];
-
-function pushCommand(array: any[], command: any) {
-  return array.push({ data: command.data, run: command.run, autocomplete: command.autocomplete });
+type RunFunction = (interaction: ChatInputCommandInteraction) => Promise<unknown>;
+interface Command {
+  data: SlashCommandBuilder | SlashCommandSubcommandBuilder | SlashCommandSubcommandGroupBuilder;
+  run: RunFunction;
 }
 
-function pushSubCommand(client: Client, run: any[], autocomplete: any[], command: any) {
+export const commands: (Command & { data: SlashCommandBuilder })[] = [];
+export const subCommands: (Command & { data: SlashCommandSubcommandBuilder })[] = [];
+
+const commandsPath = join(process.cwd(), "src", "commands");
+
+function pushCommand(array: Command[], command: Command): number {
+  return array.push({ data: command.data, run: command.run });
+}
+
+function pushSubCommand(run: RunFunction[], command: Command): void {
   run.push(command.run);
   pushCommand(subCommands, command);
-  if (!("autocompleteHandler" in command)) return;
-  command.autocompleteHandler(client);
-  if (command.autocomplete) autocomplete.push(command.autocomplete);
 }
 
-async function createSubCommand(name: string, client: Client) {
-  const commandsPath = join(process.cwd(), "src", "commands");
-  const run: any[] = [];
-  const autocomplete: any[] = [];
+async function createSubCommand(name: string): Promise<Command> {
+  const run: RunFunction[] = [];
   const command = new SlashCommandBuilder()
     .setName(name.toLowerCase())
     .setDescription("This command has no description.")
     .setContexts(0);
 
-  for (const subCommandFile of readdirSync(join(commandsPath, name), {
-    withFileTypes: true,
-  })) {
+  const subNames: string[] = [];
+  // Base executable subcommands first, then subcommands groups
+  const subCommandFiles = readdirSync(join(commandsPath, name), { withFileTypes: true });
+
+  for (const subCommandFile of subCommandFiles) {
     const subName = subCommandFile.name;
     if (subCommandFile.isFile()) {
-      const subCommand = await import(pathToFileURL(join(commandsPath, name, subName)).toString());
-      if (subCommand.data instanceof SlashCommandSubcommandBuilder)
-        command.addSubcommand(subCommand.data);
-      else command.addSubcommandGroup(subCommand.data);
-
-      pushSubCommand(client, run, autocomplete, subCommand);
+      const subCommand = (await import(
+        pathToFileURL(join(commandsPath, name, subName)).toString()
+      )) as Command & { data: SlashCommandSubcommandBuilder };
+      command.addSubcommand(subCommand.data);
+      pushSubCommand(run, subCommand);
+      subNames.push(subCommand.data.name);
       continue;
     }
 
+    // Subcommand groups
+    if (subNames.includes(subName)) {
+      console.error(
+        `Cannot create subcommand group "${subName.toLowerCase()}" in command group "${name.toLowerCase()}": a base subcommand already exists with that name in that command group`,
+      );
+      continue;
+    }
     const subCommandGroup = new SlashCommandSubcommandGroupBuilder()
-      .setName(subName.replaceAll(".ts", "").toLowerCase())
+      .setName(subName.toLowerCase()) // No need to remove .ts since it isn't a .ts file
       .setDescription("This subcommand group has no description.");
 
     for (const subCommandGroupFile of readdirSync(join(commandsPath, name, subName), {
       withFileTypes: true,
     })) {
-      if (!subCommandGroupFile.isFile()) continue;
-      const subCommand = await import(
+      if (!subCommandGroupFile.isFile()) continue; // There cannot be subcommand groups of subcommand groups
+      const subCommand = (await import(
         pathToFileURL(join(commandsPath, name, subName, subCommandGroupFile.name)).toString()
-      );
-
+      )) as Command & { data: SlashCommandSubcommandBuilder };
       subCommandGroup.addSubcommand(subCommand.data);
-      pushSubCommand(client, run, autocomplete, subCommand);
+      pushSubCommand(run, subCommand);
     }
     command.addSubcommandGroup(subCommandGroup);
   }
 
-  return { data: command, run, autocomplete };
+  return { data: command, run: run[0] };
 }
 
-async function loadCommands(client: Client) {
-  const commandsPath = join(process.cwd(), "src", "commands");
-
-  for (const commandFile of readdirSync(commandsPath, { withFileTypes: true })) {
+async function loadCommands(): Promise<Command[]> {
+  // Base executable commands first, then commands groups
+  const commandFiles = readdirSync(commandsPath, { withFileTypes: true });
+  for (const commandFile of commandFiles) {
     const name = commandFile.name;
     if (commandFile.isFile()) {
-      pushCommand(commands, await import(pathToFileURL(join(commandsPath, name)).toString()));
+      pushCommand(
+        commands,
+        (await import(pathToFileURL(join(commandsPath, name)).toString())) as Command,
+      );
       continue;
     }
-    pushCommand(commands, await createSubCommand(name, client));
+    if (commands.map(command => command.data.name).includes(name))
+      console.error(
+        `Cannot create command group "${name.toLowerCase()}": a base command already exists with that name`,
+      );
+    else pushCommand(commands, await createSubCommand(name));
   }
 
   return commands;
 }
 
-export async function removeGuildCommands(client: Client) {
+export async function removeGuildCommands(client: Client): Promise<void> {
   const guilds = client.guilds.cache;
   for (const guildID of guilds.keys()) await guilds.get(guildID)?.commands.set([]);
 }
 
-export async function removeGlobalCommands(client: Client) {
+export async function removeGlobalCommands(client: Client): Promise<void> {
   await client.application?.commands.set([]);
 }
 
-export async function registerGuildCommands(client: Client) {
-  await loadCommands(client);
+export async function registerGuildCommands(client: Client): Promise<void> {
+  await loadCommands();
   const guilds = client.guilds.cache;
 
   for (const guildID of guilds.keys())
     await guilds.get(guildID)?.commands.set(commands.map(command => command.data));
 }
 
-export async function registerGlobalCommands(client: Client) {
-  await loadCommands(client);
+export async function registerGlobalCommands(client: Client): Promise<void> {
+  await loadCommands();
   await client.application?.commands.set(commands.map(command => command.data));
 }

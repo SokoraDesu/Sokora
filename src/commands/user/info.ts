@@ -27,7 +27,7 @@ export const data = new SlashCommandSubcommandBuilder()
   .setDescription("Shows your (or another user's) info.")
   .addUserOption(user => user.setName("user").setDescription("Select the user."));
 
-export async function run(interaction: ChatInputCommandInteraction) {
+export async function run(interaction: ChatInputCommandInteraction): Promise<void> {
   const guild = interaction.guild;
   if (!guild) return;
   const user = await (interaction.options.getUser("user") ?? interaction.user).fetch(true);
@@ -43,7 +43,7 @@ export async function run(interaction: ChatInputCommandInteraction) {
     serverInfo = [];
 
     const guildRoles = guild.roles.cache.filter(role => target.roles.cache.has(role.id));
-    const memberRoles = [...guildRoles].sort(
+    const memberRoles = [...guildRoles].toSorted(
       (role1, role2) => role2[1].position - role1[1].position,
     );
     memberRoles.pop();
@@ -60,23 +60,22 @@ export async function run(interaction: ChatInputCommandInteraction) {
         `Boosting since **${mention(target.premiumSinceTimestamp, "DEFAULT_TIMESTAMP")}**`,
       );
 
-    if ((await getSetting(`${guild.id}`, "leveling", "enabled")) && !user.bot) {
-      const leaderboard = (await getGuildLeaderboard(guild.id)).sort((a, b) => {
-        if (b.level != a.level) return b.level - a.level;
-        else return b.xp - a.xp;
+    if ((await getSetting(guild.id, "leveling", "enabled")) && !user.bot) {
+      const leaderboard = (await getGuildLeaderboard(guild.id)).toSorted((a, b) => {
+        return b.level == a.level ? b.xp - a.xp : b.level - a.level;
       });
       serverInfo.push(
         `Level **${level}** • ${xp && xp > 0 ? `**${xp.toLocaleString("en-US")}**/*${nextLevelXp.toLocaleString("en-US")} (level ${level + 1})* XP` : "**No** XP!"} ${
-          leaderboard.find(entry => entry.userID == user.id)
+          leaderboard.some(entry => entry.userID == user.id)
             ? `• #**${leaderboard.findIndex(entry => entry.userID == user.id) + 1}** on the leaderboard`
             : ""
         }`,
       );
     }
 
-    if (memberRoles.length)
+    if (memberRoles.length > 0)
       serverInfo.push(
-        `**${guildRoles.filter(role => target.roles.cache.has(role.id)).size! - 1}** ${pluralOrNot(
+        `**${guildRoles.filter(role => target.roles.cache.has(role.id)).size - 1}** ${pluralOrNot(
           "role",
           memberRoles.length,
         )} • ${memberRoles
@@ -98,7 +97,7 @@ export async function run(interaction: ChatInputCommandInteraction) {
   const createdText = [
     `<:discord:${replace("(discord)")}> ${mention(user.createdAt.valueOf(), "DEFAULT_TIMESTAMP")}`,
     (await safeMembers(guild)).has(user.id)
-      ? `• ${mention((await safeMember(guild, user.id)).joinedAt!.valueOf(), "DEFAULT_TIMESTAMP")}`
+      ? `• ${mention((await safeMember(guild, user.id)).joinedAt?.valueOf() ?? 0, "DEFAULT_TIMESTAMP")}`
       : "",
   ].join(" ");
   const start = new TextDisplayBuilder().setContent(

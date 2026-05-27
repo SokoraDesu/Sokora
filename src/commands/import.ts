@@ -19,6 +19,8 @@ import {
   TextInputStyle,
   type ButtonInteraction,
   type ChatInputCommandInteraction,
+  type InteractionResponse,
+  type Message,
   type ModalSubmitInteraction,
 } from "discord.js";
 import { buttonCheck } from "embeds/errorEmbed";
@@ -31,18 +33,20 @@ export const data = new SlashCommandBuilder()
   .setDescription("Imports leveling data from another bot.")
   .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator);
 
-function safeStringify(obj: any) {
+function safeStringify(object: unknown): string {
   try {
-    const str = JSON.stringify(obj, null, 2);
-    if (str.length < 3800) return str;
-    return str.slice(0, 3800) + "\n// etc... (had to trim it because of discord character limits)";
+    const string_ = JSON.stringify(object, null, 2);
+    if (string_.length < 3800) return string_;
+    return (
+      string_.slice(0, 3800) + "\n// etc... (had to trim it because of discord character limits)"
+    );
   } catch {
     return "[Unserializable data, please report this as an issue]";
   }
 }
 
 async function collapse(
-  error: any,
+  error: unknown,
   cID: keyof typeof SupportedBots,
   interaction: ChatInputCommandInteraction,
   containerHelper: (
@@ -54,7 +58,7 @@ async function collapse(
       json?: boolean;
     },
   ) => Promise<ContainerBuilder>,
-) {
+): Promise<Message | InteractionResponse> {
   await interaction.deleteReply();
   const errorContainer = new ContainerBuilder().addTextDisplayComponents(
     new TextDisplayBuilder().setContent("# Something went wrong..."),
@@ -67,7 +71,7 @@ async function collapse(
             : "We don't really know what went wrong. Maybe you should try again?",
         "You might as well check the error message shown below, it *might* explain better what's wrong.",
         "If after doing all of that Sokora keeps failing to import your data, please send the error message to Sokora's team so we can try to fix this.",
-        `\`\`\`yaml\n${error instanceof Error ? (error.stack ?? error.message) : String(error)}\`\`\``,
+        codeBlock("yaml", error instanceof Error ? (error.stack ?? error.message) : String(error)),
       ].join("\n\n"),
     ),
   );
@@ -81,11 +85,11 @@ async function collapse(
   });
 }
 
-export async function run(interaction: ChatInputCommandInteraction) {
+export async function run(interaction: ChatInputCommandInteraction): Promise<void> {
   // [TODO] add return to not keep running the command lmao
   const user = interaction.client.user;
   const avatar = user.displayAvatarURL();
-  if (!interaction.guild) return;
+  if (!interaction.guild || !interaction.guildId) return;
 
   async function containerHelper(
     container: ContainerBuilder,
@@ -152,11 +156,11 @@ export async function run(interaction: ChatInputCommandInteraction) {
       flags: ["Ephemeral", "IsComponentsV2"],
     },
   });
-  const collector = reply.createMessageComponentCollector({ time: 60000 });
-  collector.on("collect", async (i: ButtonInteraction) => {
-    if (await buttonCheck({ i, interaction, reply })) return;
-    collector.resetTimer({ time: 60000 });
-    const cID = i.customId as keyof typeof SupportedBots;
+  const collector = reply.createMessageComponentCollector({ time: 60_000 });
+  collector.on("collect", async (buttonInteraction: ButtonInteraction) => {
+    if (await buttonCheck({ i: buttonInteraction, interaction, reply })) return;
+    collector.resetTimer({ time: 60_000 });
+    const cID = buttonInteraction.customId as keyof typeof SupportedBots;
     const bots = {
       name: cID === "MEE6" ? cID.toUpperCase() : cID,
       data: [
@@ -167,10 +171,14 @@ export async function run(interaction: ChatInputCommandInteraction) {
     };
 
     try {
-      async function construct(lurkrKey?: string, modalInteraction?: ModalSubmitInteraction) {
+      async function construct(
+        lurkrKey?: string,
+        modalInteraction?: ModalSubmitInteraction,
+      ): Promise<void> {
+        if (!interaction.guildId) return;
         const leveler = new Leveler({
-          guild: interaction.guildId!,
-          tatsu_api: process.env["TATSU_TOKEN"],
+          guild: interaction.guildId,
+          tatsu_api: process.env.TATSU_TOKEN,
           lurkr_api: lurkrKey,
         });
         let levels =
@@ -189,7 +197,7 @@ export async function run(interaction: ChatInputCommandInteraction) {
           ),
         );
 
-        const replyInteraction = modalInteraction ?? i;
+        const replyInteraction = modalInteraction ?? buttonInteraction;
         const reply1 = await safeReply({
           interaction: replyInteraction,
           editOptions: { components: [await containerHelper(container1, { buttons: true })] },
@@ -197,13 +205,20 @@ export async function run(interaction: ChatInputCommandInteraction) {
 
         if (modalInteraction) await reply.delete();
         collector.stop("bot_chosen");
-        const collector1 = reply1.createMessageComponentCollector({ time: 60000 });
-        collector1.on("collect", async (i1: ButtonInteraction) => {
-          if (await buttonCheck({ i: i1, interaction: replyInteraction, reply: reply1 })) return;
+        const collector1 = reply1.createMessageComponentCollector({ time: 60_000 });
+        collector1.on("collect", async (buttonInteraction1: ButtonInteraction) => {
+          if (
+            await buttonCheck({
+              i: buttonInteraction1,
+              interaction: replyInteraction,
+              reply: reply1,
+            })
+          )
+            return;
 
-          collector1.resetTimer({ time: 60000 });
+          collector1.resetTimer({ time: 60_000 });
           let content;
-          switch (i1.customId) {
+          switch (buttonInteraction1.customId) {
             case "check": {
               const levelData = safeStringify(levels);
               const checkContainer = new ContainerBuilder().addTextDisplayComponents(
@@ -227,7 +242,7 @@ export async function run(interaction: ChatInputCommandInteraction) {
               }
 
               await safeReply({
-                interaction: i1,
+                interaction: buttonInteraction1,
                 replyOptions: {
                   components: [
                     await containerHelper(checkContainer, { buttons: true, json: true }),
@@ -237,29 +252,31 @@ export async function run(interaction: ChatInputCommandInteraction) {
               });
               break;
             }
-            case "return":
+            case "return": {
               await safeReply({
-                interaction: i1,
+                interaction: buttonInteraction1,
                 replyOptions: { components: [container1] },
               });
               break;
+            }
             case "merge":
             case "overwrite": {
-              content = `# ${i1.customId == "merge" ? "Updating" : "Overwriting"} data for all users...`;
+              content = `# ${buttonInteraction1.customId == "merge" ? "Updating" : "Overwriting"} data for all users...`;
               const res = [];
               await safeReply({
-                interaction: i1,
+                interaction: buttonInteraction1,
                 replyOptions: {
                   components: [await containerHelper(new ContainerBuilder(), { content })],
                 },
               });
 
+              if (!interaction.guild || !interaction.guildId) return;
               const difficulty = (await getSetting(
-                interaction.guild!.id,
+                interaction.guild.id,
                 "leveling",
                 "difficulty",
               )) as number;
-              for (const user of interaction.guild!.members.cache) {
+              for (const user of interaction.guild.members.cache) {
                 if (user[1].user.bot) continue;
                 const imported = levels.find(lev => lev.uid == user[1].id);
                 if (!imported) {
@@ -268,17 +285,18 @@ export async function run(interaction: ChatInputCommandInteraction) {
                   );
                   continue;
                 }
-                const prevXp = await getUserXp(interaction.guildId!, user[1].id);
-                const newXp = (i1.customId == "merge" ? prevXp : 0) + imported.current_xp;
-                await setUserXp(interaction.guildId!, user[1].id, newXp);
+                const previousXp = await getUserXp(interaction.guildId, user[1].id);
+                const newXp =
+                  (buttonInteraction1.customId == "merge" ? previousXp : 0) + imported.current_xp;
+                await setUserXp(interaction.guildId, user[1].id, newXp);
                 res.push(
-                  `${user[1].user.username} updated from ${prevXp} XP (level ${calculateLevel({ xp: prevXp, difficulty })}) to **XP ${newXp} (level ${calculateLevel({ xp: newXp, difficulty })})**.`,
+                  `${user[1].user.username} updated from ${previousXp} XP (level ${calculateLevel({ xp: previousXp, difficulty })}) to **XP ${newXp} (level ${calculateLevel({ xp: newXp, difficulty })})**.`,
                 );
               }
 
               content = `# Done!\n${res.join("\n")}`;
               await safeReply({
-                interaction: i1,
+                interaction: buttonInteraction1,
                 replyOptions: {
                   components: [await containerHelper(new ContainerBuilder(), { content })],
                 },
@@ -315,9 +333,9 @@ export async function run(interaction: ChatInputCommandInteraction) {
               ),
           );
 
-        await i.showModal(modal);
-        const modalInteraction = await modalSubmit(i);
-        collector.resetTimer({ time: 60000 });
+        await buttonInteraction.showModal(modal);
+        const modalInteraction = await modalSubmit(buttonInteraction);
+        collector.resetTimer({ time: 60_000 });
         if (!modalInteraction) return;
 
         try {

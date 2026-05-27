@@ -10,14 +10,13 @@ export const data = new SlashCommandSubcommandGroupBuilder()
   .setName("settings")
   .setDescription("Configure Sokora to your liking.");
 
-settingsKeys.forEach(key =>
+for (const key of settingsKeys)
   data.addSubcommand(
     new SlashCommandSubcommandBuilder()
       .setName(key)
       .setDescription(settingsDefinition[key].description),
-  ),
-);
+  );
 
-export async function run(interaction: ChatInputCommandInteraction) {
+export async function run(interaction: ChatInputCommandInteraction): Promise<void> {
   await settingsEmbed(interaction, "user");
 }

@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder } from "discord.js";
+import { type ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder } from "discord.js";
 import ms from "enhanced-ms";
 import { colorize, Sokolors } from "utils/colorize";
 import { dotCheck } from "utils/dotCheck";
@@ -9,7 +9,7 @@ export const data = new SlashCommandBuilder()
   .setDescription("Shows the current ping and uptime of Sokora.")
   .setContexts(0);
 
-export async function run(interaction: ChatInputCommandInteraction) {
+export async function run(interaction: ChatInputCommandInteraction): Promise<void> {
   const client = interaction.client;
   const user = client.user;
   const avatar = user.displayAvatarURL();

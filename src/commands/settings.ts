@@ -13,14 +13,13 @@ export const data = new SlashCommandBuilder()
   .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator)
   .setContexts(0);
 
-settingsKeys.forEach(key =>
+for (const key of settingsKeys)
   data.addSubcommand(
     new SlashCommandSubcommandBuilder()
       .setName(key)
       .setDescription(settingsDefinition[key].description),
-  ),
-);
+  );
 
-export async function run(interaction: ChatInputCommandInteraction) {
+export async function run(interaction: ChatInputCommandInteraction): Promise<void> {
   await settingsEmbed(interaction, "server");
 }

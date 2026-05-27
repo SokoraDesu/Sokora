@@ -6,7 +6,7 @@ import { channelCheck } from "utils/channelCheck";
 import { colorize, Sokolors } from "utils/colorize";
 import { dotCheck } from "utils/dotCheck";
 import { safeChannel } from "utils/safeThings";
-import { Event } from "utils/types";
+import type { Event } from "utils/types";
 
 export default (async function run(reaction, user) {
   const client = user.client;
@@ -24,7 +24,7 @@ export default (async function run(reaction, user) {
       });
     }
 
-  if (user.partial) {
+  if (user.partial)
     try {
       await user.fetch();
     } catch (error) {
@@ -37,7 +37,6 @@ export default (async function run(reaction, user) {
         fileName: "messageReactionAdd.ts",
       });
     }
-  }
 
   const message = await reaction.message.fetch();
   const guild = message.guild;
@@ -45,8 +44,8 @@ export default (async function run(reaction, user) {
 
   const starEmoji = ((await getSetting(guild.id, "starboard", "emoji")) as string) || "⭐";
   if (reaction.emoji.name != starEmoji) return;
-  if (!(await getSetting(guild.id, "starboard", "enabled")) as boolean) return;
-  if (!message.content && !message.attachments.size) return;
+  if (!(await getSetting(guild.id, "starboard", "enabled"))) return;
+  if (!message.content && message.attachments.size === 0) return;
 
   const starboardChannelId = (await getSetting(guild.id, "starboard", "channel")) as string;
   if (!starboardChannelId) return;
@@ -65,8 +64,9 @@ export default (async function run(reaction, user) {
   )
     return;
 
-  const starCount = reaction.count || 0;
-  const threshold = parseInt((await getSetting(guild.id, "starboard", "threshold")) as string) || 3;
+  const starCount = reaction.count ?? 0;
+  const threshold =
+    Number.parseInt((await getSetting(guild.id, "starboard", "threshold")) as string) || 3;
   if (starCount < threshold) return;
 
   const existingStarred = await getStarred(guild.id, message.id);
@@ -82,34 +82,34 @@ export default (async function run(reaction, user) {
     .setFooter({ text: `Message ID: ${message.id}` })
     .setColor(await colorize({ hue: Sokolors.Yellow }));
 
-  const ref = message.reference ? await message.fetchReference() : null;
+  const reference = message.reference ? await message.fetchReference() : null;
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
-      .setLabel(`•  Jump to ${ref ? "starred " : ""}`)
+      .setLabel(`•  Jump to ${reference ? "starred " : ""}`)
       .setURL(message.url)
       .setEmoji("🔗")
       .setStyle(ButtonStyle.Link),
   );
 
   const embeds = [];
-  if (ref) {
+  if (reference) {
     row.addComponents(
       new ButtonBuilder()
         .setLabel("•  Jump to replied")
-        .setURL(ref.url)
+        .setURL(reference.url)
         .setEmoji("🔗")
         .setStyle(ButtonStyle.Link),
     );
-    const avatar = ref.author.displayAvatarURL();
+    const avatar = reference.author.displayAvatarURL();
     embeds.push(
       new EmbedBuilder()
         .setAuthor({
-          name: `${dotCheck({ string: avatar, doubleSpace: true })}${ref.author.displayName}  •  Replied by starred message`,
+          name: `${dotCheck({ string: avatar, doubleSpace: true })}${reference.author.displayName}  •  Replied by starred message`,
           iconURL: avatar,
         })
-        .setDescription(ref.content)
-        .setTimestamp(ref.createdAt)
-        .setFooter({ text: `Message ID: ${ref.id}` })
+        .setDescription(reference.content)
+        .setTimestamp(reference.createdAt)
+        .setFooter({ text: `Message ID: ${reference.id}` })
         .setColor(await colorize({ hue: Sokolors.Blue })),
     );
   }
@@ -118,8 +118,8 @@ export default (async function run(reaction, user) {
   const attachment = message.attachments.first();
   if (attachment?.contentType?.startsWith("image/")) embed.setImage(attachment.url);
   try {
-    if (!existingStarred)
-      return await setStarred(
+    if (!existingStarred) {
+      await setStarred(
         guild.id,
         message.id,
         message.channel.id,
@@ -129,17 +129,18 @@ export default (async function run(reaction, user) {
         message.content || "",
         new Date(message.createdTimestamp),
       );
+      return;
+    }
 
-    const [channelId, , starMessageId, , ,] = existingStarred;
     await (
-      await starboardChannel.messages.fetch(starMessageId)
+      await starboardChannel.messages.fetch(existingStarred.message)
     ).edit({ embeds, components: [row] });
     await setStarred(
       guild.id,
       message.id,
-      channelId,
+      existingStarred.channel,
       author.id,
-      starMessageId,
+      existingStarred.message,
       starCount,
       message.content || "",
       new Date(message.createdTimestamp),

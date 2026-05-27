@@ -1,16 +1,20 @@
 import { resetSetting } from "database/settings";
 import {
+  ChannelType,
   ContainerBuilder,
   EmbedBuilder,
-  NewsChannel,
+  GuildMFALevel,
+  GuildNSFWLevel,
+  GuildVerificationLevel,
   SectionBuilder,
   SeparatorBuilder,
-  StageChannel,
-  TextChannel,
   TextDisplayBuilder,
   ThumbnailBuilder,
-  VoiceChannel,
   type Guild,
+  type NewsChannel,
+  type StageChannel,
+  type TextChannel,
+  type VoiceChannel,
 } from "discord.js";
 import { logChannel } from "utils/logChannel";
 import { pagedButtons } from "utils/pagination";
@@ -20,7 +24,7 @@ import { dotCheck } from "../dotCheck";
 import { mention } from "../mention";
 import { pluralOrNot } from "../pluralOrNot";
 
-type Options = {
+interface Options {
   guild: Guild;
   invite?: {
     show: boolean;
@@ -30,7 +34,7 @@ type Options = {
   page?: number;
   pages?: number;
   disableButtons?: boolean;
-};
+}
 
 /**
  * Gives you a CONTAINER containing information about the guild.
@@ -43,18 +47,26 @@ export async function serverEmbed(options: Options): Promise<ContainerBuilder> {
   const boosters = guild.members.cache.filter(member => member.premiumSince);
   const client = guild.client.user.id;
   const owner = await guild.fetchOwner();
-  const icon = guild.iconURL()!;
+  const icon = guild.iconURL() ?? undefined;
 
   const roles = guild.roles.cache;
-  const sortedRoles = [...roles].sort((role1, role2) => role2[1].position - role1[1].position);
+  const sortedRoles = [...roles].toSorted((role1, role2) => role2[1].position - role1[1].position);
   sortedRoles.pop();
   const rolesLength = sortedRoles.length;
 
   const channels = guild.channels.cache;
+
   const channelSizes = {
-    text: channels.filter(channel => channel.type == 0 || channel.type == 15 || channel.type == 5)
-      .size,
-    voice: channels.filter(channel => channel.type == 2 || channel.type == 13).size,
+    text: channels.filter(
+      channel =>
+        channel.type == ChannelType.GuildText ||
+        channel.type == ChannelType.GuildForum ||
+        channel.type == ChannelType.GuildAnnouncement,
+    ).size,
+    voice: channels.filter(
+      channel =>
+        channel.type == ChannelType.GuildVoice || channel.type == ChannelType.GuildStageVoice,
+    ).size,
   };
   const channelCount = channelSizes.text + channelSizes.voice;
 
@@ -63,15 +75,23 @@ export async function serverEmbed(options: Options): Promise<ContainerBuilder> {
     `Created on **${mention(guild.createdAt.valueOf(), "DEFAULT_TIMESTAMP")}**`,
   ].join("\n");
 
-  const vl = guild.verificationLevel;
-  const nsfw = guild.nsfwLevel;
   const safetyValues: (string | null)[] = [
-    `**${vl == 0 ? "Unrestricted" : vl == 1 ? "Low" : vl == 2 ? "Mid" : vl == 3 ? "High" : "Very high"}** level`,
-    `**${guild.mfaLevel == 1 ? "No" : "Has"}** 2FA`,
+    `**${
+      {
+        [GuildVerificationLevel.None]: "Unrestricted",
+        [GuildVerificationLevel.Low]: "Low",
+        [GuildVerificationLevel.Medium]: "Mid",
+        [GuildVerificationLevel.High]: "High",
+        [GuildVerificationLevel.VeryHigh]: "Very high",
+      }[guild.verificationLevel]
+    }** level`,
+    `**${guild.mfaLevel == GuildMFALevel.None ? "No" : "Has"}** 2FA`,
   ];
 
-  if (nsfw != 0)
-    safetyValues.push(`**${nsfw == 1 ? "Explicit" : nsfw == 2 ? "Safe" : "Age restricted"}**`);
+  if (guild.nsfwLevel != GuildNSFWLevel.Default)
+    safetyValues.push(
+      `**${guild.nsfwLevel == GuildNSFWLevel.Explicit ? "Explicit" : guild.nsfwLevel == GuildNSFWLevel.Safe ? "Safe" : "Age restricted"}**`,
+    );
 
   const statValues: (string | null)[] = [
     `**${guild.memberCount?.toLocaleString("en-US")}** members`,
@@ -82,7 +102,7 @@ export async function serverEmbed(options: Options): Promise<ContainerBuilder> {
 
   if (boostTier)
     statValues.push(
-      `${!boostTier ? "**No** level" : `Level **${boostTier}**`} • **${boostCount}** ${pluralOrNot("boost", boostCount!)} • **${boosters.size}** ${pluralOrNot("booster", boosters.size)}`,
+      `${boostTier ? `Level **${boostTier}**` : "**No** level"} • **${boostCount}** ${pluralOrNot("boost", boostCount ?? 0)} • **${boosters.size}** ${pluralOrNot("booster", boosters.size)}`,
     );
 
   if (options.roles)
@@ -123,11 +143,14 @@ export async function serverEmbed(options: Options): Promise<ContainerBuilder> {
     );
 
   container.addTextDisplayComponents(new TextDisplayBuilder().setContent(statValues.join("\n")));
+
   if (invite?.show) {
-    async function noPerms(channel?: NewsChannel | TextChannel | StageChannel | VoiceChannel) {
+    async function noPerms(
+      channel?: NewsChannel | TextChannel | StageChannel | VoiceChannel,
+    ): Promise<ContainerBuilder> {
       await resetSetting(guild.id, "serverboard", "server_invite");
       await resetSetting(guild.id, "serverboard", "invite_channel");
-      const errEmbed = new EmbedBuilder()
+      const errorEmbed = new EmbedBuilder()
         .setAuthor({
           name: `${dot}Serverboard is misconfigured in your server!`,
           iconURL: icon,
@@ -141,12 +164,12 @@ export async function serverEmbed(options: Options): Promise<ContainerBuilder> {
         })
         .setColor(await colorize({ hue: Sokolors.Yellow }));
 
-      await logChannel(guild, { embeds: [errEmbed] }, true, {
+      await logChannel(guild, { embeds: [errorEmbed] }, true, {
         silent: false,
         user: owner.user,
         options: {
           embeds: [
-            errEmbed.setFooter({ text: `This is coming from ${guild.name} • ID: ${guild.id}` }),
+            errorEmbed.setFooter({ text: `This is coming from ${guild.name} • ID: ${guild.id}` }),
           ],
         },
       });
@@ -163,13 +186,14 @@ export async function serverEmbed(options: Options): Promise<ContainerBuilder> {
 
     const invites = await guild.invites.fetch();
     const previousInvite = invites.find(invite => invite.inviter?.id == client);
-    const possibleInviteChannel = await safeChannel(
-      guild,
+    const id =
       invite.channel ??
-        guild.channels.cache
-          .filter(channel => channel.isTextBased() && !channel.isThread())
-          .find(channel => channel.position == 0)!.id,
-    );
+      guild.channels.cache
+        ?.filter(channel => channel.isTextBased() && !channel.isThread())
+        ?.find(channel => channel.position == 0)?.id;
+
+    if (!id) return container;
+    const possibleInviteChannel = await safeChannel(guild, id);
 
     const inviteChannel =
       possibleInviteChannel &&

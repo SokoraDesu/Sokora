@@ -2,6 +2,8 @@ import {
   ChannelType,
   SlashCommandSubcommandBuilder,
   type ChatInputCommandInteraction,
+  type InteractionResponse,
+  type Message,
 } from "discord.js";
 import { errorEmbed } from "embeds/errorEmbed";
 import { errorCheck, modEmbed } from "embeds/modEmbed";
@@ -25,11 +27,14 @@ export const data = new SlashCommandSubcommandBuilder()
       ),
   );
 
-export async function run(interaction: ChatInputCommandInteraction) {
-  const guild = interaction.guild!;
-  const channelOption = interaction.options.getChannel("channel")!;
+export async function run(
+  interaction: ChatInputCommandInteraction,
+): Promise<Message | InteractionResponse | undefined> {
+  const guild = interaction.guild;
+  if (!guild || !interaction.channel) return;
+  const channelOption = interaction.options.getChannel("channel");
   const reason = interaction.options.getString("reason");
-  let channel = await safeChannel(guild, interaction.channel!.id);
+  let channel = await safeChannel(guild, interaction.channel.id);
   if (channelOption) channel = await safeChannel(guild, channelOption.id);
 
   if (

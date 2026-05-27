@@ -4,6 +4,8 @@ import {
   SlashCommandSubcommandBuilder,
   type ButtonInteraction,
   type ChatInputCommandInteraction,
+  type InteractionResponse,
+  type Message,
 } from "discord.js";
 import { buttonCheck, errorEmbed } from "embeds/errorEmbed";
 import { colorize, Sokolors } from "utils/colorize";
@@ -18,7 +20,9 @@ export const data = new SlashCommandSubcommandBuilder()
     number.setName("page").setDescription("The news post that you want to see."),
   );
 
-export async function run(interaction: ChatInputCommandInteraction) {
+export async function run(
+  interaction: ChatInputCommandInteraction,
+): Promise<Message | InteractionResponse | undefined> {
   if (!interaction.guild)
     return await errorEmbed({
       interaction,
@@ -30,14 +34,14 @@ export async function run(interaction: ChatInputCommandInteraction) {
   const pages = news.length;
   let page = Math.max(0, Math.min(interaction.options.getNumber("page") || 0, pages) - 1);
 
-  if (!news || !pages)
+  if (!news?.length)
     return await errorEmbed({
       interaction,
       title: "No news found.",
       reason: "Admins can post news with the **/news post** command.",
     });
 
-  async function getEmbed() {
+  async function getEmbed(): Promise<EmbedBuilder> {
     const currentNews = news[page];
     const avatar = currentNews.authorPFP;
     return new EmbedBuilder()
@@ -47,8 +51,8 @@ export async function run(interaction: ChatInputCommandInteraction) {
       })
       .setTitle(currentNews.title)
       .setDescription(currentNews.body)
-      .setImage(currentNews.imageURL || null)
-      .setTimestamp(currentNews.updatedAt || currentNews.createdAt)
+      .setImage(currentNews.imageURL ?? null)
+      .setTimestamp(currentNews.updatedAt ?? currentNews.createdAt)
       .setFooter({ text: `ID: ${currentNews.id}` })
       .setColor(await colorize({ hue: Sokolors.Blue }));
   }
@@ -60,13 +64,13 @@ export async function run(interaction: ChatInputCommandInteraction) {
 
   if (pages <= 1) return;
   const collector = reply.createMessageComponentCollector({ time: 60000 });
-  collector.on("collect", async (i: ButtonInteraction) => {
-    if (await buttonCheck({ i, interaction, reply })) return;
+  collector.on("collect", async (buttonInteraction: ButtonInteraction) => {
+    if (await buttonCheck({ i: buttonInteraction, interaction, reply })) return;
     collector.resetTimer({ time: 60000 });
-    page = await handlePages({ i, page, pages, collector });
+    page = await handlePages({ i: buttonInteraction, page, pages, collector });
 
     await safeReply({
-      interaction: i,
+      interaction: buttonInteraction,
       editOptions: { embeds: [await getEmbed()], components: [pagedButtons(pages, page)] },
     });
   });

@@ -14,8 +14,7 @@
     "altdev": "bun --watch ./dist/src/bot.js",
     "dev": "bun --watch ./src/bot.ts",
     "start": "bun ./src/index.ts",
-    "prettier": "prettier --w .",
-    "lint": "eslint . --fix"
+    "ql": "prettier --w .; eslint . --fix"
   },
   "dependencies": {
     "@hokkiai/djs-level-importer": "^1.2.0",
@@ -30,13 +29,14 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@typescript-eslint/eslint-plugin": "^8.59.2",
-    "@typescript-eslint/parser": "^8.59.2",
-    "@typescript/native-preview": "^7.0.0-dev.20260511.1",
-    "bun-types": "^1.3.13",
-    "eslint": "^10.3.0",
+    "@typescript-eslint/eslint-plugin": "^8.59.4",
+    "@typescript-eslint/parser": "^8.59.4",
+    "@typescript/native-preview": "^7.0.0-dev.20260524.1",
+    "bun-types": "^1.3.14",
+    "eslint": "^10.4.0",
+    "eslint-plugin-unicorn": "^64.0.0",
     "prettier": "^3.8.3",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.59.2"
+    "typescript-eslint": "^8.59.4"
   }
 }

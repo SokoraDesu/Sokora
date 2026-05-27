@@ -29,9 +29,10 @@ export const client = new Client({
 });
 
 client.once("clientReady", async () => {
-  if (process.env.TOPGG_TOKEN)
+  const token = process.env.TOPGG_TOKEN;
+  if (token)
     setInterval(async () => {
-      const topgg = new Api(process.env.TOPGG_TOKEN!);
+      const topgg = new Api(token);
       try {
         await topgg.postStats({ serverCount: (await client.guilds.fetch()).size });
         console.log("Posted statistics to top.gg!");
@@ -41,13 +42,14 @@ client.once("clientReady", async () => {
 
       for (const user of new Set(
         (await getUserSettingsTable("topgg", "remind"))
-          ?.filter(i => i.value == "1")
-          .map(i => i.userID.replaceAll('"', "")),
-      )) {
+          ?.filter(index => index.value == "1")
+          .map(index => index.userID.replaceAll('"', "")),
+      ))
         try {
-          if ((await topgg.hasVoted(user)) == true) continue;
+          if (await topgg.hasVoted(user)) continue;
+
           const dmChannel = await (await safeUser(client, user)).createDM();
-          if (!dmChannel || !dmChannel.isSendable()) continue;
+          if (!dmChannel?.isSendable()) continue;
 
           await dmChannel.send(
             "Reminder that **you can vote for Sokora** on [top.gg](https://top.gg/bot/873918300726394960/vote) - go vote!!",
@@ -63,7 +65,6 @@ client.once("clientReady", async () => {
           });
           await setUserSetting(user, "topgg", "remind", false);
         }
-      }
     }, ms("6h"));
 
   await Promise.all([
@@ -71,9 +72,9 @@ client.once("clientReady", async () => {
     loadEasterEggs(),
     registerGuildCommands(client),
     rescheduleUnbans(client),
-  ]).then(() =>
-    console.log(Math.random() < 0.002 ? "こんにちは! (konichi whats upppppppp)" : "ちーっす！"),
-  );
+  ]).then(() => {
+    console.log(Math.random() < 0.002 ? "こんにちは! (konichi whats upppppppp)" : "ちーっす！");
+  });
 
   // if you want to register/remove guild/global commands, replace registerGuildCommands() with:
   // removeGuildCommands(client)

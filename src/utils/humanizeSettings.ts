@@ -1,4 +1,4 @@
-import { FieldData } from "database/types";
+import type { FieldData } from "database/types";
 import { capitalize } from "./capitalize";
 
 /**

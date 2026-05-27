@@ -19,7 +19,7 @@ export const data = new SlashCommandBuilder()
   .setDescription("Shows information about Sokora.")
   .setContexts(0);
 
-export async function run(interaction: ChatInputCommandInteraction) {
+export async function run(interaction: ChatInputCommandInteraction): Promise<void> {
   const client = interaction.client;
   const user = await client.user.fetch(true);
   const guilds = client.guilds.cache;
@@ -45,7 +45,7 @@ export async function run(interaction: ChatInputCommandInteraction) {
           `**${members.toLocaleString("en-US")}** ${pluralOrNot("member", members)} • **${guilds.size.toLocaleString("en-US")}** ${pluralOrNot(
             "guild",
             guilds.size,
-          )}${!shards ? "" : ` • **${shards}** ${pluralOrNot("shard", shards)}`}`,
+          )}${shards ? ` • **${shards}** ${pluralOrNot("shard", shards)}` : ""}`,
         ].join("\n"),
       ),
       new TextDisplayBuilder().setContent(

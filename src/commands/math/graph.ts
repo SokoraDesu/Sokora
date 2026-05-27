@@ -1,10 +1,12 @@
-import { ChartConfiguration } from "chart.js";
+import type { ChartConfiguration } from "chart.js";
 import { ChartJSNodeCanvas } from "chartjs-node-canvas";
 import {
   AttachmentBuilder,
   EmbedBuilder,
   SlashCommandSubcommandBuilder,
   type ChatInputCommandInteraction,
+  type InteractionResponse,
+  type Message,
 } from "discord.js";
 import { errorEmbed } from "embeds/errorEmbed";
 import * as math from "mathjs";
@@ -24,15 +26,17 @@ export const data = new SlashCommandSubcommandBuilder()
   .addNumberOption(option => option.setName("ymin").setDescription("Minimum y value"))
   .addNumberOption(option => option.setName("ymax").setDescription("Maximum y value"));
 
-export async function run(interaction: ChatInputCommandInteraction) {
-  const func = interaction.options.getString("function", true);
+export async function run(
+  interaction: ChatInputCommandInteraction,
+): Promise<Message | InteractionResponse | undefined> {
+  const function_ = interaction.options.getString("function", true);
   const xmin = interaction.options.getNumber("xmin") ?? -10;
   const xmax = interaction.options.getNumber("xmax") ?? 10;
   const ymin = interaction.options.getNumber("ymin") ?? -10;
   const ymax = interaction.options.getNumber("ymax") ?? 10;
 
   try {
-    const compiled = math.compile(func);
+    const compiled = math.compile(function_);
     compiled.evaluate({ x: 0 });
 
     const chartJSNodeCanvas = new ChartJSNodeCanvas({
@@ -44,11 +48,11 @@ export async function run(interaction: ChatInputCommandInteraction) {
     const points = 1000;
     const data = [];
 
-    for (let i = 0; i <= points; i++) {
-      const x = xmin + (i * (xmax - xmin)) / points;
+    for (let index = 0; index <= points; index++) {
+      const x = xmin + (index * (xmax - xmin)) / points;
       try {
-        const y = compiled.evaluate({ x });
-        if (typeof y == "number" && isFinite(y)) data.push({ x, y });
+        const y: unknown = compiled.evaluate({ x });
+        if (typeof y == "number" && Number.isFinite(y)) data.push({ x, y });
       } catch {
         continue;
       }
@@ -59,7 +63,7 @@ export async function run(interaction: ChatInputCommandInteraction) {
       data: {
         datasets: [
           {
-            label: `f(x) = ${func}`,
+            label: `f(x) = ${function_}`,
             data: data,
             borderColor: "#ff0000",
             borderWidth: 4,
@@ -118,7 +122,7 @@ export async function run(interaction: ChatInputCommandInteraction) {
 
     const embed = new EmbedBuilder()
       .setAuthor({ name: "Function graph" })
-      .setDescription(`\`f(x) = ${func}\``)
+      .setDescription(`\`f(x) = ${function_}\``)
       .setImage("attachment://graph.png")
       .setColor(await colorize({ hue: Sokolors.Blue }));
 

@@ -1,6 +1,6 @@
-import { Satisfies } from "utils/types";
+import type { Satisfies } from "utils/types";
 import { db, values } from ".";
-import { TableDefinition, TypeOfDefinition } from "./types";
+import type { TableDefinition, TypeOfDefinition } from "./types";
 
 type Def = Satisfies<
   TableDefinition,
@@ -19,16 +19,15 @@ type Def = Satisfies<
   }
 >;
 
-const getQuery = async (guild: string, message: string) =>
-  values(await db`SELECT * FROM starboard WHERE "guild" = ${guild} AND "message" = ${message};`);
-
 export async function getStarred(
   guildID: string,
   messageID: string,
-): Promise<[string, string, string, number, string, Date] | null> {
-  const res = values((await getQuery(guildID, messageID)) as TypeOfDefinition<Def>[]);
-  if (!res.length) return null;
-  return res[0] as [string, string, string, number, string, Date];
+): Promise<TypeOfDefinition<Def> | null> {
+  const res = values<TypeOfDefinition<Def>>(
+    await db`SELECT * FROM starboard WHERE "guild" = ${guildID} AND "message" = ${messageID};`,
+  );
+  if (res.length === 0) return null;
+  return res[0];
 }
 
 export async function setStarred(
@@ -40,7 +39,7 @@ export async function setStarred(
   stars: number,
   content: string,
   timestamp: Date,
-) {
+): Promise<void> {
   const insObject = {
     guild: guildID,
     message: messageID,

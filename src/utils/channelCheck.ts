@@ -1,12 +1,12 @@
 import { resetSetting } from "database/settings";
 import {
-  Channel,
   ChannelType,
   EmbedBuilder,
-  Guild,
-  GuildBasedChannel,
-  NewsChannel,
-  PermissionResolvable,
+  type Channel,
+  type Guild,
+  type GuildBasedChannel,
+  type NewsChannel,
+  type PermissionResolvable,
   type TextChannel,
 } from "discord.js";
 import { colorize, Sokolors } from "./colorize";
@@ -37,7 +37,7 @@ export async function channelCheck(options: {
 }): Promise<boolean> {
   const { channel, permType, guild, setting } = options;
 
-  async function reset() {
+  async function reset(): Promise<boolean> {
     await dm?.send({ embeds: [embed] });
     await resetSetting(guild.id, setting.category, setting.setting);
     return false;
@@ -47,7 +47,7 @@ export async function channelCheck(options: {
     return channel.type == ChannelType.GuildText || channel.type == ChannelType.GuildAnnouncement;
   }
 
-  const user = guild.client.user!;
+  const user = guild.client.user;
   const avatar = user.displayAvatarURL();
   const embed = new EmbedBuilder()
     .setAuthor({
