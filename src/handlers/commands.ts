@@ -1,9 +1,9 @@
 import {
   SlashCommandBuilder,
+  SlashCommandSubcommandBuilder,
   SlashCommandSubcommandGroupBuilder,
   type ChatInputCommandInteraction,
   type Client,
-  type SlashCommandSubcommandBuilder,
 } from "discord.js";
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
@@ -38,15 +38,22 @@ async function createSubCommand(name: string): Promise<Command> {
 
   const subNames: string[] = [];
   // Base executable subcommands first, then subcommands groups
-  const subCommandFiles = readdirSync(join(commandsPath, name), { withFileTypes: true });
+  const sortedSubFiles = readdirSync(join(commandsPath, name), { withFileTypes: true }).toSorted(
+    (a, b) =>
+      a.isDirectory() == b.isDirectory()
+        ? a.name.localeCompare(b.name)
+        : +a.isDirectory() - +b.isDirectory(),
+  );
 
-  for (const subCommandFile of subCommandFiles) {
+  for (const subCommandFile of sortedSubFiles) {
     const subName = subCommandFile.name;
     if (subCommandFile.isFile()) {
       const subCommand = (await import(
         pathToFileURL(join(commandsPath, name, subName)).toString()
       )) as Command & { data: SlashCommandSubcommandBuilder };
-      command.addSubcommand(subCommand.data);
+      if (subCommand.data instanceof SlashCommandSubcommandBuilder)
+        command.addSubcommand(subCommand.data);
+
       pushSubCommand(run, subCommand);
       subNames.push(subCommand.data.name);
       continue;
@@ -81,8 +88,13 @@ async function createSubCommand(name: string): Promise<Command> {
 
 async function loadCommands(): Promise<Command[]> {
   // Base executable commands first, then commands groups
-  const commandFiles = readdirSync(commandsPath, { withFileTypes: true });
-  for (const commandFile of commandFiles) {
+  const sortedFiles = readdirSync(commandsPath, { withFileTypes: true }).toSorted((a, b) =>
+    a.isDirectory() == b.isDirectory()
+      ? a.name.localeCompare(b.name)
+      : +a.isDirectory() - +b.isDirectory(),
+  );
+
+  for (const commandFile of sortedFiles) {
     const name = commandFile.name;
     if (commandFile.isFile()) {
       pushCommand(
