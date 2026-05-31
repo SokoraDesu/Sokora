@@ -10,12 +10,8 @@ import {
   TextInputStyle,
   type AnySelectMenuInteraction,
   type ButtonInteraction,
-  type ChatInputCommandInteraction,
   type InteractionCollector,
-  type InteractionEditReplyOptions,
-  type InteractionResponse,
 } from "discord.js";
-import { buttonCheck } from "embeds/errorEmbed";
 import { colorize, Sokolors } from "./colorize";
 import { modalSubmit } from "./modalSubmit";
 import { replace } from "./replace";
@@ -55,87 +51,100 @@ export function pagedButtons(
 export async function handlePages(options: HandlePagesOptions): Promise<number> {
   const { i, page, pages, collector } = options;
   const noErrorPages = pages - 1;
-  let functionPage = Math.max(0, Math.min(page || 0, pages) - 1);
+  let functionPage = Math.max(0, Math.min(page, pages));
+  if (i.customId == "left") return functionPage === 0 ? noErrorPages : page - 1;
+  if (i.customId == "right") return functionPage === noErrorPages ? 0 : page + 1;
 
-  if (i.customId == "left") functionPage = functionPage < 0 ? noErrorPages : functionPage - 1;
-  else if (i.customId == "right")
-    functionPage = functionPage >= noErrorPages ? 0 : functionPage + 1;
-  else if (i.customId == "pagecount") {
-    const modal = new ModalBuilder()
-      .setCustomId("pageselect")
-      .setTitle(`•  Go to page`)
-      .addLabelComponents(
-        new LabelBuilder()
-          .setLabel("Page")
-          .setTextInputComponent(
-            new TextInputBuilder()
-              .setCustomId("pageinput")
-              .setPlaceholder("What page do you want to travel to?")
-              .setStyle(TextInputStyle.Short),
-          ),
-      );
+  const modal = new ModalBuilder()
+    .setCustomId("page_select")
+    .setTitle(`•  Go to page`)
+    .addLabelComponents(
+      new LabelBuilder()
+        .setLabel("Page")
+        .setTextInputComponent(
+          new TextInputBuilder()
+            .setCustomId("page_input")
+            .setPlaceholder("What page do you want to travel to?")
+            .setStyle(TextInputStyle.Short),
+        ),
+    );
 
-    await i.showModal(modal);
-    const modalInteraction = await modalSubmit(i);
-    if (!modalInteraction) return functionPage;
-    collector.resetTimer({ time: 60_000 });
-    const value = modalInteraction.fields.getTextInputValue("pageinput");
+  await i.showModal(modal);
+  const modalInteraction = await modalSubmit(i);
+  if (!modalInteraction) return functionPage;
+  collector.resetTimer({ time: 60_000 });
+  const value = Number.parseInt(modalInteraction.fields.getTextInputValue("page_input"));
 
-    if (typeof Number.parseInt(value) === "number") {
-      // minus 1 because all these numbers revolve around arrays starting from 0.
-      // thus, if a user provides 2, this hunk of code and machinery produces 1.
-      const valueNumber = Number.parseInt(value) - 1;
-      functionPage = valueNumber < 0 ? noErrorPages : Math.min(valueNumber, noErrorPages);
-    }
+  if (!Number.isNaN(value)) {
+    // minus 1 because all these numbers revolve around arrays starting from 0.
+    // thus, if a user provides 2, this hunk of code and machinery produces 1.
+    const valueNumber = value - 1;
+    functionPage = valueNumber < 0 ? noErrorPages : Math.min(valueNumber, noErrorPages);
+  }
 
-    const container = new ContainerBuilder()
-      .addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(`## You're viewing page ${functionPage + 1}.`),
-      )
-      .setAccentColor(await colorize({ hue: Sokolors.Green }));
+  const container =
+    value > pages
+      ? new ContainerBuilder()
+          .addTextDisplayComponents(
+            new TextDisplayBuilder().setContent(
+              `## You're viewing page ${functionPage + 1}.\nThis is the last page, since you went out of bounds (there aren't ${value} pages).`,
+            ),
+          )
+          .setAccentColor(await colorize({ hue: Sokolors.Yellow }))
+      : new ContainerBuilder()
+          .addTextDisplayComponents(
+            new TextDisplayBuilder().setContent(`## You're viewing page ${functionPage + 1}.`),
+          )
+          .setAccentColor(await colorize({ hue: Sokolors.Green }));
 
+  if (value > pages)
     await safeReply({
       interaction: modalInteraction,
       replyOptions: { components: [container], flags: ["Ephemeral", "IsComponentsV2"] },
     });
-  }
 
   return functionPage;
 }
 
+/* todo: fix
 export function pageContainer(options: {
   interaction: ChatInputCommandInteraction;
   reply: InteractionResponse;
   collector: InteractionCollector<ButtonInteraction | AnySelectMenuInteraction>;
   page: number;
   pages: number;
-  normalResponse: InteractionEditReplyOptions;
-  endResponse: InteractionEditReplyOptions;
+  normalResponse: () => Promise<ContainerBuilder>;
+  endResponse: () => Promise<ContainerBuilder>;
 }): number {
   const { interaction, reply, collector, page, pages, normalResponse, endResponse } = options;
-  let functionPage = Math.max(0, Math.min(page || 0, pages) - 1);
+
+  let resPage: number = page.valueOf();
 
   collector.on("collect", async (buttonInteraction: ButtonInteraction) => {
     if (await buttonCheck({ i: buttonInteraction, interaction, reply })) return;
     collector.resetTimer({ time: 60_000 });
-    functionPage = await handlePages({
+    resPage = await handlePages({
       i: buttonInteraction,
-      page: functionPage,
+      page,
       pages,
       collector,
     });
 
-    await safeReply({ interaction: buttonInteraction, editOptions: normalResponse });
+    await safeReply({
+      interaction: buttonInteraction,
+      editOptions: { components: [await normalResponse()] },
+    });
   });
 
   collector.on("end", async () => {
     try {
-      await interaction.editReply(endResponse);
+      await interaction.editReply({ components: [await endResponse()] });
     } catch (error) {
       if (Error.isError(error) && error.message.toLowerCase().includes("unknown message")) return;
       throw error;
     }
   });
 
-  return functionPage;
+  return resPage;
 }
+*/

@@ -61,7 +61,7 @@ export async function run(
         "By some magical miracle, all the servers using Sokora turned off their visibility. Use /settings serverboard `shown: True` to make your server publicly visible.",
     });
 
-  let page = Math.max(0, Math.min(interaction.options.getNumber("page") || 0, pages) - 1);
+  let page = Math.max(0, Math.min(interaction.options.getNumber("page") ?? 0, pages) - 1);
   async function getContainer(disableButtons?: boolean): Promise<ContainerBuilder> {
     return await serverEmbed({
       guild: guildList[page].guild,
@@ -82,10 +82,10 @@ export async function run(
   });
 
   if (pages == 1) return;
-  const collector = reply.createMessageComponentCollector({ time: 60000 });
+  const collector = reply.createMessageComponentCollector({ time: 60_000 });
   collector.on("collect", async (buttonInteraction: ButtonInteraction) => {
     if (await buttonCheck({ i: buttonInteraction, interaction, reply })) return;
-    collector.resetTimer({ time: 60000 });
+    collector.resetTimer({ time: 60_000 });
     page = await handlePages({ i: buttonInteraction, page, pages, collector });
 
     await safeReply({
@@ -103,15 +103,14 @@ export async function run(
     }
   });
 
-  /*
-  page = await pageContainer({
+  /* todo when fixed
+  page = pageContainer({
     interaction,
     reply,
     collector,
     page,
     pages,
-    normalResponse: { components: [await getContainer(false)] },
-    endResponse: { components: [await getContainer(true)] },
-  });
-  */
+    normalResponse: async () => await getContainer(false),
+    endResponse: async () => await getContainer(true),
+  }); */
 }

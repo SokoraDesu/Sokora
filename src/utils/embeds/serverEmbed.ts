@@ -24,17 +24,15 @@ import { dotCheck } from "../dotCheck";
 import { mention } from "../mention";
 import { pluralOrNot } from "../pluralOrNot";
 
-interface Options {
+type Options = {
   guild: Guild;
   invite?: {
     show: boolean;
     channel: string | null;
   };
   roles?: boolean;
-  page?: number;
-  pages?: number;
   disableButtons?: boolean;
-}
+} & ({ page: number; pages: number } | { page: undefined; pages: undefined });
 
 /**
  * Gives you a CONTAINER containing information about the guild.
@@ -90,7 +88,7 @@ export async function serverEmbed(options: Options): Promise<ContainerBuilder> {
 
   if (guild.nsfwLevel != GuildNSFWLevel.Default)
     safetyValues.push(
-      `**${guild.nsfwLevel == GuildNSFWLevel.Explicit ? "Explicit" : guild.nsfwLevel == GuildNSFWLevel.Safe ? "Safe" : "Age restricted"}**`,
+      `**${guild.nsfwLevel == GuildNSFWLevel.Explicit ? "Explicit" : (guild.nsfwLevel == GuildNSFWLevel.Safe ? "Safe" : "Age restricted")}**`,
     );
 
   const statValues: (string | null)[] = [
@@ -121,7 +119,7 @@ export async function serverEmbed(options: Options): Promise<ContainerBuilder> {
   const container = new ContainerBuilder();
   const start = new TextDisplayBuilder().setContent(
     [
-      `## ${pages && pages > 1 ? `#${page! + 1}  •  ` : dot}${guild.name}`,
+      `## ${pages && pages > 1 ? `#${page + 1}  •  ` : dot}${guild.name}`,
       generalValues,
       safetyValues.join(" • "),
     ].join("\n"),
