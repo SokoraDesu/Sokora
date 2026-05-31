@@ -66,9 +66,9 @@ async function collapse(
       [
         cID === "MEE6"
           ? "Open the leaderboard settings in the MEE6 dashboard and enable the option `Make my server's leaderboard public`. Otherwise we can't import data."
-          : cID === "LURKR"
+          : (cID === "LURKR"
             ? "Check that the API token you provided is correct."
-            : "We don't really know what went wrong. Maybe you should try again?",
+            : "We don't really know what went wrong. Maybe you should try again?"),
         "You might as well check the error message shown below, it *might* explain better what's wrong.",
         "If after doing all of that Sokora keeps failing to import your data, please send the error message to Sokora's team so we can try to fix this.",
         codeBlock("yaml", error instanceof Error ? (error.stack ?? error.message) : String(error)),

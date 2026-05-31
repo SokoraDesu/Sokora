@@ -220,7 +220,7 @@ export async function settingsEmbed(
         container.addSectionComponents(
           new SectionBuilder()
             .addTextDisplayComponents(new TextDisplayBuilder().setContent(object.text))
-            .setButtonAccessory(component.setDisabled(disabled ?? false) as ButtonBuilder),
+            .setButtonAccessory(component.setDisabled(disabled ?? false)),
         );
       else
         container
@@ -679,7 +679,7 @@ export async function settingsEmbed(
         const value = modalInteraction.fields.getTextInputValue("setting");
         const length = value.length;
         let settingText = `**${dotCheck({ string: settingsObject[cID].emoji, twoSides: true, includeString: true })}${humanizeSettings(cID)}** got changed`;
-        let valueText = `The ${value.length < 50 ? "value" : "**value**"} has been set ${length >= 500 ? "successfully." : length >= 50 ? `to ${value}` : `to **${value}**`}`;
+        let valueText = `The ${value.length < 50 ? "value" : "**value**"} has been set ${length >= 500 ? "successfully." : (length >= 50 ? `to ${value}` : `to **${value}**`)}`;
         let hue = Sokolors.Blue;
 
         if (isValueValid(value, settingsObject[cID].type))
@@ -737,11 +737,11 @@ export async function settingsEmbed(
       const newContainer = new ContainerBuilder().setAccentColor(color);
       await construct(
         itrObjectView
-          ? (await getLevelRewards(id))
-            ? ((await getLevelRewards(id))!.sort(
-                (reward1, reward2) => reward1.level - reward2.level,
-              ) as any)
-            : null
+          ? (((await getLevelRewards(id))
+              ? (await getLevelRewards(id))?.toSorted(
+                  (reward1, reward2) => reward1.level - reward2.level,
+                )
+              : null) ?? null)
           : settingsObject,
         newContainer,
         false,

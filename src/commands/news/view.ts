@@ -32,7 +32,7 @@ export async function run(
 
   const news = await listAllNews(interaction.guild.id);
   const pages = news.length;
-  let page = Math.max(0, Math.min(interaction.options.getNumber("page") || 0, pages) - 1);
+  let page = Math.max(0, Math.min(interaction.options.getNumber("page") ?? 0, pages) - 1);
 
   if (!news?.length)
     return await errorEmbed({
@@ -63,10 +63,10 @@ export async function run(
   });
 
   if (pages <= 1) return;
-  const collector = reply.createMessageComponentCollector({ time: 60000 });
+  const collector = reply.createMessageComponentCollector({ time: 60_000 });
   collector.on("collect", async (buttonInteraction: ButtonInteraction) => {
     if (await buttonCheck({ i: buttonInteraction, interaction, reply })) return;
-    collector.resetTimer({ time: 60000 });
+    collector.resetTimer({ time: 60_000 });
     page = await handlePages({ i: buttonInteraction, page, pages, collector });
 
     await safeReply({

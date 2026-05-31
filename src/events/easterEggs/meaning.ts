@@ -23,9 +23,9 @@ export async function run(message: Message): Promise<void> {
   const reply =
     message.author.id == "823939421686071386" || chances < 0.3
       ? ultraRareReply
-      : chances >= 0.3 && chances < 3
+      : (chances >= 0.3 && chances < 3
         ? randomize(rareReplies)
-        : randomize(normalReplies);
+        : randomize(normalReplies));
 
   await message.reply(reply);
 }

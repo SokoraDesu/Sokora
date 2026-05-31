@@ -54,7 +54,7 @@ async function generateEmbed(options: {
 
   const casesPerPage = 5;
   const start = page * casesPerPage;
-  const displayedCases = cases.sort((a, b) => b.id - a.id).slice(start, start + casesPerPage);
+  const displayedCases = cases.toSorted((a, b) => b.id - a.id).slice(start, start + casesPerPage);
   const avatar = user ? user.avatarURL() : (await safeGuild(client, guildID))?.iconURL();
   let fields = displayedCases.map(c => {
     const value = [
@@ -84,7 +84,7 @@ async function generateEmbed(options: {
 
   const embed = new EmbedBuilder()
     .setAuthor({
-      name: `${dotCheck({ string: avatar, doubleSpace: true })}${id ? capitalize(displayedCases[0].type?.toLowerCase()) : type ? `${capitalize(type.toLowerCase())} cases` : pluralOrNot("Case", cases.length)} ${id ? `#${id}` : user ? `of ${user.username}` : "in the server"}`,
+      name: `${dotCheck({ string: avatar, doubleSpace: true })}${id ? capitalize(displayedCases[0].type?.toLowerCase()) : (type ? `${capitalize(type.toLowerCase())} cases` : pluralOrNot("Case", cases.length))} ${id ? `#${id}` : (user ? `of ${user.username}` : "in the server")}`,
       iconURL: avatar ?? undefined,
     })
     .setFooter({
@@ -163,17 +163,17 @@ export async function run(
   else cases = await listGuildCases(guildID, modType);
 
   const pages = Math.ceil(cases.length / 5);
-  let page = Math.max(0, Math.min(interaction.options.getNumber("page") || 0, pages) - 1);
+  let page = Math.max(0, Math.min(interaction.options.getNumber("page") ?? 0, pages) - 1);
   const reply = await interaction.reply({
     embeds: [await generateEmbed({ cases, page, guildID, type: modType, user, id: actionID })],
     components: pages > 1 ? [pagedButtons(pages, page)] : [],
   });
 
   if (pages <= 1) return;
-  const collector = reply.createMessageComponentCollector({ time: 60000 });
+  const collector = reply.createMessageComponentCollector({ time: 60_000 });
   collector.on("collect", async (buttonInteraction: ButtonInteraction) => {
     if (await buttonCheck({ i: buttonInteraction, interaction, reply })) return;
-    collector.resetTimer({ time: 60000 });
+    collector.resetTimer({ time: 60_000 });
     page = await handlePages({ i: buttonInteraction, page, pages, collector });
 
     await safeReply({

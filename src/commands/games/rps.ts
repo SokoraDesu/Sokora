@@ -147,9 +147,9 @@ export async function run(
             hue:
               winner == 0
                 ? Sokolors.Yellow
-                : winner == 2 && opponent.bot
+                : (winner == 2 && opponent.bot
                   ? Sokolors.Red
-                  : Sokolors.Green,
+                  : Sokolors.Green),
           }),
         );
 

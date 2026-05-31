@@ -54,9 +54,9 @@ export default (async function run(message) {
       })
       .setDescription(
         content.length <= 1024
-          ? content && content.length > 0
+          ? (content && content.length > 0
             ? content
-            : "*Empty message*"
+            : "*Empty message*")
           : "*The deleted message is an attachment below this embed due to it being too large.*",
       )
       .setThumbnail(thumbnail)
