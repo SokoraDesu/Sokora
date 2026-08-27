@@ -69,6 +69,10 @@ export async function errorEmbed(options: {
             : "The error stacktrace is an attachment below this embed due to it being too large."
           : "No error stacktrace.",
       },
+      {
+        name: "🛡️ • Pinpoint this issue",
+        value: interaction ? `**User is:** <@${(interaction.user.id)}> (${interaction.user.id})\n**Guild is:** ${interaction.guild?.name} (${interaction.guild?.id})` : "So, funnily enough, this errorEmbed relies on `client`, not `interaction`, so I cannot tell you who caused this. Good luck."
+      }
     );
   }
 
@@ -147,10 +151,17 @@ export async function errorEmbedCV2(options: {
         new TextDisplayBuilder().setContent(
           `📜 • Error stack\n${
             stack
-              ? stack.length <= 4096
-                ? codeBlock(stack)
-                : "The error stacktrace is an attachment below this embed due to it being too large."
-              : "No error stacktrace."
+            ? stack.length <= 4096
+            ? codeBlock(stack)
+            : "The error stacktrace is an attachment below this embed due to it being too large."
+            : "No error stacktrace."
+          }`,
+        ),
+      )
+      .addSeparatorComponents(new SeparatorBuilder().setDivider(false))
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+          `🛡️ • Pinpoint this issue\n${interaction ? `**User is:** <@${(interaction.user.id)}> (${interaction.user.id})\n**Guild is:** ${interaction.guild?.name} (${interaction.guild?.id})` : "So, funnily enough, this errorEmbed relies on `client`, not `interaction`, so I cannot tell you who caused this. Good luck."
           }`,
         ),
       );
