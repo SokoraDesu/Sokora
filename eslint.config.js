@@ -82,6 +82,7 @@ export default defineConfig(
       "@typescript-eslint/no-base-to-string": "error",
       "@typescript-eslint/no-meaningless-void-operator": "error",
       "@typescript-eslint/use-unknown-in-catch-callback-variable": "error",
+      "@typescript-eslint/non-nullable-type-assertion-style": "off",
       "no-constant-binary-expression": "error",
       "no-constructor-return": "error",
       "no-promise-executor-return": "error",

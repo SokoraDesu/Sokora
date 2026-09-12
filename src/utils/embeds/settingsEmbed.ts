@@ -26,8 +26,8 @@ import {
 } from "database/settings";
 import {
   isSettingValueValid,
-  type Setting,
   type IterableObjectSetting,
+  type Setting,
   type SettingDefinitionRecord,
   type SettingKeyFor,
   type SettingReturnType,
@@ -68,11 +68,11 @@ import { colorize, Sokolors } from "utils/colorize";
 import { COLLECTOR_DURATION, MAX_INPUT_CHARS } from "utils/constants";
 import { dotCheck } from "utils/dotCheck";
 import { humanizeSettings, humanizeSettingType } from "utils/humanizeSettings";
-import { modalSubmit } from "utils/modalSubmit";
 import { handlePages, pagedButtons } from "utils/pagination";
-import { safeEdit, safeReply } from "utils/safeThings";
+import { safeCustomId, safeEdit, safeReply } from "utils/safeThings";
 import { setMap } from "utils/setMap";
 import { buttonCheck } from "./errorEmbed";
+import { modalSubmit } from "utils/modalSubmit";
 
 const OBJECTS_PER_ITR_PAGE = 10;
 
@@ -147,11 +147,11 @@ const t = <K extends keyof TS, S extends SettingKeyFor<K>>(v: unknown): SettingR
 
 async function confirmResetModal<K extends keyof TS>(
   interaction: SettingInteraction<K, SettingKeyFor<K>>,
-): Promise<ModalSubmitInteraction | false> {
+): Promise<ModalSubmitInteraction | false | undefined> {
   if (!interaction.isButton() && !interaction.isChatInputCommand()) return false;
 
   const modal = new ModalBuilder()
-    .setCustomId("confirm_resetting")
+    .setCustomId(safeCustomId("confirm_resetting"))
     .setTitle("•  Are you sure?")
     .addLabelComponents(
       new LabelBuilder()
@@ -159,8 +159,7 @@ async function confirmResetModal<K extends keyof TS>(
         .setCheckboxComponent(checkbox => checkbox.setCustomId("confirm").setDefault(false)),
     );
 
-  await interaction.showModal(modal);
-  const modalInteraction = await modalSubmit(interaction);
+  const modalInteraction = await modalSubmit(interaction, modal, "settingsEmbed");
   if (!modalInteraction) return false;
   if (!modalInteraction.fields.getCheckbox("confirm")) {
     await safeReply({
@@ -638,7 +637,7 @@ async function toggleHandler<K extends keyof TS, S extends SettingKeyFor<K>>(
     case "TEXT":
     case "mTEXT": {
       const modal = new ModalBuilder()
-        .setCustomId(cID)
+        .setCustomId(safeCustomId(cID))
         .setTitle(`•  ${humanizeSettings(cID)}`)
         .addLabelComponents(
           new LabelBuilder().setLabel("Value").setTextInputComponent(
@@ -652,8 +651,11 @@ async function toggleHandler<K extends keyof TS, S extends SettingKeyFor<K>>(
           ),
         );
 
-      await (interaction as ButtonInteraction).showModal(modal);
-      const modalInteraction = await modalSubmit(interaction as ButtonInteraction);
+      const modalInteraction = await modalSubmit(
+        interaction as ButtonInteraction,
+        modal,
+        "settingsEmbed",
+      );
       if (!modalInteraction) break;
 
       const modalValue = modalInteraction.fields.getTextInputValue("setting");

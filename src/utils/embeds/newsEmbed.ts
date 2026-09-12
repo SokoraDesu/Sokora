@@ -1,10 +1,13 @@
-import { getNews } from "database/news";
+import { getNews, listAllNewsInCategory } from "database/news";
 import { getSetting } from "database/settings";
 import {
+  ActionRowBuilder,
   ContainerBuilder,
   type Guild,
   MediaGalleryBuilder,
   MediaGalleryItemBuilder,
+  StringSelectMenuBuilder,
+  StringSelectMenuOptionBuilder,
   TextDisplayBuilder,
 } from "discord.js";
 import { colorize, Sokolors } from "utils/colorize";
@@ -28,6 +31,7 @@ export async function newsEmbed(
     pages: number;
     page: number;
     isDisabled: boolean;
+    willShowCategories: boolean;
   },
 ): Promise<ContainerBuilder> {
   const { title, body, author, id, imageURL, categoryRoles } = newsOptions;
@@ -62,6 +66,36 @@ export async function newsEmbed(
     container.addActionRowComponents(
       pagedButtons(viewOptions.pages, viewOptions.page, viewOptions.isDisabled),
     );
+
+  if (viewOptions?.willShowCategories) {
+    const categories = await getSetting(guild.id, "news", "categories");
+    if (categories.length > 0) {
+      const news = await Promise.all(
+        categories.map(async category => {
+          return await listAllNewsInCategory(guild.id, category.$);
+        }),
+      );
+      if (news.flat().length === 0) return container;
+
+      container.addActionRowComponents(
+        new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+          new StringSelectMenuBuilder()
+            .setCustomId("category")
+            .setPlaceholder("Select a category")
+            .addOptions([
+              new StringSelectMenuOptionBuilder().setLabel("All").setValue("all"),
+              ...categories.map(category =>
+                new StringSelectMenuOptionBuilder()
+                  .setLabel(category.name)
+                  .setDescription(category.$)
+                  .setValue(category.$),
+              ),
+            ])
+            .setDisabled(viewOptions.isDisabled),
+        ),
+      );
+    }
+  }
 
   container.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(

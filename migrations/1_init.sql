@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS news (
   "updatedAt" TIMESTAMP,
   "messageID" TEXT,
   "imageURL" TEXT,
-  "id" INTEGER
+  "id" INTEGER,
 );
 
 CREATE TABLE IF NOT EXISTS starboard (
@@ -50,8 +50,6 @@ CREATE TABLE IF NOT EXISTS starboard (
   "content" TEXT,
   "timestamp" TIMESTAMP
 );
-
-ALTER TABLE settings ADD COLUMN IF NOT EXISTS parameters JSONB;
 
 DO $$
 BEGIN

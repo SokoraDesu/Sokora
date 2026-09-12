@@ -1,6 +1,7 @@
-import { listAllNews } from "database/news";
+import { listAllNews, listAllNewsInCategory } from "database/news";
 import {
   SlashCommandSubcommandBuilder,
+  type StringSelectMenuInteraction,
   type ButtonInteraction,
   type ChatInputCommandInteraction,
   type ContainerBuilder,
@@ -32,16 +33,16 @@ export async function run(
       reason: "This command can only be used in a server.",
     });
 
-  const news = await listAllNews(guild.id);
-  const pages = news.length;
-  let page = Math.max(0, Math.min(interaction.options.getNumber("page") ?? 0, pages) - 1);
-
-  if (!news?.length)
+  let news = await listAllNews(guild.id);
+  let pages = news.length;
+  if (!pages)
     return await errorEmbed({
       interaction,
       title: "No news found.",
       reason: "Admins can post news with the **/news post** command.",
     });
+
+  let page = Math.max(0, Math.min(interaction.options.getNumber("page") ?? 0, pages) - 1);
 
   async function getContainer(guild: Guild, isDisabled: boolean): Promise<ContainerBuilder> {
     const currentNews = news[page];
@@ -51,6 +52,7 @@ export async function run(
       pages,
       page,
       isDisabled,
+      willShowCategories: true,
     });
   }
 
@@ -61,17 +63,36 @@ export async function run(
 
   if (pages <= 1) return;
   const collector = reply.createMessageComponentCollector({ time: COLLECTOR_DURATION });
-  collector.on("collect", async (buttonInteraction: ButtonInteraction) => {
-    if (await buttonCheck({ i: buttonInteraction, interaction, reply })) return;
-    collector.resetTimer({ time: COLLECTOR_DURATION });
-    if (buttonInteraction.customId == "please") return;
+  collector.on(
+    "collect",
+    async (buttonInteraction: ButtonInteraction | StringSelectMenuInteraction) => {
+      if (await buttonCheck({ i: buttonInteraction, interaction, reply })) return;
+      collector.resetTimer({ time: COLLECTOR_DURATION });
+      const cID = buttonInteraction.customId;
+      if (cID == "please") return;
+      if (cID == "category") {
+        const selectInteraction = buttonInteraction as StringSelectMenuInteraction;
+        const value = selectInteraction.values[0];
+        news =
+          value && value == "all"
+            ? await listAllNews(guild.id)
+            : await listAllNewsInCategory(guild.id, value);
 
-    page = await handlePages({ i: buttonInteraction, page, pages, collector });
-    await safeEdit({
-      interaction: buttonInteraction,
-      editOptions: { components: [await getContainer(guild, false)] },
-    });
-  });
+        pages = news.length;
+      }
+
+      page = await handlePages({
+        i: buttonInteraction as ButtonInteraction,
+        page,
+        pages,
+        collector,
+      });
+      await safeEdit({
+        interaction: buttonInteraction,
+        editOptions: { components: [await getContainer(guild, false)] },
+      });
+    },
+  );
 
   collector.on("end", async () => {
     try {

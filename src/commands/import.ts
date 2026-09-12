@@ -11,6 +11,7 @@ import {
   FileBuilder,
   LabelBuilder,
   ModalBuilder,
+  type ModalSubmitInteraction,
   PermissionsBitField,
   SectionBuilder,
   SlashCommandBuilder,
@@ -21,7 +22,6 @@ import {
   type ChatInputCommandInteraction,
   type InteractionResponse,
   type Message,
-  type ModalSubmitInteraction,
 } from "discord.js";
 import { buttonCheck, errorEmbed } from "embeds/errorEmbed";
 import { colorize, Sokolors } from "utils/colorize";
@@ -307,16 +307,14 @@ export async function run(interaction: ChatInputCommandInteraction): Promise<voi
           ),
       );
 
-    await buttonInteraction.showModal(modal);
-    const modalInteraction = await modalSubmit(buttonInteraction);
+    const modalInteraction = await modalSubmit(buttonInteraction, modal, "import");
     collector.resetTimer({ time: COLLECTOR_DURATION });
-    if (!modalInteraction) return;
-
-    try {
-      await construct(modalInteraction.fields.getTextInputValue("setting"), modalInteraction);
-    } catch (error) {
-      return await collapse(error, interaction);
-    }
+    if (modalInteraction)
+      try {
+        await construct(modalInteraction.fields.getTextInputValue("setting"), modalInteraction);
+      } catch (error) {
+        return await collapse(error, interaction);
+      }
   });
 
   collector.on("end", async (_, reason) => {

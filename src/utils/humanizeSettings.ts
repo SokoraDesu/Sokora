@@ -31,7 +31,6 @@ export function humanizeSettings(string: string): string {
  */
 export function humanizeSettingType(def: SingleSettingDefinition): string {
   const { type } = def;
-
   const isOptional = type.startsWith("m");
   let typeString;
 

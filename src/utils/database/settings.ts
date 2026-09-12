@@ -8,6 +8,9 @@ import type { Satisfies } from "utils/types";
 import { db, values } from ".";
 import type {
   BulkedSettingReturnType,
+  GuidParameter,
+  ParameterReturnType,
+  Setting,
   SettingDefinitionRecord,
   SettingKeyFor,
   SettingPrecondition,
@@ -70,6 +73,12 @@ export const defLeveling = {
     val: 2,
     emoji: "📈",
   },
+  global_multiplier: {
+    type: "INTEGER",
+    desc: "Multiplies the XP gained per message (e.g 1.5x will make 2xp 3).",
+    val: 1,
+    emoji: "🗺️",
+  },
   cooldown: {
     type: "INTEGER",
     desc: "Set the cooldown between messages that add XP (in seconds).",
@@ -115,6 +124,44 @@ export const defLeveling = {
         type: "ROLE",
         iterable: true,
         desc: "Roles granted by this level.",
+        emoji: "📑",
+      },
+    },
+  },
+  multipliers: {
+    type: "OBJECT",
+    desc: "Set multipliers to roles and channels.",
+    iterable: true,
+    emoji: "🧮",
+    sorting: (a: { multiplier: number }, b: { multiplier: number }): number =>
+      b.multiplier - a.multiplier,
+    naming: (a: { multiplier: number; channels?: string[]; roles?: string[] }): string => {
+      const channelCount = a.channels?.length;
+      const roleCount = a.roles?.length;
+      return `**${a.multiplier}**x  •  **${channelCount ?? "no"}** ${pluralOrNot("channel", channelCount ?? 0)}  •  **${roleCount ?? "no"}** ${pluralOrNot("role", roleCount ?? 0)}`;
+    },
+    validation: (a: { channels?: string[]; roles?: string[] }): boolean => !a.channels && !a.roles,
+    properties: {
+      $: {
+        type: "TEXT",
+        desc: "(Internal)",
+        val: "",
+      },
+      multiplier: {
+        type: "INTEGER",
+        desc: "The multiplier to apply.",
+        emoji: "📈",
+      },
+      channels: {
+        type: "CHANNEL",
+        iterable: true,
+        desc: "Channels to apply the multiplier to.",
+        emoji: "📑",
+      },
+      roles: {
+        type: "ROLE",
+        iterable: true,
+        desc: "Roles to apply the multiplier to.",
         emoji: "📑",
       },
     },
@@ -452,10 +499,22 @@ export function getSettingDef<K extends keyof TS, S extends SettingKeyFor<K>>(
   return settings[setting] as SettingsGlueFix1<K, S>;
 }
 
+export async function getSetting<K extends keyof TS, S extends SettingKeyFor<K>>(
+  entityID: string,
+  key: K,
+  setting: S,
+): Promise<SettingReturnType<K, S>>;
+export async function getSetting<K extends keyof TS, S extends SettingKeyFor<K>>(
+  entityID: string,
+  key: K,
+  setting: S,
+  id?: GuidParameter<Setting<K, S>>,
+): Promise<ParameterReturnType<K, S, SettingReturnType<K, S>>>;
 /**
  * @param entityID ID of the guild/user to touch settings for.
  * @param key Key, e.g. `leveling`, `moderation`.
  * @param setting Specific setting to get.
+ * @param id The GUID of the (object setting's) parameter.
  * @returns The setting's value.
  * @important Do not mix user and guild IDs. That's the only thing we cannot type-check.
  */
@@ -463,7 +522,8 @@ export async function getSetting<K extends keyof TS, S extends SettingKeyFor<K>>
   entityID: string,
   key: K,
   setting: S,
-): Promise<SettingReturnType<K, S>> {
+  id?: GuidParameter<Setting<K, S>>,
+): Promise<SettingReturnType<K, S> | ParameterReturnType<K, S, SettingReturnType<K, S>>> {
   const settings: SettingsFor<K> = settingsDefinition[key].settings;
   const set = settings[setting] as SettingsGlueFix1<K, S>;
 
@@ -488,7 +548,13 @@ export async function getSetting<K extends keyof TS, S extends SettingKeyFor<K>>
   if (Array.isArray(value)) {
     const result = value.map(valuelet => switchTypes(valuelet, set)) as SettingReturnType<K, S>;
     return set.iterable && set.type === "OBJECT"
-      ? ((result as unknown[]).toSorted(set.sorting) as SettingReturnType<K, S>)
+      ? (id
+        ? ((result as unknown[]).find(resultling => resultling.$ == id) as ParameterReturnType<
+            K,
+            S,
+            SettingReturnType<K, S>
+          >)
+        : ((result as unknown[]).toSorted(set.sorting) as SettingReturnType<K, S>))
       : result;
   }
 

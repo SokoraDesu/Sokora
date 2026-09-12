@@ -11,6 +11,7 @@ import {
   MediaGalleryBuilder,
   MediaGalleryItemBuilder,
   ModalBuilder,
+  type ModalSubmitInteraction,
   SeparatorBuilder,
   TextDisplayBuilder,
   TextInputBuilder,
@@ -21,14 +22,13 @@ import {
   type Client,
   type InteractionResponse,
   type Message,
-  type ModalSubmitInteraction,
 } from "discord.js";
 import { colorize, Sokolors } from "utils/colorize";
 import { COLLECTOR_DURATION, MAX_INPUT_CHARS } from "utils/constants";
 import { mention } from "utils/mention";
-import { modalSubmit } from "utils/modalSubmit";
 import { safeChannel, safeReply } from "utils/safeThings";
 import { errorType } from "../errorType";
+import { modalSubmit } from "utils/modalSubmit";
 
 /**
  * Sends a container containing an error.
@@ -218,9 +218,9 @@ export async function errorEmbed(options: {
             ),
         );
 
-      await buttonInteraction.showModal(modal);
-      const modalInteraction = await modalSubmit(buttonInteraction);
+      const modalInteraction = await modalSubmit(buttonInteraction, modal);
       collector.resetTimer({ time: COLLECTOR_DURATION });
+
       if (!modalInteraction) {
         collector.stop();
         return;

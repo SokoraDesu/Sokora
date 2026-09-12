@@ -196,3 +196,18 @@ export async function safeAlertChannel(
 
   return channel;
 }
+
+/**
+ * Generates a unique cID based on current time and gives it to you. Use this when you care about interaction uniqueness, since the Discord API doesn’t seem to do so.
+ *
+ * When encoding data within the cID, remove the last `@` from it and whatever that goes after (a random time-based string).
+ *
+ * @param cid Actual ID (e.g. `submit_this`)
+ * @returns Unique ID (e.g. `submit_this@mt7lb9nd`)
+ */
+export function safeCustomId(cid: string): string {
+  if (cid.length > 90)
+    throw new Error(`Safe custom ID cannot exceed 90 characters in length. Caused by ${cid}.`);
+
+  return `${cid}@${Date.now().toString(36)}`;
+}

@@ -14,9 +14,9 @@ import {
 } from "discord.js";
 import { colorize, Sokolors } from "./colorize";
 import { COLLECTOR_DURATION } from "./constants";
-import { modalSubmit } from "./modalSubmit";
 import { replace } from "./replace";
 import { safeReply } from "./safeThings";
+import { modalSubmit } from "./modalSubmit";
 
 interface HandlePagesOptions {
   i: ButtonInteraction;
@@ -70,6 +70,7 @@ export async function handlePages(options: HandlePagesOptions): Promise<number> 
 
   if (i.customId == "left") return functionPage === 0 ? noErrorPages : page - 1;
   if (i.customId == "right") return functionPage === noErrorPages ? 0 : page + 1;
+  if (i.customId == "category") return 0;
 
   const modal = new ModalBuilder()
     .setCustomId("page_select")
@@ -85,12 +86,11 @@ export async function handlePages(options: HandlePagesOptions): Promise<number> 
         ),
     );
 
-  await i.showModal(modal);
-  const modalInteraction = await modalSubmit(i);
+  const modalInteraction = await modalSubmit(i, modal, "pagination");
   if (!modalInteraction) return functionPage;
   collector.resetTimer({ time: COLLECTOR_DURATION });
-  const value = Number.parseInt(modalInteraction.fields.getTextInputValue("page_input"));
 
+  const value = Number.parseInt(modalInteraction.fields.getTextInputValue("page_input"));
   if (!Number.isNaN(value)) {
     // minus 1 because all these numbers revolve around arrays starting from 0.
     // thus, if a user provides 2, this hunk of code and machinery produces 1.

@@ -16,6 +16,7 @@ type Def = Satisfies<
       messageID: "TEXT";
       imageURL: "mTEXT";
       id: "INTEGER";
+      category_id: "mTEXT";
     };
   }
 >;
@@ -30,15 +31,35 @@ const sendQuery = async (
   messageID: string,
   imageURL: string | null | undefined,
   id: number,
+  category_id: string | null | undefined,
   sql_: Bun.SQL = db, // what's this supposed to do?
 ): Promise<void> => {
-  const insObject = { guildID, title, body, author, createdAt, updatedAt, messageID, imageURL, id };
+  const insObject = {
+    guildID,
+    title,
+    body,
+    author,
+    createdAt,
+    updatedAt,
+    messageID,
+    imageURL,
+    id,
+    category_id,
+  };
   await sql_`INSERT INTO news ${db(insObject)};`;
 };
 
 export const listAllNews = async (guildID: string): Promise<TypeOfDefinition<Def>[]> =>
   values<TypeOfDefinition<Def>>(
     await db`SELECT * FROM news WHERE "guildID" = ${guildID} ORDER BY "id" DESC;`,
+  );
+
+export const listAllNewsInCategory = async (
+  guildID: string,
+  categoryID: string,
+): Promise<TypeOfDefinition<Def>[]> =>
+  values<TypeOfDefinition<Def>>(
+    await db`SELECT * FROM news WHERE "guildID" = ${guildID} AND "category_id" = ${categoryID} ORDER BY "id" DESC;`,
   );
 
 export const getLatestNews = async (guildID: string): Promise<TypeOfDefinition<Def>[]> =>
@@ -57,8 +78,20 @@ export async function postNews(
   messageID: string,
   imageURL: string | null | undefined,
   id: number,
+  category_id: string | null | undefined,
 ): Promise<void> {
-  await sendQuery(guildID, title, body, author, new Date(), null, messageID, imageURL, id);
+  await sendQuery(
+    guildID,
+    title,
+    body,
+    author,
+    new Date(),
+    null,
+    messageID,
+    imageURL,
+    id,
+    category_id,
+  );
 }
 
 export async function getNews(guildID: string, id: number): Promise<TypeOfDefinition<Def> | null> {
@@ -93,6 +126,7 @@ export async function updateNews(
       messageID ?? lastElement.messageID,
       imageURL ?? lastElement.imageURL,
       id,
+      lastElement.category_id,
       tx,
     );
   });

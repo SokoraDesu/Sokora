@@ -23,9 +23,9 @@ import { errorEmbed } from "embeds/errorEmbed";
 import { easterEggs } from "handlers/events";
 import { channelCheck } from "utils/channelCheck";
 import { colorize, Sokolors } from "utils/colorize";
+import { interkora } from "utils/interkora";
 import { mention } from "utils/mention";
 import { safeChannel, safeMember, safeRole } from "utils/safeThings";
-import { interkora } from "utils/interkora";
 import type { Event } from "utils/types";
 
 const cooldowns = new Map<string, number>();
@@ -39,6 +39,7 @@ async function grantRewards(
 ): Promise<void> {
   if (reward.roles && reward.roles.length > 0)
     for (const _role of reward.roles) {
+      if (!_role) continue;
       const role = await safeRole(guild, _role);
       if (!member.roles.cache.has(role.id))
         push(`**You’ve been rewarded the ${mention(role.id, "ROLE")} role!** Congrats.`);
@@ -48,6 +49,7 @@ async function grantRewards(
 
   if (reward.channels && reward.channels.length > 0)
     for (const _channel of reward.channels) {
+      if (!_channel) continue;
       const channel = await safeChannel(guild, _channel);
       if (
         !channel.isTextBased() ||
@@ -118,11 +120,26 @@ export default (async function run(message) {
     cooldowns.set(key, now);
   }
 
+  const member = await safeMember(guild, author.id);
   const xpGain = await getSetting(guild.id, "leveling", "xp_gain");
   const difficulty = await getSetting(guild.id, "leveling", "difficulty");
   const levelChannelId = await getSetting(guild.id, "leveling", "channel");
   const xp = await getUserXp(guild.id, author.id);
-  const newXp = xp + xpGain;
+  const multiplier = await getSetting(guild.id, "leveling", "global_multiplier");
+
+  /*
+  [TODO] redo to be more better.
+  WHAT HAS TO BE DONE HERE:
+  - find the highest role that the user has that a multiplier also has, then use that.
+  - if same channel/role has multiple multipliers, it should apply the highest one.
+  const multipliers = await getSetting(guild.id, "leveling", "multipliers");
+  for (const mult of multipliers) {
+    if (mult.channels.includes(message.channelId)) multiplier *= mult.multiplier;
+    if (member.roles.cache.find(r => mult.roles.includes(r.id))) multiplier *= mult.multiplier;
+  }
+  */
+
+  const newXp = multiplier * xpGain + xp;
   const newLevel = calculateLevel({ xp: newXp, difficulty });
   await setUserXp(guild.id, author.id, newXp);
   if (newLevel <= calculateLevel({ xp, difficulty })) return;
@@ -135,7 +152,6 @@ export default (async function run(message) {
 
   if (rewards && rewards.length > 0)
     for (const reward of rewards) {
-      const member = await safeMember(guild, author.id);
       if (reward.roles && reward.roles.length > 0 && !clientMember.permissions.has("ManageRoles")) {
         await removeLevelRewards(guild.id, [reward]);
         return await errorEmbed({
