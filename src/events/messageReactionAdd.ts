@@ -4,9 +4,12 @@ import {
   ContainerBuilder,
   MediaGalleryBuilder,
   MediaGalleryItemBuilder,
+  type Message,
+  PermissionFlagsBits,
   TextDisplayBuilder,
 } from "discord.js";
 import { errorEmbed } from "embeds/errorEmbed";
+import { logEmbed } from "embeds/logEmbed";
 import { channelCheck } from "utils/channelCheck";
 import { colorize, Sokolors } from "utils/colorize";
 import { mention } from "utils/mention";
@@ -15,11 +18,31 @@ import type { Event } from "utils/types";
 
 export default (async function run(reaction, user) {
   const client = user.client;
+  const guildID = reaction.message.guildId;
+  const channelID = reaction.message.channelId;
   const errorExtras = {
-    guild: reaction.message.guildId,
-    channel: reaction.message.channelId,
-    message: reaction.message.id
-  }
+    guild: guildID,
+    channel: channelID,
+    message: reaction.message.id,
+    user: user.id,
+  };
+
+  // check if starboard is enabled first ?
+  // starboard channel whitelist ?
+  if (
+    reaction.message.channel.isTextBased() &&
+    !reaction.message.channel.isDMBased() &&
+    !reaction.message.guild?.members.me
+      ?.permissionsIn(reaction.message.channel)
+      .has(PermissionFlagsBits.ReadMessageHistory)
+  )
+    return logEmbed({
+      client,
+      guildID,
+      title: "Sokora is missing permissions",
+      description: `The channel <#${channelID}> does not allow Sokora to read message history, starboard will not work in this channel until fixed`,
+    });
+
   if (reaction.partial)
     try {
       await reaction.fetch();
@@ -50,13 +73,27 @@ export default (async function run(reaction, user) {
       });
     }
 
-  const message = await reaction.message.fetch();
+  try {
+    await reaction.message.fetch();
+  } catch (error) {
+    await errorEmbed({
+      client,
+      error,
+      title: "Error fetching message.",
+      log: true,
+      forward: true,
+      fileName: "messageReactionAdd",
+      extras: errorExtras,
+    });
+  }
+
+  const message = reaction.message as Message;
   const { guild, author, content, createdAt, url, id, attachments } = message;
   if (!guild) return;
 
+  if (!(await getSetting(guild.id, "starboard", "enabled"))) return;
   const starEmoji = await getSetting(guild.id, "starboard", "emoji");
   if (reaction.emoji.name != starEmoji) return;
-  if (!(await getSetting(guild.id, "starboard", "enabled"))) return;
   if (!content && attachments.size === 0) return;
 
   const starboardChannelId = await getSetting(guild.id, "starboard", "channel");

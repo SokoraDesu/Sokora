@@ -24,14 +24,20 @@ export default (async function run(interaction) {
   try {
     await command.run(interaction);
   } catch (error) {
-    const errorObj = errorType(error);
-    const errorKey = `${errorObj.name}-${errorObj.message}`;
+    const errorObject = errorType(error);
+    const errorKey = `${errorObject.name}-${errorObject.message}`;
     if (errorRateLimit.has(errorKey)) return;
 
     errorRateLimit.add(errorKey);
     setTimeout(() => errorRateLimit.delete(errorKey), 10_000); // Is this ratelimit prevention really still necessary?
     try {
-      await errorEmbed({ interaction, error, log: true, forward: true, fileName: command.data.name });
+      await errorEmbed({
+        interaction,
+        error,
+        log: true,
+        forward: true,
+        fileName: command.data.name,
+      });
     } catch (error_) {
       console.error("Failed to send error message");
       console.error(error_);
