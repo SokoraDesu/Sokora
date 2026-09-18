@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS news (
   "updatedAt" TIMESTAMP,
   "messageID" TEXT,
   "imageURL" TEXT,
-  "id" INTEGER,
+  "id" INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS starboard (

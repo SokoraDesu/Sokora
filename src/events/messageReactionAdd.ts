@@ -15,6 +15,11 @@ import type { Event } from "utils/types";
 
 export default (async function run(reaction, user) {
   const client = user.client;
+  const errorExtras = {
+    guild: reaction.message.guildId,
+    channel: reaction.message.channelId,
+    message: reaction.message.id
+  }
   if (reaction.partial)
     try {
       await reaction.fetch();
@@ -26,6 +31,7 @@ export default (async function run(reaction, user) {
         log: true,
         forward: true,
         fileName: "messageReactionAdd",
+        extras: errorExtras,
       });
     }
 
@@ -40,6 +46,7 @@ export default (async function run(reaction, user) {
         log: true,
         forward: true,
         fileName: "messageReactionAdd",
+        extras: errorExtras,
       });
     }
 
@@ -145,6 +152,7 @@ export default (async function run(reaction, user) {
       log: true,
       forward: true,
       fileName: "messageReactionAdd",
+      extras: errorExtras,
     });
   }
 } as Event<"messageReactionAdd">);
