@@ -18,6 +18,7 @@ import type {
   SettingsFor,
   SettingsGlueFix1,
   SingleSettingDefinition,
+  SqlType,
   TableDefinition,
   TypeOfDefinition,
 } from "./types";
@@ -35,7 +36,7 @@ type Def = Satisfies<
   }
 >;
 
-const invitePrecondition: SettingPrecondition<"BOOL" | "CHANNEL"> = async (
+const invitePrecondition: SettingPrecondition<SqlType<"BOOL" | "CHANNEL">> = async (
   interaction,
   newValue,
 ) => {
@@ -84,7 +85,7 @@ export const defLeveling = {
     desc: "Set the cooldown between messages that add XP (in seconds).",
     val: 2,
     emoji: "⏱️",
-  },
+      },
   difficulty: {
     type: "INTEGER",
     desc: "Set the difficulty (e.g., 2 will make it 2x harder to level up).",
@@ -378,7 +379,40 @@ export const defInterkora = {
   },
 } satisfies SettingDefinitionRecord["settings"];
 
-const topggPrecondition: SettingPrecondition<"BOOL"> = async (
+const DMnotificationPrecondition: SettingPrecondition<SqlType<"BOOL">> = async (
+  interaction,
+  newValue,
+): Promise<string | undefined> => {
+  if (interaction.user.id != interaction.guild?.ownerId)
+    return `Only the server owner can change this setting.`;
+  const dmChannel = await (await safeUser(interaction.client, interaction.user.id)).createDM();
+  if (newValue && !dmChannel?.isSendable())
+    return `Sokora cannot DM you. Enable DMs for Sokora or send it a message to get server notifications.`;
+};
+
+export const defNotifications = {
+  // enabled_notifications: {
+  //   type: "SELECT",
+  //   desc: "Specific server notifications to enable. If none are selected, all notifications are enabled.",
+  //   iterable: true,
+  //   choices: ["permissionIssues"],
+  //   emoji: "🔔",
+  // },
+  channel: {
+    type: "CHANNEL",
+    desc: "Channel where notifications messages are sent.",
+    emoji: "📤",
+  },
+  dm_owner: {
+    type: "BOOL",
+    desc: "Whether or not should the bot DM the server owner with this server's notifications.",
+    val: false,
+    precondition: DMnotificationPrecondition,
+    emoji: "📨",
+  },
+} satisfies SettingDefinitionRecord["settings"];
+
+const topggPrecondition: SettingPrecondition<SqlType<"BOOL">> = async (
   interaction,
   newValue,
 ): Promise<string | undefined> => {
@@ -430,6 +464,10 @@ export const settingsDefinition = {
     description: "Enable/disable the Interkora system.",
     settings: defInterkora,
   },
+  notifications: {
+    description: "Change how Sokora warns you about server issues",
+    settings: defNotifications,
+  },
   topgg: { description: "Change settings about Top.gg.", settings: defTopgg },
 };
 
@@ -443,6 +481,7 @@ export const serverSettingsKeys = [
   "starboard",
   "welcome",
   "interkora",
+  "notifications",
 ] as (keyof TS)[];
 export const userSettingsKeys = ["topgg"] as (keyof TS)[];
 
@@ -499,12 +538,12 @@ export function getSettingDef<K extends keyof TS, S extends SettingKeyFor<K>>(
   return settings[setting] as SettingsGlueFix1<K, S>;
 }
 
-export async function getSetting<K extends keyof TS, S extends SettingKeyFor<K>>(
+export async function getSetting<K extends keyof TS, S extends SettingKeyFor<K>>( // ???????????
   entityID: string,
   key: K,
   setting: S,
 ): Promise<SettingReturnType<K, S>>;
-export async function getSetting<K extends keyof TS, S extends SettingKeyFor<K>>(
+export async function getSetting<K extends keyof TS, S extends SettingKeyFor<K>>( // ???????????
   entityID: string,
   key: K,
   setting: S,

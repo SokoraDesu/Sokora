@@ -35,9 +35,10 @@ export async function logChannel(
     user: User;
     options: string | MessagePayload | MessageCreateOptions;
   },
+  logType?: "moderation" | "notifications",
 ): Promise<undefined | Message | InteractionResponse> {
   let channel: TextChannel | DMChannel | null;
-  const logChannel = await getSetting(guild.id, "moderation", "channel");
+  const logChannel = await getSetting(guild.id, logType ?? "moderation", "channel");
 
   if (logChannel) {
     channel = await safeChannel(guild, logChannel)

@@ -17,6 +17,7 @@ import type {
   MessagePayload,
   ModalSubmitInteraction,
   NewsChannel,
+  RepliableInteraction,
   Role,
   TextChannel,
   User,
@@ -94,11 +95,7 @@ export async function safeGuild(client: Client, id: string): Promise<Guild> {
  * @returns {(Promise<Message<boolean> | InteractionResponse<boolean>>)}
  */
 export async function safeReply(options: {
-  interaction:
-    | ChatInputCommandInteraction
-    | ButtonInteraction
-    | AnySelectMenuInteraction
-    | ModalSubmitInteraction;
+  interaction: RepliableInteraction;
   replyOptions: string | MessagePayload | InteractionReplyOptions;
 }): Promise<Message | InteractionResponse> {
   const { interaction, replyOptions } = options;
