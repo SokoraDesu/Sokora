@@ -20,8 +20,9 @@ import {
   type User,
 } from "discord.js";
 import { errorEmbed } from "embeds/errorEmbed";
+import { logEmbed } from "embeds/logEmbed";
 import { easterEggs } from "handlers/events";
-import { channelCheck } from "utils/channelCheck";
+import { channelCheck, guildChannelHas } from "utils/channelCheck";
 import { colorize, Sokolors } from "utils/colorize";
 import { interkora } from "utils/interkora";
 import { mention } from "utils/mention";
@@ -88,11 +89,19 @@ export default (async function run(message) {
     const enabledEggs = await getSetting(guild.id, "easter", "enabled_eggs");
     const allowedChannels = await getSetting(guild.id, "easter", "allowed_channels");
 
-    if (!allowedChannels || allowedChannels.includes(message.channel.id))
+    if (!allowedChannels || allowedChannels.includes(message.channel.id) && guildChannelHas(message.channel, "SendMessages")) {
+      if (!guildChannelHas(message.channel, "SendMessages") || !guildChannelHas(message.channel, "ReadMessageHistory"))
+        return logEmbed({
+          client,
+          guildID: guild.id,
+          title: "Sokora is missing permissions",
+          description: `Easter eggs are enabled in <#${message.channel.id}> but Sokora is missing the \`Send messages\` or \`Read message history\` permissions.\nPlease fix it or remove this channel from the easter egg's allowed channels`,
+        });
+      
       for (const easterEgg of easterEggs) {
         if (enabledEggs && !enabledEggs.includes(easterEgg.name)) continue;
         try {
-          if (typeof easterEgg.run == "function" && Math.random() <= 0.15)
+          if (typeof easterEgg.run == "function" && Math.random() <= 1)
             await easterEgg.run(message);
         } catch (error) {
           return await errorEmbed({
@@ -105,6 +114,7 @@ export default (async function run(message) {
           });
         }
       }
+    }
   }
 
   if (!(await getSetting(guild.id, "leveling", "enabled"))) return;

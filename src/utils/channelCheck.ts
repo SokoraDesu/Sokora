@@ -2,6 +2,7 @@ import { resetSetting, type TS } from "database/settings";
 import {
   ChannelType,
   ContainerBuilder,
+  TextBasedChannel,
   TextDisplayBuilder,
   type Channel,
   type Guild,
@@ -66,4 +67,13 @@ export async function channelCheck<K extends keyof TS>(options: {
   if (permissions.every(p => perms.has(p))) return true;
 
   return await reset();
+}
+
+/** Checks if the bot has the specified permissions in a given guild channel
+ * @param channel Channel.
+ * @param permissions Permission name or bitfield.
+ * @returns Boolean indicating whether yes or no the bot has enough permissions
+ */
+export function guildChannelHas(channel: TextBasedChannel, permissions: PermissionResolvable): boolean {
+  return (!channel.isDMBased() && channel.guild.members.me?.permissionsIn(channel).has(permissions)) || false;
 }

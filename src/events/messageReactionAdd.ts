@@ -5,12 +5,11 @@ import {
   MediaGalleryBuilder,
   MediaGalleryItemBuilder,
   type Message,
-  PermissionFlagsBits,
   TextDisplayBuilder,
 } from "discord.js";
 import { errorEmbed } from "embeds/errorEmbed";
 import { logEmbed } from "embeds/logEmbed";
-import { channelCheck } from "utils/channelCheck";
+import { channelCheck, guildChannelHas } from "utils/channelCheck";
 import { colorize, Sokolors } from "utils/colorize";
 import { mention } from "utils/mention";
 import { safeChannel, safeUser } from "utils/safeThings";
@@ -29,18 +28,12 @@ export default (async function run(reaction, user) {
 
   // check if starboard is enabled first ?
   // starboard channel whitelist ?
-  if (
-    reaction.message.channel.isTextBased() &&
-    !reaction.message.channel.isDMBased() &&
-    !reaction.message.guild?.members.me
-      ?.permissionsIn(reaction.message.channel)
-      .has(PermissionFlagsBits.ReadMessageHistory)
-  )
+  if (!guildChannelHas(reaction.message.channel, "ReadMessageHistory"))
     return logEmbed({
       client,
       guildID,
       title: "Sokora is missing permissions",
-      description: `The channel <#${channelID}> does not allow Sokora to read message history, starboard will not work in this channel until fixed`,
+      description: `The channel <#${channelID}> does not allow Sokora to \^Read message history\`, starboard will not work in this channel until fixed`,
     });
 
   if (reaction.partial)
