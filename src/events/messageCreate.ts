@@ -89,32 +89,34 @@ export default (async function run(message) {
     const enabledEggs = await getSetting(guild.id, "easter", "enabled_eggs");
     const allowedChannels = await getSetting(guild.id, "easter", "allowed_channels");
 
-    if (!allowedChannels || allowedChannels.includes(message.channel.id) && guildChannelHas(message.channel, "SendMessages")) {
-      if (!guildChannelHas(message.channel, "SendMessages") || !guildChannelHas(message.channel, "ReadMessageHistory"))
-        return logEmbed({
+    if (!allowedChannels || allowedChannels.includes(message.channel.id))
+      if (
+        !guildChannelHas(message.channel, "SendMessages") ||
+        !guildChannelHas(message.channel, "ReadMessageHistory")
+      )
+        await logEmbed({
           client,
           guildID: guild.id,
           title: "Sokora is missing permissions",
-          description: `Easter eggs are enabled in <#${message.channel.id}> but Sokora is missing the \`Send messages\` or \`Read message history\` permissions.\nPlease fix it or remove this channel from the easter egg's allowed channels`,
+          description: `Easter eggs are enabled in <#${message.channel.id}> but Sokora is missing the \`Send messages\` or \`Read message history\` permissions.\nPlease fix it or remove this channel from the easter egg’s allowed channels`,
         });
-      
-      for (const easterEgg of easterEggs) {
-        if (enabledEggs && !enabledEggs.includes(easterEgg.name)) continue;
-        try {
-          if (typeof easterEgg.run == "function" && Math.random() <= 1)
-            await easterEgg.run(message);
-        } catch (error) {
-          return await errorEmbed({
-            client,
-            error,
-            title: `Error running easter egg ${easterEgg.name}.`,
-            log: true,
-            forward: true,
-            fileName: "messageCreate",
-          });
+      else
+        for (const easterEgg of easterEggs) {
+          if (enabledEggs && !enabledEggs.includes(easterEgg.name)) continue;
+          try {
+            if (typeof easterEgg.run == "function" && Math.random() <= 0.15)
+              await easterEgg.run(message);
+          } catch (error) {
+            return await errorEmbed({
+              client,
+              error,
+              title: `Error running easter egg ${easterEgg.name}.`,
+              log: true,
+              forward: true,
+              fileName: "messageCreate",
+            });
+          }
         }
-      }
-    }
   }
 
   if (!(await getSetting(guild.id, "leveling", "enabled"))) return;

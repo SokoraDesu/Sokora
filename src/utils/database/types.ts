@@ -74,7 +74,7 @@ interface SettingBase {
   emoji?: string;
 }
 
-interface PreconditionBase <T extends SettingSettableValue> {
+interface PreconditionBase<T extends SettingSettableValue> {
   /** Validation function that should run before setting a value. Returns either a `string` (error message; fail) or undefined (success). */
   precondition?: SettingPrecondition<T>;
 }

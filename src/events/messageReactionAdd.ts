@@ -33,7 +33,7 @@ export default (async function run(reaction, user) {
       client,
       guildID,
       title: "Sokora is missing permissions",
-      description: `The channel <#${channelID}> does not allow Sokora to \^Read message history\`, starboard will not work in this channel until fixed`,
+      description: `The channel <#${channelID}> does not allow Sokora to \`Read message history\`, starboard will not work in this channel until fixed`,
     });
 
   if (reaction.partial)

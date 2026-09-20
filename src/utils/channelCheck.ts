@@ -2,7 +2,7 @@ import { resetSetting, type TS } from "database/settings";
 import {
   ChannelType,
   ContainerBuilder,
-  TextBasedChannel,
+  type TextBasedChannel,
   TextDisplayBuilder,
   type Channel,
   type Guild,
@@ -74,6 +74,12 @@ export async function channelCheck<K extends keyof TS>(options: {
  * @param permissions Permission name or bitfield.
  * @returns Boolean indicating whether yes or no the bot has enough permissions
  */
-export function guildChannelHas(channel: TextBasedChannel, permissions: PermissionResolvable): boolean {
-  return (!channel.isDMBased() && channel.guild.members.me?.permissionsIn(channel).has(permissions)) || false;
+export function guildChannelHas( // Find a better name for this if you want cuz unicorn complains about it
+  channel: TextBasedChannel,
+  permissions: PermissionResolvable,
+): boolean {
+  return (
+    (!channel.isDMBased() && channel.guild.members.me?.permissionsIn(channel).has(permissions)) ??
+    false
+  );
 }

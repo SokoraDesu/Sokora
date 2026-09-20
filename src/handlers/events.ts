@@ -7,7 +7,7 @@ import { client } from "src/bot";
 
 interface Event {
   name: string;
-  event: ReturnType<Client["on"]>
+  event: ReturnType<Client["on"]>;
 }
 
 const events: Event[] = [];
@@ -23,14 +23,23 @@ export async function loadEvents(client: Client): Promise<void> {
         default: (_: unknown) => void;
       }
     ).default;
-    events.push({ name: eventName, event: client.on(eventName, (...args) => handler(eventName, event, ...args)) });
+    events.push({
+      name: eventName,
+      event: client.on(eventName, async (...arguments_: unknown[]) =>
+        handler(eventName, event, ...arguments_),
+      ),
+    });
     console.log("Loaded evt:", eventName);
   }
 }
 
-async function handler(fileName: string, func: (..._: unknown[]) => void | Promise<void>, ...args: unknown[]) {
+async function handler(
+  fileName: string,
+  function_: (..._: unknown[]) => void | Promise<void>,
+  ...arguments_: unknown[]
+): Promise<void> {
   try {
-    await func(...args);
+    await function_(...arguments_);
   } catch (error) {
     try {
       await errorEmbed({

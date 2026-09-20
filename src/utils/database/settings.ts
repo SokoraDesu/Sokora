@@ -85,7 +85,7 @@ export const defLeveling = {
     desc: "Set the cooldown between messages that add XP (in seconds).",
     val: 2,
     emoji: "⏱️",
-      },
+  },
   difficulty: {
     type: "INTEGER",
     desc: "Set the difficulty (e.g., 2 will make it 2x harder to level up).",
@@ -385,6 +385,7 @@ const DMnotificationPrecondition: SettingPrecondition<SqlType<"BOOL">> = async (
 ): Promise<string | undefined> => {
   if (interaction.user.id != interaction.guild?.ownerId)
     return `Only the server owner can change this setting.`;
+
   const dmChannel = await (await safeUser(interaction.client, interaction.user.id)).createDM();
   if (newValue && !dmChannel?.isSendable())
     return `Sokora cannot DM you. Enable DMs for Sokora or send it a message to get server notifications.`;
@@ -405,7 +406,7 @@ export const defNotifications = {
   },
   dm_owner: {
     type: "BOOL",
-    desc: "Whether or not should the bot DM the server owner with this server's notifications.",
+    desc: "Whether or not should the bot DM the server owner with this server’s notifications.",
     val: false,
     precondition: DMnotificationPrecondition,
     emoji: "📨",

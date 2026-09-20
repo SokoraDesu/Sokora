@@ -25,9 +25,8 @@ import {
   type TS,
 } from "database/settings";
 import {
-  FieldData,
+  type FieldData,
   isSettingValueValid,
-  SqlType,
   type IterableObjectSetting,
   type Setting,
   type SettingDefinitionRecord,
@@ -55,7 +54,7 @@ import {
   type MessageActionRowComponentBuilder,
   ModalBuilder,
   type ModalSubmitInteraction,
-  RepliableInteraction,
+  type RepliableInteraction,
   RoleSelectMenuBuilder,
   SectionBuilder,
   SeparatorBuilder,
@@ -581,7 +580,11 @@ function MkControlObject<K extends keyof TS, S extends SettingKeyFor<K> | undefi
   } as ControlObject<K, S>;
 }
 
-async function checkPrecondition<T extends FieldData>(setting: SingleSettingDefinition & { type: T }, interaction: RepliableInteraction, newValue?: SettingSettableValue /*SqlType<T>*/): Promise<boolean> {
+async function checkPrecondition<T extends FieldData>(
+  setting: SingleSettingDefinition & { type: T },
+  interaction: RepliableInteraction,
+  newValue?: SettingSettableValue /*SqlType<T>*/,
+): Promise<boolean> {
   if (setting.precondition) {
     const preconditionReply = await setting.precondition(interaction, newValue as never); // bigass mf type hack, zaka please help
     if (preconditionReply != undefined) {
@@ -656,7 +659,7 @@ async function toggleHandler<K extends keyof TS, S extends SettingKeyFor<K>>(
 
   switch (setting.type) {
     case "BOOL": {
-      if (!await checkPrecondition(setting, baseInteraction, previousValue ? false : true)) break;
+      if (!(await checkPrecondition(setting, baseInteraction, previousValue ? false : true))) break;
       if (methods) await methods.setSettingPlease(key, cID, t<K, S>(previousValue ? false : true));
       else value = { ...value, [cID]: value[cID] === true ? false : true };
       break;
@@ -691,7 +694,7 @@ async function toggleHandler<K extends keyof TS, S extends SettingKeyFor<K>>(
       const newValue =
         setting.type === "INTEGER" || setting.type === "mINTEGER" ? Number(modalValue) : modalValue;
 
-      if (!await checkPrecondition(setting, interaction, newValue)) break;
+      if (!(await checkPrecondition(setting, interaction, newValue))) break;
 
       const isNewValueValid = isSettingValueValid(newValue, {
         key: ctl.key,
@@ -737,14 +740,14 @@ async function toggleHandler<K extends keyof TS, S extends SettingKeyFor<K>>(
     case "mUSER":
     case "SELECT": {
       const valueThatWillBeSet = (interaction as StringSelectMenuInteraction).values;
-      if (!await checkPrecondition(setting, baseInteraction, valueThatWillBeSet)) break;
+      if (!(await checkPrecondition(setting, baseInteraction, valueThatWillBeSet))) break;
       if (methods) await methods.setSettingPlease(key, cID, t<K, S>(valueThatWillBeSet));
       else value = { ...value, [cID]: valueThatWillBeSet };
 
       break;
     }
     case "OBJECT": {
-      if (!await checkPrecondition(setting, baseInteraction)) break;
+      if (!(await checkPrecondition(setting, baseInteraction))) break;
       if (!methods) return;
       const updatedState = OSMSet(uID, {
         views: "default",
@@ -1309,7 +1312,12 @@ export async function settingsEmbed<K extends keyof TS>(
 
           await safeEdit({ interaction: replyInteraction, editOptions: { components: [lbl] } });
         } else
-          await toggleHandler(replyInteraction, interaction, ctl as unknown as ControlObject<K, S>, methods);
+          await toggleHandler(
+            replyInteraction,
+            interaction,
+            ctl as unknown as ControlObject<K, S>,
+            methods,
+          );
       }
     }
   });

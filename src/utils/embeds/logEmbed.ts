@@ -1,7 +1,7 @@
 import { getSetting } from "database/settings";
 import {
   ContainerBuilder,
-  MessageCreateOptions,
+  type MessageCreateOptions,
   TextDisplayBuilder,
   type Client,
   type InteractionResponse,
@@ -51,10 +51,10 @@ export async function logEmbed(options: {
   const shouldDm = await getSetting(guild.id, "notifications", "dm_owner");
   const dmOptions = shouldDm
     ? {
-      isSilent: false,
-      user: await safeUser(client, guild.ownerId),
-      options: { components: [container], flags: ["IsComponentsV2"] } as MessageCreateOptions,
-    }
+        isSilent: false,
+        user: await safeUser(client, guild.ownerId),
+        options: { components: [container], flags: ["IsComponentsV2"] } as MessageCreateOptions,
+      }
     : undefined;
   const message = await logChannel(
     guild,
