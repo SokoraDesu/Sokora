@@ -539,12 +539,12 @@ export function getSettingDef<K extends keyof TS, S extends SettingKeyFor<K>>(
   return settings[setting] as SettingsGlueFix1<K, S>;
 }
 
-export async function getSetting<K extends keyof TS, S extends SettingKeyFor<K>>( // ???????????
+export async function getSetting<K extends keyof TS, S extends SettingKeyFor<K>>(
   entityID: string,
   key: K,
   setting: S,
 ): Promise<SettingReturnType<K, S>>;
-export async function getSetting<K extends keyof TS, S extends SettingKeyFor<K>>( // ???????????
+export async function getSetting<K extends keyof TS, S extends SettingKeyFor<K>>(
   entityID: string,
   key: K,
   setting: S,

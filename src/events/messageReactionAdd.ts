@@ -9,7 +9,7 @@ import {
 } from "discord.js";
 import { errorEmbed } from "embeds/errorEmbed";
 import { logEmbed } from "embeds/logEmbed";
-import { channelCheck, guildChannelHas } from "utils/channelCheck";
+import { channelCheck, hasChannelPerms } from "utils/channelCheck";
 import { colorize, Sokolors } from "utils/colorize";
 import { mention } from "utils/mention";
 import { safeChannel, safeUser } from "utils/safeThings";
@@ -26,9 +26,9 @@ export default (async function run(reaction, user) {
     user: user.id,
   };
 
-  // check if starboard is enabled first ?
-  // starboard channel whitelist ?
-  if (!guildChannelHas(reaction.message.channel, "ReadMessageHistory"))
+  if (!guildID || !(await getSetting(guildID, "starboard", "enabled"))) return;
+
+  if (!hasChannelPerms(reaction.message.channel, "ReadMessageHistory"))
     return logEmbed({
       client,
       guildID,
@@ -84,7 +84,6 @@ export default (async function run(reaction, user) {
   const { guild, author, content, createdAt, url, id, attachments } = message;
   if (!guild) return;
 
-  if (!(await getSetting(guild.id, "starboard", "enabled"))) return;
   const starEmoji = await getSetting(guild.id, "starboard", "emoji");
   if (reaction.emoji.name != starEmoji) return;
   if (!content && attachments.size === 0) return;

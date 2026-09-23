@@ -10,6 +10,7 @@ import {
   type NewsChannel,
   type PermissionResolvable,
   type TextChannel,
+  PermissionFlagsBits,
 } from "discord.js";
 import { colorize, Sokolors } from "./colorize";
 import { mention } from "./mention";
@@ -74,10 +75,15 @@ export async function channelCheck<K extends keyof TS>(options: {
  * @param permissions Permission name or bitfield.
  * @returns Boolean indicating whether yes or no the bot has enough permissions
  */
-export function guildChannelHas( // Find a better name for this if you want cuz unicorn complains about it
+export function hasChannelPerms(
   channel: TextBasedChannel,
-  permissions: PermissionResolvable,
+  permissions: PermissionResolvable | (keyof typeof PermissionFlagsBits)[],
 ): boolean {
+  if (Array.isArray(permissions))
+    permissions = permissions
+      .map(perm => PermissionFlagsBits[perm])
+      .reduce((allPerms, perm) => allPerms | perm, 0n);
+
   return (
     (!channel.isDMBased() && channel.guild.members.me?.permissionsIn(channel).has(permissions)) ??
     false

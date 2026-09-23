@@ -580,8 +580,8 @@ function MkControlObject<K extends keyof TS, S extends SettingKeyFor<K> | undefi
   } as ControlObject<K, S>;
 }
 
-async function checkPrecondition<T extends FieldData>(
-  setting: SingleSettingDefinition & { type: T },
+async function checkPrecondition /*<T extends FieldData>*/(
+  setting: SingleSettingDefinition & { type: FieldData },
   interaction: RepliableInteraction,
   newValue?: SettingSettableValue /*SqlType<T>*/,
 ): Promise<boolean> {
