@@ -79,14 +79,6 @@ export async function run(
         title: `You can’t ban ${user.username} temporarily.`,
         reason: "The duration is invalid.",
       });
-
-    await scheduleUnban(
-      interaction.client,
-      guild.id,
-      user.id,
-      interaction.member.user.id,
-      durationMs,
-    );
   }
 
   const isSilent =
@@ -112,7 +104,7 @@ export async function run(
   }
 
   try {
-    await modEmbed(
+    const caseId = await modEmbed(
       {
         interaction,
         user,
@@ -125,6 +117,15 @@ export async function run(
       },
       reason,
     );
+    if (duration && durationMs)
+      await scheduleUnban(
+        interaction.client,
+        guild,
+        user.id,
+        durationMs,
+        typeof caseId == "number" ? caseId : undefined,
+      );
+
     await guild.members.ban(user.id, {
       reason: reason ?? undefined,
       deleteMessageSeconds: delSec ?? undefined,

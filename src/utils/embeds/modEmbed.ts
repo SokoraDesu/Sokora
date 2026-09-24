@@ -174,7 +174,7 @@ export async function errorCheck(
 export async function modEmbed(
   options: Options & { isSilent?: boolean },
   reason?: string | null,
-): Promise<undefined | Message | InteractionResponse | ContainerBuilder> {
+): Promise<undefined | Message | InteractionResponse | number> {
   const {
     interaction,
     user,
@@ -194,6 +194,7 @@ export async function modEmbed(
   const serverAvatar = (guild.icon ? guild.iconURL() : undefined) ?? undefined;
   const avatar = user ? user.displayAvatarURL() : serverAvatar;
   let title = `${previousID ? "Edited a " : ""}${previousID ? dbAction?.toLowerCase() : action}${previousID ? " on" : ""}${user ? mention(user.id, "USER") : ""}`;
+  let caseId = -1;
 
   if (reason) generalValues.push(`**Reason**: ${reason}`);
   if (duration) generalValues.push(`**Duration**: ${ms(duration, "fullPrecision")}`);
@@ -235,7 +236,7 @@ export async function modEmbed(
           reason: "Cannot find the moderator.",
         });
 
-      const id = await createCase(
+      caseId = await createCase(
         guild.id,
         user.id,
         dbAction,
@@ -243,7 +244,7 @@ export async function modEmbed(
         reason ?? undefined,
         expiresAt ?? undefined,
       );
-      title += `  •  #${id}`;
+      title += `  •  #${caseId}`;
     } catch (error) {
       return await errorEmbed({
         interaction,
@@ -316,4 +317,6 @@ export async function modEmbed(
     ),
     replier(),
   ]);
+
+  if (caseId >= 0) return caseId;
 }
