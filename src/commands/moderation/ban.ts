@@ -122,6 +122,7 @@ export async function run(
         interaction.client,
         guild,
         user.id,
+        interaction.member.user.id,
         durationMs,
         typeof caseId == "number" ? caseId : undefined,
       );

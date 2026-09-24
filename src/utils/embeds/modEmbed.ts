@@ -194,7 +194,7 @@ export async function modEmbed(
   const serverAvatar = (guild.icon ? guild.iconURL() : undefined) ?? undefined;
   const avatar = user ? user.displayAvatarURL() : serverAvatar;
   let title = `${previousID ? "Edited a " : ""}${previousID ? dbAction?.toLowerCase() : action}${previousID ? " on" : ""}${user ? mention(user.id, "USER") : ""}`;
-  let caseId = -1;
+  let caseId;
 
   if (reason) generalValues.push(`**Reason**: ${reason}`);
   if (duration) generalValues.push(`**Duration**: ${ms(duration, "fullPrecision")}`);
@@ -318,5 +318,5 @@ export async function modEmbed(
     replier(),
   ]);
 
-  if (caseId >= 0) return caseId;
+  return caseId;
 }
