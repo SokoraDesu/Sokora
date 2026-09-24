@@ -104,8 +104,8 @@ export async function removeCase(guildID: string | number, id: number): Promise<
   await db`DELETE FROM moderation WHERE "guild" = ${guildID} AND id = ${id};`;
 }
 
-export async function getPendingBans(currentTime: number): Promise<TypeOfDefinition<Case>[]> {
+export async function getPendingBans(currentTime?: number): Promise<TypeOfDefinition<Case>[]> {
   return values<TypeOfDefinition<Case>>(
-    await db`SELECT * FROM moderation WHERE "type" = ${"BAN"} AND "expiresAt" IS NOT NULL AND "expiresAt" > ${new Date(currentTime)};`,
+    await db`SELECT * FROM moderation WHERE "type" = ${"BAN"} AND "expiresAt" IS NOT NULL ${currentTime ? db`AND "expiresAt" > ${new Date(currentTime)}` : db``} ORDER BY "guild";`,
   );
 }

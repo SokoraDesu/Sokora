@@ -5,7 +5,12 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { client } from "src/bot";
 
-const events: { name: string; event: ReturnType<Client["on"]> }[] = [];
+interface Event {
+  name: string;
+  event: ReturnType<Client["on"]>;
+}
+
+const events: Event[] = [];
 export const eventNames = ["messageUpdate", "messageDelete", "settings"];
 export async function loadEvents(client: Client): Promise<void> {
   const eventsPath = path.join(process.cwd(), "src", "events");
@@ -18,8 +23,37 @@ export async function loadEvents(client: Client): Promise<void> {
         default: (_: unknown) => void;
       }
     ).default;
-    events.push({ name: eventName, event: client.on(eventName, event) });
+    events.push({
+      name: eventName,
+      event: client.on(eventName, async (...arguments_: unknown[]) =>
+        handler(eventName, event, ...arguments_),
+      ),
+    });
     console.log("Loaded evt:", eventName);
+  }
+}
+
+async function handler(
+  fileName: string,
+  function_: (..._: unknown[]) => void | Promise<void>,
+  ...arguments_: unknown[]
+): Promise<void> {
+  try {
+    await function_(...arguments_);
+  } catch (error) {
+    try {
+      await errorEmbed({
+        client,
+        title: "Error while executing event",
+        error,
+        log: true,
+        forward: true,
+        fileName,
+      });
+    } catch (error_) {
+      console.error("Failed to send error message");
+      console.error(error_);
+    }
   }
 }
 

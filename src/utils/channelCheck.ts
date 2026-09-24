@@ -2,6 +2,7 @@ import { resetSetting, type TS } from "database/settings";
 import {
   ChannelType,
   ContainerBuilder,
+  type TextBasedChannel,
   TextDisplayBuilder,
   type Channel,
   type Guild,
@@ -9,6 +10,7 @@ import {
   type NewsChannel,
   type PermissionResolvable,
   type TextChannel,
+  PermissionFlagsBits,
 } from "discord.js";
 import { colorize, Sokolors } from "./colorize";
 import { mention } from "./mention";
@@ -66,4 +68,24 @@ export async function channelCheck<K extends keyof TS>(options: {
   if (permissions.every(p => perms.has(p))) return true;
 
   return await reset();
+}
+
+/** Checks if the bot has the specified permissions in a given guild channel
+ * @param channel Channel.
+ * @param permissions Permission name or bitfield.
+ * @returns Boolean indicating whether yes or no the bot has enough permissions
+ */
+export function hasChannelPerms(
+  channel: TextBasedChannel,
+  permissions: PermissionResolvable | (keyof typeof PermissionFlagsBits)[],
+): boolean {
+  if (Array.isArray(permissions))
+    permissions = permissions
+      .map(perm => PermissionFlagsBits[perm])
+      .reduce((allPerms, perm) => allPerms | perm, 0n);
+
+  return (
+    (!channel.isDMBased() && channel.guild.members.me?.permissionsIn(channel).has(permissions)) ??
+    false
+  );
 }

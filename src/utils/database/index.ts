@@ -85,7 +85,8 @@ export async function updateDatabase(shouldForce?: boolean): Promise<void> {
     console.log("Initializing database…");
     // eslint-disable-next-line unicorn/string-content
     await db`
-      CREATE TABLE IF NOT EXISTS _info ("key" TEXT, "value" TEXT);
+      CREATE TABLE IF NOT EXISTS _info ("key" TEXT PRIMARY KEY, "value" TEXT);
+      DELETE FROM _info WHERE "key" = 'version';
       INSERT INTO _info VALUES ('version', '');
     `.simple();
     await applyMigrations();

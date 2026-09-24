@@ -58,9 +58,9 @@ export type TypeOfDefinition<T extends TableDefinition> = {
   [K in keyof T["definition"]]: SqlType<T["definition"][K]>;
 };
 
-export type SettingPrecondition<T extends FieldData> = (
+export type SettingPrecondition<T extends SettingSettableValue> = (
   interaction: Interaction,
-  newValue: SqlType<T>,
+  newValue: T, // Do we keep this arg ? used for example for boolean buttons to only trigger the precondition message when it's toggled on
 ) => Promise<string | undefined>;
 
 interface SettingBase {
@@ -74,22 +74,22 @@ interface SettingBase {
   emoji?: string;
 }
 
-interface PreconditionBase<F extends FieldData> {
+interface PreconditionBase<T extends SettingSettableValue> {
   /** Validation function that should run before setting a value. Returns either a `string` (error message; fail) or undefined (success). */
-  precondition?: SettingPrecondition<F>;
+  precondition?: SettingPrecondition<T>;
 }
 
 type SelectSetting = SettingBase & {
   type: "SELECT";
   /** List of available choices for the select menu. */
   choices: string[];
-} & PreconditionBase<"SELECT">;
+} & PreconditionBase<string[]>;
 
 type ObjectBase = SettingBase & {
   type: "OBJECT";
   /** Named properties for the OBJECT setting. */
   properties: Record<string, SingleSettingDefinition>;
-} & PreconditionBase<"OBJECT">;
+} & PreconditionBase<undefined>;
 
 export interface SingleObjectSetting extends ObjectBase {
   iterable?: false | undefined;
@@ -111,7 +111,7 @@ export interface IterableObjectSetting extends ObjectBase {
 type PrimitiveSetting<K extends Exclude<FieldData, "SELECT" | "OBJECT">> = {
   type: K;
 } & SettingBase &
-  PreconditionBase<K>;
+  PreconditionBase<SqlType<K>>;
 
 export type SingleSettingDefinition =
   | SelectSetting

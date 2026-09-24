@@ -25,6 +25,7 @@ import {
   type TS,
 } from "database/settings";
 import {
+  type FieldData,
   isSettingValueValid,
   type IterableObjectSetting,
   type Setting,
@@ -53,6 +54,7 @@ import {
   type MessageActionRowComponentBuilder,
   ModalBuilder,
   type ModalSubmitInteraction,
+  type RepliableInteraction,
   RoleSelectMenuBuilder,
   SectionBuilder,
   SeparatorBuilder,
@@ -577,6 +579,34 @@ function MkControlObject<K extends keyof TS, S extends SettingKeyFor<K> | undefi
     ],
   } as ControlObject<K, S>;
 }
+
+async function checkPrecondition /*<T extends FieldData>*/(
+  setting: SingleSettingDefinition & { type: FieldData },
+  interaction: RepliableInteraction,
+  newValue?: SettingSettableValue /*SqlType<T>*/,
+): Promise<boolean> {
+  if (setting.precondition) {
+    const preconditionReply = await setting.precondition(interaction, newValue as never); // bigass mf type hack, zaka please help
+    if (preconditionReply != undefined) {
+      await safeReply({
+        interaction,
+        replyOptions: {
+          components: [
+            await constructModalContainer(
+              `**${dotCheck({ string: "❌", twoSides: true, includeString: true })}Cannot change this setting**`,
+              preconditionReply,
+              Sokolors.Red,
+            ),
+          ],
+          flags: ["IsComponentsV2", "Ephemeral"],
+        },
+      });
+      return false;
+    }
+  }
+  return true;
+}
+
 interface MethodsObject {
   setSettingPlease: <K extends keyof TS, S extends SettingKeyFor<K>>(
     key: K,
@@ -613,6 +643,7 @@ type Mode =
  */
 async function toggleHandler<K extends keyof TS, S extends SettingKeyFor<K>>(
   interaction: SettingInteraction<K, SettingKeyFor<K>> | NonExemptInteraction<K, S>,
+  baseInteraction: ChatInputCommandInteraction,
   ctl: ControlObject<K, S>,
   methods?: MethodsObject,
 ): Promise<undefined | SettingReturnType<K, S>> {
@@ -628,6 +659,7 @@ async function toggleHandler<K extends keyof TS, S extends SettingKeyFor<K>>(
 
   switch (setting.type) {
     case "BOOL": {
+      if (!(await checkPrecondition(setting, baseInteraction, previousValue ? false : true))) break;
       if (methods) await methods.setSettingPlease(key, cID, t<K, S>(previousValue ? false : true));
       else value = { ...value, [cID]: value[cID] === true ? false : true };
       break;
@@ -661,6 +693,8 @@ async function toggleHandler<K extends keyof TS, S extends SettingKeyFor<K>>(
       const modalValue = modalInteraction.fields.getTextInputValue("setting");
       const newValue =
         setting.type === "INTEGER" || setting.type === "mINTEGER" ? Number(modalValue) : modalValue;
+
+      if (!(await checkPrecondition(setting, interaction, newValue))) break;
 
       const isNewValueValid = isSettingValueValid(newValue, {
         key: ctl.key,
@@ -706,12 +740,14 @@ async function toggleHandler<K extends keyof TS, S extends SettingKeyFor<K>>(
     case "mUSER":
     case "SELECT": {
       const valueThatWillBeSet = (interaction as StringSelectMenuInteraction).values;
+      if (!(await checkPrecondition(setting, baseInteraction, valueThatWillBeSet))) break;
       if (methods) await methods.setSettingPlease(key, cID, t<K, S>(valueThatWillBeSet));
       else value = { ...value, [cID]: valueThatWillBeSet };
 
       break;
     }
     case "OBJECT": {
+      if (!(await checkPrecondition(setting, baseInteraction))) break;
       if (!methods) return;
       const updatedState = OSMSet(uID, {
         views: "default",
@@ -1257,7 +1293,7 @@ export async function settingsEmbed<K extends keyof TS>(
               settingState: settingToLoad,
             });
           } else {
-            const settingState = await toggleHandler(replyInteraction, subCtl);
+            const settingState = await toggleHandler(replyInteraction, interaction, subCtl);
             if (!settingState)
               throw new Error(
                 "settingState (return of toggleHandler) should NOT be undefined while collecting DEFAULT CASE and within an OBJECT view.",
@@ -1276,7 +1312,12 @@ export async function settingsEmbed<K extends keyof TS>(
 
           await safeEdit({ interaction: replyInteraction, editOptions: { components: [lbl] } });
         } else
-          await toggleHandler(replyInteraction, ctl as unknown as ControlObject<K, S>, methods);
+          await toggleHandler(
+            replyInteraction,
+            interaction,
+            ctl as unknown as ControlObject<K, S>,
+            methods,
+          );
       }
     }
   });

@@ -57,8 +57,9 @@ export async function errorEmbed(options: {
   forward?: boolean;
   fileName?: string;
   dmOwner?: boolean;
+  extras?: Dict<string | null>;
 }): Promise<Message | InteractionResponse | undefined> {
-  const { interaction, title, reason, log, forward, fileName, dmOwner } = options;
+  const { interaction, title, reason, log, forward, fileName, dmOwner, extras } = options;
   const client = options.client ?? interaction?.client;
   if (!client) {
     console.error("You need to provide either a client or an interaction for errorEmbed to work.");
@@ -87,24 +88,41 @@ export async function errorEmbed(options: {
   }
 
   function showErrors(container: ContainerBuilder, shouldUseEmojis: boolean): ContainerBuilder {
-    return container.addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(
-        [
-          shouldUseEmojis ? "**💬 • Error message**" : "**error message**",
-          `${codeBlock(error.message)}${fileName ? `in \`${fileName}\`` : ""}`,
-        ].join("\n"),
-      ),
-      new TextDisplayBuilder().setContent(
-        [
-          shouldUseEmojis ? "**📜 • Error stack**" : "**error stack**",
-          stack
-            ? (stack.length <= 2048
-              ? codeBlock(stack)
-              : "The error stacktrace is an attachment below due to it being too large.")
-            : "No error stacktrace.",
-        ].join("\n"),
-      ),
-    );
+    return container
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+          [
+            shouldUseEmojis ? "**💬 • Error message**" : "**Error message**",
+            `${codeBlock(error.message)}${fileName ? `in \`${fileName}\`` : ""}`,
+          ].join("\n"),
+        ),
+        new TextDisplayBuilder().setContent(
+          [
+            shouldUseEmojis ? "**📜 • Error stack**" : "**Error stack**",
+            stack
+              ? (stack.length <= 2048
+                ? codeBlock(stack)
+                : "The error stacktrace is an attachment below due to it being too large.")
+              : "No error stacktrace.",
+          ].join("\n"),
+        ),
+      )
+      .addSeparatorComponents(new SeparatorBuilder().setDivider(!shouldUseEmojis))
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+          [
+            shouldUseEmojis ? "**🛡️ • Pinpoint this issue**" : "",
+            interaction
+              ? `**User is** <@${interaction.user.id}> (${interaction.user.id})\n**Guild is** ${interaction.guild?.name} (${interaction.guild?.id})\nError sent on **${mention(interaction.createdTimestamp, "DETAILED_TIMESTAMP")}**`
+              : (extras && Object.keys(extras).length > 0
+                ? Object.entries(extras)
+                    .map(([extra, value]) => (value ? `\`${extra}\`: ${value}` : null))
+                    .filter(extra => extra != null)
+                    .join("\n")
+                : "So, funnily enough, this errorEmbed relies on `client`, not `interaction`, so I cannot tell you who caused this. Good luck."),
+          ].join("\n"),
+        ),
+      );
   }
 
   const container = new ContainerBuilder()
@@ -128,19 +146,6 @@ export async function errorEmbed(options: {
     showErrors(container, true);
     showErrors(forwardContainer, false);
   }
-
-  if (interaction?.guild)
-    forwardContainer
-      .addSeparatorComponents(new SeparatorBuilder())
-      .addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(
-          [
-            `**guild ID**: ${interaction.guild.id}`,
-            `**user ID**: ${interaction.user.id}`,
-            `error sent on **${mention(interaction.createdTimestamp, "DETAILED_TIMESTAMP")}**`,
-          ].join("\n"),
-        ),
-      );
 
   const files: AttachmentBuilder[] = [];
   if (stack && stack.length >= 2048) {
