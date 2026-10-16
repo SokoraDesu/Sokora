@@ -496,6 +496,19 @@ const deleteQuery = async (entID: string, key: string, sql_: Bun.SQL = db): Prom
   return await sql_`DELETE FROM ${table} WHERE ${ent} = ${entID} AND "key" = ${key};`;
 };
 
+export async function getLevelingShow(userID: string): Promise<boolean> {
+  const res = values<{ value: string }>(
+    await db`
+      SELECT "value"
+      FROM user_settings
+      WHERE "userID" = ${userID}
+        AND "key" = ${"leveling.show"};
+    `,
+  );
+
+  return res.length === 0 ? true : res[0].value === "true";
+}
+
 export async function getSettingsTable<K extends keyof TS>(
   key: K,
   setting: SettingKeyFor<K>,
@@ -588,13 +601,13 @@ export async function getSetting<K extends keyof TS, S extends SettingKeyFor<K>>
   if (Array.isArray(value)) {
     const result = value.map(valuelet => switchTypes(valuelet, set)) as SettingReturnType<K, S>;
     return set.iterable && set.type === "OBJECT"
-      ? (id
+      ? id
         ? ((result as unknown[]).find(resultling => resultling.$ == id) as ParameterReturnType<
             K,
             S,
             SettingReturnType<K, S>
           >)
-        : ((result as unknown[]).toSorted(set.sorting) as SettingReturnType<K, S>))
+        : ((result as unknown[]).toSorted(set.sorting) as SettingReturnType<K, S>)
       : result;
   }
 
@@ -642,6 +655,15 @@ export async function setSetting<K extends keyof TS, S extends SettingKeyFor<K>>
       ? tx`INSERT INTO ${table} (${ent}, "key", "parameters") VALUES (${entityID}, ${keySetting}, ${set});`
       : tx`INSERT INTO ${table} (${ent}, "key", "value") VALUES (${entityID}, ${keySetting}, ${set});`);
   }); // Auto-commits if nothing goes wrong
+}
+
+export async function setLevelingShow(userID: string, show: boolean): Promise<void> {
+  await db`
+  INSERT INTO user_settings ("userID", "key", "value")
+  VALUES (${userID}, ${"leveling.show"}, ${String(show)})
+  ON CONFLICT ("userID", "key")
+  DO UPDATE SET "value" = EXCLUDED."value";
+  `;
 }
 
 export async function resetSetting<K extends keyof TS>(

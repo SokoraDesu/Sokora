@@ -13,6 +13,7 @@ import { colorize, Sokolors } from "utils/colorize";
 import { COLLECTOR_DURATION } from "utils/constants";
 import { handlePages, pagedButtons } from "utils/pagination";
 import { safeEdit, safeUser } from "utils/safeThings";
+import { getLevelingShow } from "database/settings";
 
 export const data = new SlashCommandBuilder()
   .setName("leaderboard")
@@ -29,24 +30,31 @@ export async function run(
     return await errorEmbed({ interaction, title: "This command can only be used in a server." });
 
   const leaderboardData = await getGuildLeaderboard(guildID);
-  if (leaderboardData.length === 0)
+
+  const visibility = await Promise.all(
+    leaderboardData.map(async userData => getLevelingShow(userData.userID)),
+  );
+
+  const visibleLeaderboardData = leaderboardData.filter((_, index) => visibility[index]);
+
+  if (visibleLeaderboardData.length === 0)
     return await errorEmbed({
       interaction,
       title: "No data found.",
-      reason: "There is no leveling data for this server yet.",
+      reason: "There is no visible leveling data for this server yet.",
     });
 
-  leaderboardData.sort((a, b) => {
+  visibleLeaderboardData.sort((a, b) => {
     return b.level == a.level ? b.xp - a.xp : b.level - a.level;
   });
 
   const usersPerPage = 10;
-  const pages = Math.ceil(leaderboardData.length / usersPerPage);
+  const pages = Math.ceil(visibleLeaderboardData.length / usersPerPage);
   let page = Math.max(0, Math.min(interaction.options.getNumber("page") ?? 0, pages) - 1);
 
   const generateContainer = async (isDisabled: boolean): Promise<ContainerBuilder> => {
     const start = page * usersPerPage;
-    const pageData = leaderboardData.slice(start, start + usersPerPage);
+    const pageData = visibleLeaderboardData.slice(start, start + usersPerPage);
     const content = [];
     const container = new ContainerBuilder()
       .addTextDisplayComponents(new TextDisplayBuilder().setContent("## Leaderboard"))
