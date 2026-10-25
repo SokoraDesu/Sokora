@@ -1,4 +1,6 @@
 import { isModErroryResult, ModErrorCode, type FeatureError, type ModActionResult } from "types";
+import { dekominator } from "./kominator";
+import { pluralOrNot } from "./pluralOrNot";
 
 /**
  * Gives you an error with the Error type.
@@ -52,8 +54,10 @@ function modErrorToFeatureError(value: ModActionResult): FeatureError {
   if (error.code == ModErrorCode.MissingPermission)
     return {
       title: "The bot can’t execute this command.",
-      // TODO: better format
-      reason: `The bot is missing the **\`${error.permissions.join(" | ")}\`** permission(s). If you want to run this command, you might want to give the bot this permission.`,
+      reason: `The bot is missing the ${dekominator(
+        error.permissions.map(s => `**\`${s}\`**`),
+        true,
+      )} ${pluralOrNot("permission", error.permissions.length)}. If you want to run this command, you might want to give the bot this permission.`,
     };
 
   if (error.code == ModErrorCode.ChannelDoesNotExist) {

@@ -103,8 +103,7 @@ async function generateContainer(options: {
     )
     .setAccentColor(await colorize({ hue: Sokolors.Blue }));
 
-  if (id) container.addTextDisplayComponents(fields[0]);
-  else container.addTextDisplayComponents(fields);
+  container.addTextDisplayComponents(id ? [fields[0]] : fields);
 
   const pages = Math.ceil(cases.length / 5);
   if (pages > 1) container.addActionRowComponents(pagedButtons(pages, page, disabled));

@@ -1,6 +1,6 @@
 import { deleteNews, getNews } from "database/news";
 import { getSetting } from "database/settings";
-import type { Guild, GuildMember, TextChannel } from "discord.js";
+import type { Guild, GuildMember, NewsChannel, TextChannel } from "discord.js";
 import type { FeatureOutput } from "types";
 import { feature, type MethodParameters } from "utils/feature";
 import { safeChannel } from "utils/safeThings";
@@ -9,7 +9,7 @@ interface P {
   id: number;
   guild: Guild;
   userMember: GuildMember;
-  fallbackChannel: TextChannel;
+  fallbackChannel: TextChannel | NewsChannel;
 }
 
 async function method(

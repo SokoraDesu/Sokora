@@ -1,3 +1,4 @@
+import { type ActivityType, type ClientOptions, Partials } from "discord.js";
 import packageJson from "../../package.json" with { type: "json" };
 
 /* eslint-disable unicorn/consistent-boolean-name */
@@ -48,3 +49,23 @@ export const TESTER_USER_A = process.env.TESTER_USER_ID_A;
 export const TESTER_USER_B = process.env.TESTER_USER_ID_B;
 /** Testing channel. */
 export const TESTER_CHANNEL = process.env.TESTER_CHANNEL_ID;
+
+export const CLIENT_PAYLOAD = (activityText: string, activityType: ActivityType): ClientOptions => {
+  return {
+    presence: {
+      activities: [{ name: activityText, type: activityType }],
+    },
+    partials: [Partials.Message, Partials.Reaction, Partials.User],
+    intents: [
+      "DirectMessages",
+      "Guilds",
+      "GuildMembers",
+      "GuildMessages",
+      "GuildModeration",
+      "GuildEmojisAndStickers",
+      "GuildBans",
+      "GuildMessageReactions",
+      "MessageContent",
+    ],
+  };
+};

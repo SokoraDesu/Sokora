@@ -1,14 +1,14 @@
-import { Api } from "@top-gg/sdk";
+import * as Topgg from "@top-gg/sdk";
 import { Chart, registerables } from "chart.js";
 import { updateDatabase } from "database/index";
 import { getSettingsTable, setSetting } from "database/settings";
 import {
   ActivityType,
+  type APIApplicationCommand,
   Client,
   type ClientApplication,
   codeBlock,
   ContainerBuilder,
-  Partials,
   TextDisplayBuilder,
 } from "discord.js";
 import { errorEmbed } from "embeds/errorEmbed";
@@ -17,7 +17,7 @@ import { loadEasterEggs, loadEvents } from "handlers/events";
 import fs from "node:fs";
 import pLimit from "p-limit";
 import { colorize, Sokolors } from "utils/colorize";
-import { IS_CANARY, MILLISEC_30M, MILLISEC_12H, TOKEN, TOPGG_TOKEN } from "const";
+import { IS_CANARY, MILLISEC_30M, MILLISEC_12H, TOKEN, TOPGG_TOKEN, CLIENT_PAYLOAD } from "const";
 import { mention } from "utils/mention";
 import { safeAlertChannel, safeUser } from "utils/safeThings";
 import type { GHCommit } from "types";
@@ -56,30 +56,17 @@ if (import.meta.main) {
     appendLog(`died with status code ${code}`);
   });
 
-  client = new Client({
-    presence: {
-      activities: [{ name: "your feedback!", type: ActivityType.Listening }],
-    },
-    partials: [Partials.Message, Partials.Reaction, Partials.User],
-    intents: [
-      "DirectMessages",
-      "Guilds",
-      "GuildMembers",
-      "GuildMessages",
-      "GuildModeration",
-      "GuildEmojisAndStickers",
-      "GuildBans",
-      "GuildMessageReactions",
-      "MessageContent",
-    ],
-  });
+  client = new Client(CLIENT_PAYLOAD("your feedback!", ActivityType.Listening));
+
+  if (!TOPGG_TOKEN) throw new Error("No TOPGG_TOKEN but somehow top.gg handler got called.");
+
+  const topgg = new Topgg.Api(TOPGG_TOKEN);
 
   const topggCommandHandler = async (app: ClientApplication): Promise<void> => {
-    if (!TOPGG_TOKEN) throw new Error("No TOPGG_TOKEN but somehow top.gg handler got called.");
-
-    const topgg = new Api(TOPGG_TOKEN);
     try {
-      const commands = (await app.commands.fetch()).map(command => command.toJSON());
+      const commands = (await app.commands.fetch()).map(command =>
+        command.toJSON(),
+      ) as APIApplicationCommand[];
       await topgg.postCommands(commands);
       console.log("Posted commands to top.gg!");
     } catch (error) {
@@ -88,11 +75,8 @@ if (import.meta.main) {
   };
 
   const topggVoteHandler = async (): Promise<void> => {
-    if (!TOPGG_TOKEN) throw new Error("No TOPGG_TOKEN but somehow top.gg handler got called.");
-
-    const topgg = new Api(TOPGG_TOKEN);
     try {
-      await topgg.postStats({ serverCount: (await client.guilds.fetch()).size });
+      await topgg.postMetrics({ serverCount: (await client.guilds.fetch()).size });
       console.log("Posted statistics to top.gg!");
     } catch (error) {
       console.error(`Failed to start top.gg auto-poster: ${error}`);
@@ -107,7 +91,8 @@ if (import.meta.main) {
 
     for (const user of users)
       try {
-        if (await topgg.hasVoted(user)) continue;
+        const vote = await topgg.getVote(user);
+        if (vote != null) continue;
 
         const dmChannel = await (await safeUser(client, user)).createDM();
         if (!dmChannel?.isSendable()) continue;

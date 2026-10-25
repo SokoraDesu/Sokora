@@ -1,15 +1,15 @@
 /* eslint-disable @typescript-eslint/promise-function-async */
 /* eslint-disable unicorn/no-top-level-assignment-in-function */
-import {
-  Client,
-  Partials,
-  ActivityType,
-  type Guild,
-  type User,
-  type GuildMember,
-} from "discord.js";
+import { Client, ActivityType, type Guild, type User, type GuildMember } from "discord.js";
 import { errorType } from "utils/errorType";
-import { DEV_GUILD_ID, OWNER, TESTER_TOKEN, TESTER_USER_A, TESTER_USER_B } from "const";
+import {
+  CLIENT_PAYLOAD,
+  DEV_GUILD_ID,
+  OWNER,
+  TESTER_TOKEN,
+  TESTER_USER_A,
+  TESTER_USER_B,
+} from "const";
 import { as } from "types";
 import { safeMember } from "utils/safeThings";
 
@@ -72,24 +72,7 @@ export function setup(): Promise<void> {
 
   if (!TESTER_TOKEN) throw new Error("You need two bots for testing, not just one.");
 
-  // TODO: dry
-  const client = new Client({
-    presence: {
-      activities: [{ name: "Sokora test suite", type: ActivityType.Playing }],
-    },
-    partials: [Partials.Message, Partials.Reaction, Partials.User],
-    intents: [
-      "DirectMessages",
-      "Guilds",
-      "GuildMembers",
-      "GuildMessages",
-      "GuildModeration",
-      "GuildEmojisAndStickers",
-      "GuildBans",
-      "GuildMessageReactions",
-      "MessageContent",
-    ],
-  });
+  const client = new Client(CLIENT_PAYLOAD("Sokora’s test suite :D", ActivityType.Playing));
 
   state.client = client;
 

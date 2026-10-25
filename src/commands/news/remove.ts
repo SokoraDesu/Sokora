@@ -1,5 +1,4 @@
 import {
-  ChannelType,
   ContainerBuilder,
   SlashCommandSubcommandBuilder,
   TextDisplayBuilder,
@@ -33,14 +32,10 @@ export async function run(
     // TODO: maybe move to assertInteraction
     // and maybe split that into other fns + rename it as it's growing in scope
     !interaction.member ||
-    // TODO: im realizing announcement channels should not be banned?
-    // idk, guess we'll figure out when doing the test suite
-
     !interaction.channel.isTextBased() ||
     interaction.channel.isVoiceBased() ||
     interaction.channel.isDMBased() ||
-    interaction.channel.isThread() ||
-    interaction.channel.type == ChannelType.GuildAnnouncement
+    interaction.channel.isThread()
   )
     return;
 
