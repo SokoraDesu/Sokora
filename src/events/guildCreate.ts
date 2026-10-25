@@ -11,7 +11,7 @@ import { colorize, Sokolors } from "utils/colorize";
 import { replace } from "utils/replace";
 import { safeAlertChannel } from "utils/safeThings";
 import type { Event } from "types";
-import { useErrorEmbed } from "embeds/errorEmbed";
+import { errorEmbed } from "embeds/errorEmbed";
 
 export default (async function run(guild) {
   const client = guild.client;
@@ -68,6 +68,6 @@ export default (async function run(guild) {
     if (!welcomeChannel.permissionsFor(guild.client.user)?.has("SendMessages")) return;
     await welcomeChannel.send({ components: [container], flags: "IsComponentsV2" });
   } catch (error) {
-    return await useErrorEmbed({ client, error, fileName: "guildCreate" });
+    return await errorEmbed(true, { client, error, fileName: "guildCreate" });
   }
 } as Event<"guildCreate">);

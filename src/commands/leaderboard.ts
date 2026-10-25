@@ -7,7 +7,8 @@ import {
   type ButtonInteraction,
   type ChatInputCommandInteraction,
 } from "discord.js";
-import { isButtonErrory, useErrorEmbed } from "embeds/errorEmbed";
+import { errorEmbed } from "embeds/errorEmbed";
+import { isButtonErrory } from "utils/buttonCheck";
 import { colorize, Sokolors } from "utils/colorize";
 import { COLLECTOR_DURATION } from "utils/constants";
 import { handlePages, pagedButtons } from "utils/pagination";
@@ -23,14 +24,14 @@ export async function run(interaction: ChatInputCommandInteraction): Promise<voi
   const guild = interaction.guild;
   const guildID = guild?.id;
   if (!guildID)
-    return await useErrorEmbed({
+    return await errorEmbed(false, {
       interaction,
       title: "This command can only be used in a server.",
     });
 
   const leaderboardData = await getGuildLeaderboard(guildID);
   if (leaderboardData.length === 0) {
-    return await useErrorEmbed({
+    return await errorEmbed(false, {
       interaction,
       title: "No data found.",
       reason: "There is no leveling data for this server yet.",

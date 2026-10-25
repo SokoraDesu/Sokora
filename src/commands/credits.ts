@@ -9,7 +9,7 @@ import {
   type ButtonInteraction,
   type ChatInputCommandInteraction,
 } from "discord.js";
-import { isButtonErrory } from "embeds/errorEmbed";
+import { isButtonErrory } from "utils/buttonCheck";
 import { colorize, Sokolors } from "utils/colorize";
 import { COLLECTOR_DURATION } from "utils/constants";
 import { replace } from "utils/replace";

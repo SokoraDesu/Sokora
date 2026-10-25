@@ -1,5 +1,5 @@
 import { SlashCommandSubcommandBuilder, type ChatInputCommandInteraction } from "discord.js";
-import { useErrorEmbed } from "embeds/errorEmbed";
+import { errorEmbed } from "embeds/errorEmbed";
 import { buildModEmbed } from "embeds/modEmbed";
 import { delwarn } from "features/mod/delwarn";
 import { assertInteraction } from "types";
@@ -50,7 +50,7 @@ export async function run(interaction: ChatInputCommandInteraction): Promise<voi
       components: [await buildModEmbed(result.out)],
     });
   else {
-    await useErrorEmbed({ interaction, ...result.out });
+    await errorEmbed(false, { interaction, ...result.out });
   }
   return;
 }

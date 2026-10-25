@@ -4,6 +4,7 @@ import type {
   AnySelectMenuInteraction,
   ModalSubmitInteraction,
   ChatInputCommandInteraction,
+  Message,
 } from "discord.js";
 import { COLLECTOR_DURATION } from "./constants";
 
@@ -20,7 +21,7 @@ export function collect<
   I2 extends CollectedInteraction = CollectedInteraction,
 >(
   interaction: I1,
-  reply: InteractionResponse,
+  reply: InteractionResponse | Message,
   onCollect: (
     interaction: I2,
     halt: (reason?: string) => void,

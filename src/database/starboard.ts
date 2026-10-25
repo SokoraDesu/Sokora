@@ -2,7 +2,7 @@ import { client } from "botfile";
 import type { Satisfies } from "types";
 import { db, values } from ".";
 import type { TableDefinition, TypeOfDefinition } from "types";
-import { useErrorEmbed } from "embeds/errorEmbed";
+import { errorEmbed } from "embeds/errorEmbed";
 
 type Def = Satisfies<
   TableDefinition,
@@ -58,7 +58,7 @@ export async function deleteStarred(guildID: string, messageID: string): Promise
   try {
     await db`DELETE FROM starboard WHERE "guild_id" = ${guildID} AND "message_id" = ${messageID}`;
   } catch (error) {
-    return await useErrorEmbed({
+    return await errorEmbed(true, {
       client,
       error,
       fileName: "database/starboard",

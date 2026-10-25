@@ -2,7 +2,7 @@ import { SlashCommandSubcommandBuilder, type ChatInputCommandInteraction } from 
 import { assertInteraction } from "types";
 import { shouldModerateSilently } from "utils/silent";
 import { kick } from "features/mod/kick";
-import { useErrorEmbed } from "embeds/errorEmbed";
+import { errorEmbed } from "embeds/errorEmbed";
 import { buildModEmbed } from "embeds/modEmbed";
 
 export const data = new SlashCommandSubcommandBuilder()
@@ -42,7 +42,7 @@ export async function run(interaction: ChatInputCommandInteraction): Promise<voi
       components: [await buildModEmbed(result.out)],
     });
   else {
-    await useErrorEmbed({ interaction, ...result.out });
+    await errorEmbed(false, { interaction, ...result.out });
   }
   return;
 }

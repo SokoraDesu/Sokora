@@ -27,7 +27,7 @@ import { safeChannel, safeMember, safeMessage, safeRole } from "utils/safeThings
 import { interkora } from "api/v1";
 import { assertMessage, type Event } from "types";
 import { buildMessageFromPayload, buildPayloadFromMessage } from "api/v1/message";
-import { useErrorEmbed } from "embeds/errorEmbed";
+import { errorEmbed } from "embeds/errorEmbed";
 import { useLogEmbed } from "embeds/logEmbed";
 
 const cooldowns = new Map<string, number>();
@@ -103,7 +103,7 @@ export default (async function run(_message) {
             if (typeof easterEgg.run == "function" && Math.random() <= chances)
               await easterEgg.run(message);
           } catch (error) {
-            return await useErrorEmbed({
+            return await errorEmbed(true, {
               client,
               error,
               title: `Error running easter egg ${easterEgg.name}.`,
@@ -166,7 +166,7 @@ export default (async function run(_message) {
     for (const reward of rewards) {
       if (reward.roles && reward.roles.length > 0 && !clientMember.permissions.has("ManageRoles")) {
         await removeLevelRewards(guild.id, [reward]);
-        return await useErrorEmbed({
+        return await errorEmbed(false, {
           client,
           title: "A level reward has been removed.",
           reason: `The bot is missing the **Manage Roles** permission.\n**Removed level reward**: ${reward.roles.map(id => id && mention(id, "ROLE")).join(", ")} at level ${reward.level}`,
@@ -182,7 +182,7 @@ export default (async function run(_message) {
         await removeLevelRewards(guild.id, [reward]);
         // TODO: now i realized why log/forward were options...
         // I HATE MYSELF AND HOW STUPID I AM
-        return await useErrorEmbed({
+        return await errorEmbed(false, {
           client,
           title: "A level reward has been removed.",
           reason: `The bot is missing the **Manage Channels** permission.\n**Removed level reward**: ${reward.channels.map(id => id && mention(id, "CHANNEL")).join(", ")} at level ${reward.level}`,

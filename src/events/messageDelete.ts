@@ -7,7 +7,7 @@ import {
   MediaGalleryItemBuilder,
   TextDisplayBuilder,
 } from "discord.js";
-import { useErrorEmbed } from "embeds/errorEmbed";
+import { errorEmbed } from "embeds/errorEmbed";
 import { client } from "botfile";
 import { checkForS } from "utils/checkForS";
 import { colorize, Sokolors } from "utils/colorize";
@@ -21,7 +21,7 @@ export default (async function run(message) {
     if (message.partial) return;
     const author = message.author;
     if (!author)
-      return await useErrorEmbed({
+      return await errorEmbed(true, {
         client,
         title: "Cannot log deleted message.",
         reason: `Message ${message} lacks an author.`,
@@ -30,7 +30,7 @@ export default (async function run(message) {
     if (author.bot) return;
     const guild = message.guild;
     if (!guild)
-      return await useErrorEmbed({
+      return await errorEmbed(true, {
         client,
         title: "Cannot log deleted message.",
         reason: `Message ${message} lacks the guild.`,
@@ -42,7 +42,7 @@ export default (async function run(message) {
     try {
       media = await fetchMedia(message);
     } catch (error) {
-      return await useErrorEmbed({
+      return await errorEmbed(true, {
         client,
         error,
         title: "Error fetching meta image.",
@@ -96,6 +96,6 @@ export default (async function run(message) {
       flags: "IsComponentsV2",
     });
   } catch (error) {
-    return await useErrorEmbed({ client, error, fileName: "messageDelete" });
+    return await errorEmbed(true, { client, error, fileName: "messageDelete" });
   }
 } as Event<"messageDelete">);

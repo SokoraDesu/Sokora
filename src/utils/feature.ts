@@ -26,9 +26,10 @@ export function feature<P, O>(
     };
   };
 
-  const fail = <F>(f: F): PrimitiveFeatureError<F> => {
+  const fail = <F>(f: F, isEx = false): PrimitiveFeatureError<F> => {
     return {
       success: false,
+      reason: isEx ? "exception" : "user",
       feature: featureName,
       out: f,
     };
@@ -38,7 +39,7 @@ export function feature<P, O>(
     try {
       return await method(ok, fail, options);
     } catch (error) {
-      return fail(errorToFeature(error));
+      return fail(errorToFeature(error), true);
     }
   };
 }

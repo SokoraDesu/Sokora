@@ -10,7 +10,7 @@ import { colorize, Sokolors } from "utils/colorize";
 import { newsModal } from "utils/newsModal";
 import { safeMember } from "utils/safeThings";
 import { assertInteraction } from "types";
-import { buildErrorEmbed, useErrorEmbed } from "embeds/errorEmbed";
+import { errorEmbed } from "embeds/errorEmbed";
 import { edit } from "features/news/edit";
 
 export const data = new SlashCommandSubcommandBuilder()
@@ -32,17 +32,13 @@ export async function run(interaction: ChatInputCommandInteraction): Promise<voi
   // TODO: duplicate within the feature?
   const news = await getNews(guild.id, id);
   if (!news) {
-    await interaction.reply({
-      components: [(await buildErrorEmbed({ title: "The specified news post doesn’t exist." }))[0]],
-      flags: ["Ephemeral", "IsComponentsV2"],
-    });
-    return;
+    return await errorEmbed(false, { title: "The specified news post doesn’t exist." });
   }
 
   try {
     await interaction.showModal(await newsModal(news));
   } catch (error) {
-    return await useErrorEmbed({ interaction, error, fileName: "edit" });
+    return await errorEmbed(true, { interaction, error, fileName: "edit" });
   }
 
   interaction.client.once("interactionCreate", async modalInteraction => {
@@ -69,11 +65,7 @@ export async function run(interaction: ChatInputCommandInteraction): Promise<voi
     });
 
     if (!result.success) {
-      await interaction.reply({
-        components: [(await buildErrorEmbed({ interaction, ...result.out }))[0]],
-        flags: ["IsComponentsV2", "Ephemeral"],
-      });
-      return;
+      return await errorEmbed(false, { interaction, ...result.out });
     }
 
     const editedContainer = new ContainerBuilder()

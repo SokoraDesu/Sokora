@@ -7,8 +7,9 @@ import {
   type User,
   type ButtonInteraction,
 } from "discord.js";
-import { isButtonErrory, useErrorEmbed } from "embeds/errorEmbed";
+import { errorEmbed } from "embeds/errorEmbed";
 import type { SafeChatInteraction } from "types";
+import { isButtonErrory } from "utils/buttonCheck";
 import { collect } from "utils/collector";
 import { colorize, Sokolors } from "utils/colorize";
 import { randomize } from "utils/randomize";
@@ -41,7 +42,7 @@ export async function rps(
   const { player, opponent } = options;
 
   if (opponent.id == player.id)
-    return await useErrorEmbed({
+    return await errorEmbed(false, {
       interaction,
       title: "Invalid opponent.",
       reason: "You cannot play against yourself.",
@@ -82,7 +83,7 @@ export async function rps(
       if (cID == "please") return;
 
       if (buttonInteraction.user.id != opponent.id && buttonInteraction.user.id != player.id) {
-        return await useErrorEmbed({
+        return await errorEmbed(false, {
           interaction: buttonInteraction,
           title: "You aren’t participating.",
         });

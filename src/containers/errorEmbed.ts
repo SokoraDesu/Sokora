@@ -20,8 +20,6 @@ import {
   type ButtonInteraction,
   type ChatInputCommandInteraction,
   type Client,
-  type InteractionResponse,
-  type Message,
   type MessageCreateOptions,
 } from "discord.js";
 import { colorize, Sokolors } from "utils/colorize";
@@ -133,145 +131,12 @@ async function dispatchInternally(
   return;
 }
 
-function dispatch(
-  interaction: ErrorableInteraction,
-  reply: InteractionResponse,
-  forwardedContainer: ContainerBuilder,
-  forwardedFiles: AttachmentBuilder[],
-  error: Error,
-): void {
-  collect(
-    interaction,
-    reply,
-    async (buttonInteraction: ButtonInteraction, halt, resetTime) => {
-      const modal = new ModalBuilder()
-        .setCustomId("modalpls")
-        .setTitle("•  Report the issue pretty please")
-        .addLabelComponents(
-          new LabelBuilder()
-            .setLabel("Mind describing? 😟")
-            .setTextInputComponent(
-              new TextInputBuilder()
-                .setCustomId("description")
-                .setPlaceholder("Pleasepleasepleasepleasepleasplesae 🥹")
-                .setMaxLength(MAX_INPUT_CHARS)
-                .setStyle(TextInputStyle.Paragraph)
-                .setRequired(true),
-            ),
-          new LabelBuilder()
-            .setLabel("How????????????????????????")
-            .setTextInputComponent(
-              new TextInputBuilder()
-                .setCustomId("explanation")
-                .setPlaceholder("Now how the hell did you reproduce the issue…? please say ❤️‍🩹")
-                .setMaxLength(MAX_INPUT_CHARS)
-                .setStyle(TextInputStyle.Paragraph)
-                .setRequired(false),
-            ),
-          new LabelBuilder()
-            .setLabel("Any screenies? (or videos) 🥺")
-            .setFileUploadComponent(
-              new FileUploadBuilder().setCustomId("images").setMaxValues(10).setRequired(false),
-            ),
-        );
-
-      const modalInteraction = await modalSubmit(buttonInteraction, modal);
-      resetTime();
-
-      if (!modalInteraction) {
-        halt();
-        return;
-      }
-
-      const modalContainer = new ContainerBuilder()
-        .addTextDisplayComponents(
-          new TextDisplayBuilder().setContent(
-            "## Thank you for reporting! You’ve made Goos proud 🥹\nWe’ll look into this error and properly thank you in a future patch release 🫶",
-          ),
-        )
-        .setAccentColor(await colorize({ hue: Sokolors.Purple }));
-
-      await safeReply({
-        interaction: modalInteraction,
-        replyOptions: { components: [modalContainer], flags: ["Ephemeral", "IsComponentsV2"] },
-      });
-
-      const descriptionContainer = new ContainerBuilder()
-        .addTextDisplayComponents(
-          new TextDisplayBuilder().setContent(
-            modalInteraction.fields.getTextInputValue("description"),
-          ),
-        )
-        .setAccentColor(await colorize({ hue: Sokolors.Green }));
-
-      const media = modalInteraction.fields.getUploadedFiles("images");
-      if (media) {
-        const actualMediaGallery = media
-          .filter(item => {
-            return (
-              item.contentType &&
-              (item.contentType.startsWith("image/") || item.contentType.startsWith("video/"))
-            );
-          })
-          .map(image => new MediaGalleryItemBuilder().setURL(image.url))
-          .toReversed();
-
-        if (actualMediaGallery)
-          descriptionContainer.addMediaGalleryComponents(
-            new MediaGalleryBuilder().addItems(actualMediaGallery),
-          );
-      }
-
-      descriptionContainer.addTextDisplayComponents(
-        new TextDisplayBuilder().setContent("-# description"),
-      );
-
-      const explanationContainer = new ContainerBuilder()
-        .addTextDisplayComponents(
-          new TextDisplayBuilder().setContent(
-            modalInteraction.fields.getTextInputValue("explanation"),
-          ),
-          new TextDisplayBuilder().setContent("-# explanation"),
-        )
-        .setAccentColor(await colorize({ hue: Sokolors.Yellow }));
-
-      const reportChannel = process.env.REPORT_CHANNEL_ID;
-      if (!reportChannel) {
-        console.error(error);
-        console.log(
-          "hey, you don’t have REPORT_CHANNEL_ID set in .env and someone somehow reported an issue for the bot to send it to undefined :D",
-        );
-        halt();
-        return;
-      }
-
-      const channel = await safeChannel(interaction.client, reportChannel);
-      if (!channel?.isTextBased() || !channel.isSendable()) {
-        halt();
-        return;
-      }
-      await channel.send({
-        components: [descriptionContainer, explanationContainer, forwardedContainer],
-        files: forwardedFiles,
-        flags: "IsComponentsV2",
-      });
-    },
-    async () => {
-      await interaction.deleteReply();
-    },
-  );
-}
-
 /**
- * Builds a base errorEmbed. See {@linkcode useErrorEmbed}.
+ * Builds a base errorEmbed. See {@linkcode errorEmbed}.
  *
- * Use this for expected errors, like input-related ones.
- *
- * @returns A fixed-length array with the Container 1st and the attachments 2nd. **Ignore the 2nd item, you don’t need it, and if you do, use `useErrorEmbed` instead.**
+ * @returns A fixed-length array with the Container 1st and the attachments 2nd.
  */
-export async function buildErrorEmbed(
-  options: Options,
-): Promise<[ContainerBuilder, AttachmentBuilder[]]> {
+async function buildErrorEmbed(options: Options): Promise<[ContainerBuilder, AttachmentBuilder[]]> {
   const { title, reason, fileName, extras } = options;
 
   const error = errorType(options.error);
@@ -321,20 +186,15 @@ async function buildInteractiveErrorEmbed(
 /**
  * Creates and dispatches a container containing an error.
  *
- * **Utilize this for errors that we should become aware of.**
- *
- * For predictable errors (e.g. ones related to user input), **use {@linkcode buildErrorEmbed} and manually send that instead**.
- *
- * TODO: there's many cases where useErrorEmbed is used where it shouldn't (user errors that shouldn't be reported to us)
- * have to manually review
+ * First argument is a boolean, **set to true for errors that we should become aware of, and to false for predictable errors (e.g. ones related to user input)**.
  *
  * @returns Void, all logic is self-contained.
  */
-export async function useErrorEmbed(options: Options): Promise<undefined> {
+export async function errorEmbed(isException: boolean, options: Options): Promise<undefined> {
   const { interaction, dmOwner } = options;
   const client = interaction?.client ?? options.client;
 
-  if (!client) throw new Error("useErrorEmbed cannot work without a client. This is a problem.");
+  if (!client) throw new Error("errorEmbed cannot work without a client. This is a problem.");
 
   const error = errorType(options.error);
 
@@ -346,72 +206,159 @@ export async function useErrorEmbed(options: Options): Promise<undefined> {
   };
 
   console.error(error);
-  await dispatchInternally(client, internalPayload);
 
-  if (!interaction) return;
+  if (isException) {
+    await dispatchInternally(client, internalPayload);
 
-  if (dmOwner) {
-    const dm = await (await interaction?.guild?.fetchOwner())?.createDM().catch(() => null);
-    if (dm) await dm.send(internalPayload);
-  }
+    if (!interaction) return;
 
-  const [forwardedContainer, forwardedFiles] = await buildInteractiveErrorEmbed(options, [
-    container,
-    files,
-  ]);
+    const [forwardedContainer, forwardedFiles] = await buildInteractiveErrorEmbed(options, [
+      container,
+      files,
+    ]);
 
-  const reply = await safeReply({
-    interaction,
-    replyOptions: {
-      components: [forwardedContainer],
-      files: forwardedFiles,
-      flags: ["Ephemeral", "IsComponentsV2"],
-    },
-  });
-
-  // TODO: typecheck
-  dispatch(interaction, reply as InteractionResponse, forwardedContainer, forwardedFiles, error);
-}
-
-/**
- * Checks buttons (or select menus) for common errors.
- * @param i The component to check.
- * @param reply The reply that will be checked against the original message.
- * @param interaction The interaction that will have its user checked against the button's interaction
- * @param checkExecutorError Makes the function check user IDs.
- * @returns An errorEmbed if something goes wrong.
- */
-export async function isButtonErrory(options: {
-  i: ButtonInteraction | AnySelectMenuInteraction;
-  reply: Message | InteractionResponse;
-  interaction?:
-    | ChatInputCommandInteraction
-    | ButtonInteraction
-    | ModalSubmitInteraction
-    | AnySelectMenuInteraction;
-  noExecuteError?: boolean;
-}): Promise<boolean> {
-  const { i, interaction, reply, noExecuteError } = options;
-
-  if (i.customId == "please") return true;
-  if (i.message.id != (await reply.fetch()).id) {
-    await useErrorEmbed({
-      interaction: i,
-      client: i.client,
-      title:
-        "For some reason, this click would’ve caused the bot to error. Thankfully, this message right here prevents that.",
+    const reply = await safeReply({
+      interaction,
+      replyOptions: {
+        components: [forwardedContainer],
+        files: forwardedFiles,
+        flags: ["Ephemeral", "IsComponentsV2"],
+      },
     });
-    return true;
-  }
 
-  if (!noExecuteError && interaction && i.user.id != interaction.user.id) {
-    await useErrorEmbed({
-      interaction: i,
-      client: i.client,
-      title: "You are not the person who executed this command.",
+    collect(
+      interaction,
+      reply,
+      async (buttonInteraction: ButtonInteraction, halt, resetTime) => {
+        const modal = new ModalBuilder()
+          .setCustomId("modalpls")
+          .setTitle("•  Report the issue pretty please")
+          .addLabelComponents(
+            new LabelBuilder()
+              .setLabel("Mind describing? 😟")
+              .setTextInputComponent(
+                new TextInputBuilder()
+                  .setCustomId("description")
+                  .setPlaceholder("Pleasepleasepleasepleasepleasplesae 🥹")
+                  .setMaxLength(MAX_INPUT_CHARS)
+                  .setStyle(TextInputStyle.Paragraph)
+                  .setRequired(true),
+              ),
+            new LabelBuilder()
+              .setLabel("How????????????????????????")
+              .setTextInputComponent(
+                new TextInputBuilder()
+                  .setCustomId("explanation")
+                  .setPlaceholder("Now how the hell did you reproduce the issue…? please say ❤️‍🩹")
+                  .setMaxLength(MAX_INPUT_CHARS)
+                  .setStyle(TextInputStyle.Paragraph)
+                  .setRequired(false),
+              ),
+            new LabelBuilder()
+              .setLabel("Any screenies? (or videos) 🥺")
+              .setFileUploadComponent(
+                new FileUploadBuilder().setCustomId("images").setMaxValues(10).setRequired(false),
+              ),
+          );
+
+        const modalInteraction = await modalSubmit(buttonInteraction, modal);
+        resetTime();
+
+        if (!modalInteraction) {
+          halt();
+          return;
+        }
+
+        const modalContainer = new ContainerBuilder()
+          .addTextDisplayComponents(
+            new TextDisplayBuilder().setContent(
+              "## Thank you for reporting! You’ve made Goos proud 🥹\nWe’ll look into this error and properly thank you in a future patch release 🫶",
+            ),
+          )
+          .setAccentColor(await colorize({ hue: Sokolors.Purple }));
+
+        await safeReply({
+          interaction: modalInteraction,
+          replyOptions: { components: [modalContainer], flags: ["Ephemeral", "IsComponentsV2"] },
+        });
+
+        const descriptionContainer = new ContainerBuilder()
+          .addTextDisplayComponents(
+            new TextDisplayBuilder().setContent(
+              modalInteraction.fields.getTextInputValue("description"),
+            ),
+          )
+          .setAccentColor(await colorize({ hue: Sokolors.Green }));
+
+        const media = modalInteraction.fields.getUploadedFiles("images");
+        if (media) {
+          const actualMediaGallery = media
+            .filter(item => {
+              return (
+                item.contentType &&
+                (item.contentType.startsWith("image/") || item.contentType.startsWith("video/"))
+              );
+            })
+            .map(image => new MediaGalleryItemBuilder().setURL(image.url))
+            .toReversed();
+
+          if (actualMediaGallery)
+            descriptionContainer.addMediaGalleryComponents(
+              new MediaGalleryBuilder().addItems(actualMediaGallery),
+            );
+        }
+
+        descriptionContainer.addTextDisplayComponents(
+          new TextDisplayBuilder().setContent("-# description"),
+        );
+
+        const explanationContainer = new ContainerBuilder()
+          .addTextDisplayComponents(
+            new TextDisplayBuilder().setContent(
+              modalInteraction.fields.getTextInputValue("explanation"),
+            ),
+            new TextDisplayBuilder().setContent("-# explanation"),
+          )
+          .setAccentColor(await colorize({ hue: Sokolors.Yellow }));
+
+        const reportChannel = process.env.REPORT_CHANNEL_ID;
+        if (!reportChannel) {
+          console.error(error);
+          console.log(
+            "hey, you don’t have REPORT_CHANNEL_ID set in .env and someone somehow reported an issue for the bot to send it to undefined :D",
+          );
+          halt();
+          return;
+        }
+
+        const channel = await safeChannel(interaction.client, reportChannel);
+        if (!channel?.isTextBased() || !channel.isSendable()) {
+          halt();
+          return;
+        }
+        await channel.send({
+          components: [descriptionContainer, explanationContainer, forwardedContainer],
+          files: forwardedFiles,
+          flags: "IsComponentsV2",
+        });
+      },
+      async () => {
+        await interaction.deleteReply();
+      },
+    );
+  } else {
+    if (!interaction) return;
+    await safeReply({
+      interaction,
+      replyOptions: {
+        components: [container],
+        files,
+        flags: ["Ephemeral", "IsComponentsV2"],
+      },
     });
-    return true;
   }
 
-  return false;
+  if (!dmOwner) return;
+  const dm = await (await interaction?.guild?.fetchOwner())?.createDM().catch(() => null);
+  if (dm) await dm.send(internalPayload);
 }

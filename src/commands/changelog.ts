@@ -11,7 +11,7 @@ import {
   type ChatInputCommandInteraction,
   type ClientUser,
 } from "discord.js";
-import { isButtonErrory } from "embeds/errorEmbed";
+import { isButtonErrory } from "utils/buttonCheck";
 import { colorize, Sokolors } from "utils/colorize";
 import { COLLECTOR_DURATION } from "utils/constants";
 import { replace } from "utils/replace";

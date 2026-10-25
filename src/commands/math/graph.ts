@@ -7,7 +7,7 @@ import {
   TextDisplayBuilder,
   type ChatInputCommandInteraction,
 } from "discord.js";
-import { useErrorEmbed } from "embeds/errorEmbed";
+import { errorEmbed } from "embeds/errorEmbed";
 import { graph } from "features/math/graph";
 import { colorize, Sokolors } from "utils/colorize";
 
@@ -41,7 +41,7 @@ export async function run(interaction: ChatInputCommandInteraction): Promise<voi
   });
 
   if (!result.success)
-    return await useErrorEmbed({
+    return await errorEmbed(false, {
       interaction,
       ...result.out,
     });

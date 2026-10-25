@@ -11,7 +11,7 @@ import {
   Partials,
   TextDisplayBuilder,
 } from "discord.js";
-import { useErrorEmbed } from "embeds/errorEmbed";
+import { errorEmbed } from "embeds/errorEmbed";
 import { registerGuildCommands } from "handlers/commands";
 import { loadEasterEggs, loadEvents } from "handlers/events";
 import fs from "node:fs";
@@ -116,7 +116,7 @@ if (import.meta.main) {
           "Reminder that **you can vote for Sokora** on [top.gg](https://top.gg/bot/873918300726394960/vote) - go vote!!",
         );
       } catch (error) {
-        await useErrorEmbed({
+        await errorEmbed(true, {
           client,
           error,
           title: "top.gg reminding error.",

@@ -1,7 +1,7 @@
 // TODO: this is worse than before, not better
 // i mean technically better but awful CQ
 
-import { client as client_ } from "botfile";
+import { client as originalClient } from "botfile";
 import { getCase } from "database/moderation";
 import {
   PermissionsBitField,
@@ -67,7 +67,7 @@ export async function getModError(
   if (!moderator) return { code: ModErrorCode.ModeratorNotFound };
 
   const member = await safeMember(guild, moderator.id);
-  const client = await safeMember(guild, client_.user.id);
+  const client = await safeMember(guild, originalClient.user.id);
 
   const desiredPermissions = new PermissionsBitField(desiredPermissionArray);
   if (allErrors) desiredPermissions.add("ModerateMembers");

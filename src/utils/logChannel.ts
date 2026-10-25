@@ -10,7 +10,7 @@ import type {
   TextChannel,
   User,
 } from "discord.js";
-import { useErrorEmbed } from "embeds/errorEmbed";
+import { errorEmbed } from "embeds/errorEmbed";
 import { channelCheck } from "./channelCheck";
 import { safeChannel, safeMember } from "./safeThings";
 
@@ -69,6 +69,6 @@ export async function logChannel(
         ? undefined
         : await channel.send(dmOptions.options);
     } catch (error) {
-      return await useErrorEmbed({ client: guild.client, error });
+      return await errorEmbed(false, { client: guild.client, error });
     }
 }

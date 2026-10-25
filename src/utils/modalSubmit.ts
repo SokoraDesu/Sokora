@@ -8,7 +8,7 @@ import type {
   ModalSubmitInteraction,
 } from "discord.js";
 import { COLLECTOR_DURATION } from "./constants";
-import { useErrorEmbed } from "embeds/errorEmbed";
+import { errorEmbed } from "embeds/errorEmbed";
 
 /**
  * Collects a modal submit interaction.
@@ -25,7 +25,7 @@ export async function modalSubmit(
   try {
     await (interaction as ButtonInteraction).showModal(modal);
   } catch (error) {
-    if (fileName) await useErrorEmbed({ interaction, error, fileName });
+    if (fileName) await errorEmbed(true, { interaction, error, fileName });
     else console.error(error);
   }
 

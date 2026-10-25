@@ -6,8 +6,9 @@ import {
   type ChatInputCommandInteraction,
   type ContainerBuilder,
 } from "discord.js";
-import { isButtonErrory, useErrorEmbed } from "embeds/errorEmbed";
+import { errorEmbed } from "embeds/errorEmbed";
 import { serverEmbed } from "embeds/serverEmbed";
+import { isButtonErrory } from "utils/buttonCheck";
 import { COLLECTOR_DURATION } from "utils/constants";
 import { handlePages } from "utils/pagination";
 import { safeEdit } from "utils/safeThings";
@@ -23,7 +24,7 @@ export async function run(interaction: ChatInputCommandInteraction): Promise<voi
   try {
     guildList = await fetchServerboard(interaction.client);
   } catch (error) {
-    return await useErrorEmbed({
+    return await errorEmbed(true, {
       interaction,
       error,
       title: "Serverboard error.",
@@ -33,7 +34,7 @@ export async function run(interaction: ChatInputCommandInteraction): Promise<voi
 
   const pages = guildList.length;
   if (!pages) {
-    return await useErrorEmbed({
+    return await errorEmbed(false, {
       interaction,
       title: "No public server found.",
       reason:

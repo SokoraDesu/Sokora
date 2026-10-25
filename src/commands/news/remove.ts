@@ -7,7 +7,7 @@ import {
   type InteractionResponse,
   type Message,
 } from "discord.js";
-import { buildErrorEmbed } from "embeds/errorEmbed";
+import { errorEmbed } from "embeds/errorEmbed";
 import { colorize, Sokolors } from "utils/colorize";
 import { safeMember } from "utils/safeThings";
 import { assertInteraction } from "types";
@@ -52,11 +52,7 @@ export async function run(
   });
 
   if (!result.success) {
-    await interaction.reply({
-      components: [(await buildErrorEmbed({ interaction, ...result.out }))[0]],
-      flags: ["IsComponentsV2", "Ephemeral"],
-    });
-    return;
+    return errorEmbed(result.reason === "exception", { interaction, ...result.out });
   }
 
   await interaction.reply({

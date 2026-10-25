@@ -30,13 +30,13 @@
   "devDependencies": {
     "@types/git-diff": "^2.0.7",
     "@eslint/js": "^10.0.1",
-    "@typescript-eslint/eslint-plugin": "^8.71.2",
-    "@typescript-eslint/parser": "^8.71.2",
-    "bun-types": "^1.4.3",
+    "@typescript-eslint/eslint-plugin": "^8.72.0",
+    "@typescript-eslint/parser": "^8.72.0",
+    "bun-types": "^1.4.4",
     "eslint": "^10.13.0",
     "eslint-plugin-unicorn": "^78.0.0",
     "prettier": "^3.9.10",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.71.2"
+    "typescript-eslint": "^8.72.0"
   }
 }

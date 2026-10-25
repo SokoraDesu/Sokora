@@ -80,7 +80,7 @@ import { humanizeSettings, humanizeSettingType } from "utils/humanizeSettings";
 import { handlePages, pagedButtons } from "utils/pagination";
 import { safeCustomId, safeEdit, safeReply } from "utils/safeThings";
 import { setMap } from "utils/setMap";
-import { isButtonErrory } from "./errorEmbed";
+import { isButtonErrory } from "utils/buttonCheck";
 import { modalSubmit } from "utils/modalSubmit";
 
 const OBJECTS_PER_ITR_PAGE = 10;

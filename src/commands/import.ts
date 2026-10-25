@@ -24,12 +24,13 @@ import {
   type Message,
   type Guild,
 } from "discord.js";
-import { isButtonErrory, useErrorEmbed } from "embeds/errorEmbed";
+import { errorEmbed } from "embeds/errorEmbed";
 import { colorize, Sokolors } from "utils/colorize";
 import { COLLECTOR_DURATION, MAX_INPUT_CHARS } from "utils/constants";
 import { modalSubmit } from "utils/modalSubmit";
 import { safeEdit, safeReply } from "utils/safeThings";
 import { assertInteraction } from "types";
+import { isButtonErrory } from "utils/buttonCheck";
 
 export const data = new SlashCommandBuilder()
   .setName("import")
@@ -49,7 +50,7 @@ function safeStringify(object: unknown): string {
 
 async function collapse(error: unknown, interaction: ChatInputCommandInteraction): Promise<void> {
   await interaction.deleteReply();
-  return await useErrorEmbed({ interaction, error, fileName: "import" });
+  return await errorEmbed(true, { interaction, error, fileName: "import" });
 }
 
 async function containerHelper(

@@ -6,7 +6,7 @@ import {
   TextDisplayBuilder,
   type User,
 } from "discord.js";
-import { useErrorEmbed } from "embeds/errorEmbed";
+import { errorEmbed } from "embeds/errorEmbed";
 import { colorize, Sokolors } from "./colorize";
 import { logChannel } from "./logChannel";
 import { safeGuild } from "./safeThings";
@@ -26,7 +26,7 @@ async function unbanUser(
   try {
     target = (await guild.bans.fetch(target_id)).user;
   } catch {
-    return await useErrorEmbed({
+    return await errorEmbed(false, {
       client,
       title: `Failed to unban user ${target_id} in guild ${guild.id}.`,
       reason: "User not found in the guild’s ban list.",
@@ -71,7 +71,7 @@ export function scheduleUnban(
       try {
         await unbanUser(guild, user_id, moderator_id, caseId);
       } catch (error) {
-        await useErrorEmbed({
+        await errorEmbed(true, {
           client,
           error,
           title: `Failed to unban user ${user_id} in guild ${guild.id}.`,
@@ -96,7 +96,7 @@ export async function rescheduleUnbans(client: Client): Promise<void> {
   for (const ban of bans) {
     if (!ban.expires_at) continue;
     if (typeof ban.expires_at != "number" || Number.isNaN(ban.expires_at)) {
-      await useErrorEmbed({
+      await errorEmbed(true, {
         client,
         title: `Invalid expires_at value for ban: ${ban.expires_at}.`,
 
@@ -115,7 +115,7 @@ export async function rescheduleUnbans(client: Client): Promise<void> {
         try {
           await unbanUser(guildBan.guild, ban.user_id, ban.moderator_id, ban.id);
         } catch (error) {
-          await useErrorEmbed({
+          await errorEmbed(true, {
             client,
             error,
             title: `Failed to unban user ${ban.user_id} in guild ${ban.guild_id}.`,

@@ -4,7 +4,7 @@ import {
   TextDisplayBuilder,
   type ChatInputCommandInteraction,
 } from "discord.js";
-import { useErrorEmbed } from "embeds/errorEmbed";
+import { errorEmbed } from "embeds/errorEmbed";
 import { calc } from "features/math/calc";
 import { colorize, Sokolors } from "utils/colorize";
 
@@ -23,7 +23,7 @@ export async function run(interaction: ChatInputCommandInteraction): Promise<voi
   const result = await calc({ expression });
 
   if (!result.success)
-    return await useErrorEmbed({
+    return await errorEmbed(false, {
       interaction,
       ...result.out,
     });

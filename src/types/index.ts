@@ -232,6 +232,7 @@ export interface PrimitiveFeatureSuccess<S> {
 
 export interface PrimitiveFeatureError<F = FeatureError> {
   success: false;
+  reason: "user" | "exception";
   feature: FeatureName;
   out: F;
 }

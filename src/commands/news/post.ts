@@ -9,7 +9,7 @@ import { colorize, Sokolors } from "utils/colorize";
 import { newsModal } from "utils/newsModal";
 import { safeMember } from "utils/safeThings";
 import { assertInteraction } from "types";
-import { buildErrorEmbed, useErrorEmbed } from "embeds/errorEmbed";
+import { errorEmbed } from "embeds/errorEmbed";
 import { post } from "features/news/post";
 
 export const data = new SlashCommandSubcommandBuilder()
@@ -23,7 +23,7 @@ export async function run(interaction: ChatInputCommandInteraction): Promise<voi
   try {
     await interaction.showModal(await newsModal(null, guild));
   } catch (error) {
-    return await useErrorEmbed({ interaction, error, fileName: "post" });
+    return await errorEmbed(true, { interaction, error, fileName: "post" });
   }
 
   interaction.client.once("interactionCreate", async modalInteraction => {
@@ -53,11 +53,7 @@ export async function run(interaction: ChatInputCommandInteraction): Promise<voi
     });
 
     if (!result.success) {
-      await interaction.reply({
-        components: [(await buildErrorEmbed({ interaction, ...result.out }))[0]],
-        flags: ["IsComponentsV2", "Ephemeral"],
-      });
-      return;
+      return errorEmbed(result.reason === "exception", { interaction, ...result.out });
     }
 
     await modalInteraction.reply({

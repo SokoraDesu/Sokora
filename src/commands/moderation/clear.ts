@@ -3,7 +3,7 @@ import {
   SlashCommandSubcommandBuilder,
   type ChatInputCommandInteraction,
 } from "discord.js";
-import { useErrorEmbed } from "embeds/errorEmbed";
+import { errorEmbed } from "embeds/errorEmbed";
 import { buildModEmbed } from "embeds/modEmbed";
 import { clear } from "features/mod/clear";
 import { assertInteraction } from "types";
@@ -49,7 +49,7 @@ export async function run(interaction: ChatInputCommandInteraction): Promise<voi
 
   const targetUser = interaction.options.getUser("user") ?? undefined;
   if (!channel.isTextBased() || channel.isDMBased())
-    return await useErrorEmbed({
+    return await errorEmbed(false, {
       interaction,
       title: "You have provided a channel that can’t have messages to clear.",
     });
@@ -68,7 +68,7 @@ export async function run(interaction: ChatInputCommandInteraction): Promise<voi
       components: [await buildModEmbed(result.out)],
     });
   else {
-    await useErrorEmbed({ interaction, ...result.out });
+    await errorEmbed(false, { interaction, ...result.out });
   }
   return;
 }

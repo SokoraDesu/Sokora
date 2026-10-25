@@ -6,8 +6,9 @@ import {
   type ChatInputCommandInteraction,
   type ContainerBuilder,
 } from "discord.js";
-import { isButtonErrory, useErrorEmbed } from "embeds/errorEmbed";
+import { errorEmbed } from "embeds/errorEmbed";
 import { newsEmbed } from "embeds/newsEmbed";
+import { isButtonErrory } from "utils/buttonCheck";
 import { COLLECTOR_DURATION } from "utils/constants";
 import { handlePages } from "utils/pagination";
 import { safeEdit } from "utils/safeThings";
@@ -23,7 +24,7 @@ export const data = new SlashCommandSubcommandBuilder()
 export async function run(interaction: ChatInputCommandInteraction): Promise<void> {
   const guild = interaction.guild;
   if (!guild)
-    return await useErrorEmbed({
+    return await errorEmbed(false, {
       interaction,
       title: "Error viewing a news post.",
       reason: "This command can only be used in a server.",
@@ -32,7 +33,7 @@ export async function run(interaction: ChatInputCommandInteraction): Promise<voi
   let news = await listAllNews(guild.id);
   let pages = news.length;
   if (!pages)
-    return await useErrorEmbed({
+    return await errorEmbed(false, {
       interaction,
       title: "No news found.",
       reason: "Admins can post news with the **/news post** command.",

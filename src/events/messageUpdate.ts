@@ -12,7 +12,7 @@ import { logChannel } from "utils/logChannel";
 import { fetchMedia } from "utils/media";
 import { mention } from "utils/mention";
 import type { Event } from "types";
-import { useErrorEmbed } from "embeds/errorEmbed";
+import { errorEmbed } from "embeds/errorEmbed";
 
 export default (async function run(oldMessage, newMessage) {
   try {
@@ -38,7 +38,7 @@ export default (async function run(oldMessage, newMessage) {
     try {
       media = await fetchMedia(newMessage);
     } catch (error) {
-      return await useErrorEmbed({
+      return await errorEmbed(true, {
         client,
         error,
         title: "Error fetching meta image.",
@@ -103,7 +103,7 @@ export default (async function run(oldMessage, newMessage) {
 
     return await logChannel(guild, { components: [container], files, flags: "IsComponentsV2" });
   } catch (error) {
-    return await useErrorEmbed({
+    return await errorEmbed(true, {
       client: oldMessage.client,
       error,
       fileName: "messageUpdate",

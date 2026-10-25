@@ -15,7 +15,7 @@ import { safeChannel, safeGuild, safeMember } from "utils/safeThings";
 import { IS_CANARY } from "const";
 import { as } from "types";
 import { mention } from "utils/mention";
-import { useErrorEmbed } from "embeds/errorEmbed";
+import { errorEmbed } from "embeds/errorEmbed";
 
 export interface ServerboardOptions {
   guild: Guild;
@@ -223,7 +223,7 @@ async function deletePublicServer(guildID: string): Promise<void> {
   try {
     await db`DELETE FROM settings WHERE "guildID" = ${guildID} AND "key" = ${"serverboard.shown"} AND "value" = ${"true"};`;
   } catch (error) {
-    return await useErrorEmbed({
+    return await errorEmbed(true, {
       client,
       error,
       fileName: "database/settings",

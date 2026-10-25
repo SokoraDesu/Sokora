@@ -1,5 +1,5 @@
 import { SlashCommandSubcommandBuilder, type ChatInputCommandInteraction } from "discord.js";
-import { useErrorEmbed } from "embeds/errorEmbed";
+import { errorEmbed } from "embeds/errorEmbed";
 import { buildModEmbed } from "embeds/modEmbed";
 import ms from "enhanced-ms";
 import { ban } from "features/mod/ban";
@@ -45,7 +45,7 @@ export async function run(interaction: ChatInputCommandInteraction): Promise<voi
   if (duration) {
     durationMillisec = ms(duration) ?? undefined;
     if (!durationMillisec || durationMillisec <= 0)
-      return await useErrorEmbed({
+      return await errorEmbed(false, {
         interaction,
         title: `You can’t ban ${target.username} temporarily.`,
         reason: "The duration is invalid.",
@@ -56,14 +56,14 @@ export async function run(interaction: ChatInputCommandInteraction): Promise<voi
     // this has to be in seconds, thanks to whoever made the change
     delMessageSeconds = (ms(del) ?? 0) / 1000;
     if (!delMessageSeconds || delMessageSeconds <= 0)
-      return await useErrorEmbed({
+      return await errorEmbed(false, {
         interaction,
         title: `The bot can’t remove messages of ${target.username} while banning.`,
         reason: "The duration is invalid.",
       });
 
     if (delMessageSeconds > SECONDS_7D)
-      return await useErrorEmbed({
+      return await errorEmbed(false, {
         interaction,
         title: `The bot can’t remove messages of ${target.username} while banning.`,
         reason: "The duration is longer than 7 days.",
@@ -88,7 +88,7 @@ export async function run(interaction: ChatInputCommandInteraction): Promise<voi
       components: [await buildModEmbed(result.out)],
     });
   else {
-    await useErrorEmbed({ interaction, ...result.out });
+    await errorEmbed(false, { interaction, ...result.out });
   }
   return;
 }

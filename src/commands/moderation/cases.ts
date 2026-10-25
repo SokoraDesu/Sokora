@@ -17,7 +17,7 @@ import {
   type Message,
   type User,
 } from "discord.js";
-import { isButtonErrory, useErrorEmbed } from "embeds/errorEmbed";
+import { errorEmbed } from "embeds/errorEmbed";
 import ms from "enhanced-ms";
 import { capitalize } from "utils/capitalize";
 import { colorize, Sokolors } from "utils/colorize";
@@ -27,6 +27,7 @@ import { handlePages, pagedButtons } from "utils/pagination";
 import { pluralOrNot } from "utils/pluralOrNot";
 import { randomize } from "utils/randomize";
 import { safeEdit, safeMember, safeUser } from "utils/safeThings";
+import { isButtonErrory } from "utils/buttonCheck";
 
 // TODO: figure out how to MVC this
 // since cases are DB i think i won't make a case feature, but instead move all the filtering done here to cases model
@@ -49,8 +50,7 @@ async function generateContainer(options: {
     UNMUTE: "🔊",
     KICK: "📤",
     BAN: "🔨",
-    // TODO: better emoji for unban
-    UNBAN: "🔓",
+    UNBAN: "🔧",
     CLEAR: "🧹",
     LOCK: "🔒",
     UNLOCK: "🔓",
@@ -166,7 +166,7 @@ export async function run(
   const guild = interaction.guild;
   if (!guild) return;
   if (!(await safeMember(guild, interaction.user.id)).permissions.has("ModerateMembers"))
-    return await useErrorEmbed({
+    return await errorEmbed(false, {
       interaction,
       title: "You can’t execute this command.",
       reason: "You need the **Moderate Members** permission.",

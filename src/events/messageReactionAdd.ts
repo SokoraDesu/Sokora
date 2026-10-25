@@ -7,7 +7,7 @@ import {
   type Message,
   TextDisplayBuilder,
 } from "discord.js";
-import { useErrorEmbed } from "embeds/errorEmbed";
+import { errorEmbed } from "embeds/errorEmbed";
 import { useLogEmbed } from "embeds/logEmbed";
 import { channelCheck, hasChannelPerms } from "utils/channelCheck";
 import { colorize, Sokolors } from "utils/colorize";
@@ -42,7 +42,7 @@ export default (async function run(reaction, user) {
     try {
       await reaction.fetch();
     } catch (error) {
-      return await useErrorEmbed({
+      return await errorEmbed(true, {
         client,
         error,
         title: "Error fetching reaction.",
@@ -55,7 +55,7 @@ export default (async function run(reaction, user) {
     try {
       await safeUser(client, user.id);
     } catch (error) {
-      return await useErrorEmbed({
+      return await errorEmbed(true, {
         client,
         error,
         title: "Error fetching user.",
@@ -67,7 +67,7 @@ export default (async function run(reaction, user) {
   try {
     await reaction.message.fetch();
   } catch (error) {
-    return await useErrorEmbed({
+    return await errorEmbed(true, {
       client,
       error,
       title: "Error fetching message.",
@@ -196,7 +196,7 @@ export default (async function run(reaction, user) {
       new Date(message.createdTimestamp),
     );
   } catch (error) {
-    return await useErrorEmbed({
+    return await errorEmbed(true, {
       client,
       error,
       title: "Error handling starboard message.",

@@ -1,5 +1,5 @@
 import type { ChatInputCommandInteraction } from "discord.js";
-import { useErrorEmbed } from "embeds/errorEmbed";
+import { errorEmbed } from "embeds/errorEmbed";
 import { errorType } from "./errorType";
 
 const errorRateLimit = new Set<string>();
@@ -20,7 +20,7 @@ export async function noErrorsPlease(
     errorRateLimit.add(errorKey);
     setTimeout(() => errorRateLimit.delete(errorKey), 10_000);
     try {
-      await useErrorEmbed({ interaction, error, fileName });
+      await errorEmbed(true, { interaction, error, fileName });
     } catch (error_) {
       console.error("Failed to send error message");
       console.error(error_);

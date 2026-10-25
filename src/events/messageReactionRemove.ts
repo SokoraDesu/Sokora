@@ -13,7 +13,7 @@ import { mention } from "utils/mention";
 import { safeChannel, safeUser } from "utils/safeThings";
 import type { Event } from "types";
 import { useLogEmbed } from "embeds/logEmbed";
-import { useErrorEmbed } from "embeds/errorEmbed";
+import { errorEmbed } from "embeds/errorEmbed";
 
 export default (async function run(reaction, user) {
   const client = user.client;
@@ -38,7 +38,7 @@ export default (async function run(reaction, user) {
     try {
       await reaction.fetch();
     } catch (error) {
-      return await useErrorEmbed({
+      return await errorEmbed(true, {
         client,
         error,
         title: "Error fetching reaction.",
@@ -51,7 +51,7 @@ export default (async function run(reaction, user) {
     try {
       await safeUser(client, user.id);
     } catch (error) {
-      await useErrorEmbed({
+      await errorEmbed(true, {
         client,
         error,
         title: "Error fetching user.",
@@ -63,7 +63,7 @@ export default (async function run(reaction, user) {
   try {
     await reaction.message.fetch();
   } catch (error) {
-    await useErrorEmbed({
+    await errorEmbed(true, {
       client,
       error,
       title: "Error fetching message.",
@@ -162,7 +162,7 @@ export default (async function run(reaction, user) {
       new Date(message.createdTimestamp),
     );
   } catch (error) {
-    await useErrorEmbed({
+    await errorEmbed(true, {
       client,
       error,
       title: "Error handling starboard message.",
