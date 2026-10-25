@@ -25,6 +25,8 @@ import { safeChannel, safeMember } from "./safeThings";
    options: string | MessagePayload | MessageCreateOptions;
  }} dmOptions Options for sending a DM to the user.
  * @returns Log message.
+ * TODO: improve the shape of this a little
+ * TODO 2: review where i'm using this
  */
 export async function logChannel(
   guild: Guild,

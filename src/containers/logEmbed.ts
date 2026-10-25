@@ -11,6 +11,10 @@ import { colorize, Sokolors } from "utils/colorize";
 import { logChannel } from "utils/logChannel";
 import { safeUser } from "utils/safeThings";
 
+// TODO: check if i can MVC/improve/refactor this or not
+// TODO: drop build/use division here
+// TODO: ehhhh review usage of this together with usage of logEmbed
+
 /**
  * A tinier and simpler than `errorEmbed` container that also conveys an error.
  *

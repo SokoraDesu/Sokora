@@ -2,11 +2,9 @@ import {
   ChannelType,
   SlashCommandSubcommandBuilder,
   type ChatInputCommandInteraction,
-  type InteractionResponse,
-  type Message,
 } from "discord.js";
 import { errorEmbed } from "embeds/errorEmbed";
-import { buildModEmbed } from "embeds/modEmbed";
+import { modEmbed } from "embeds/modEmbed";
 import { unlock } from "features/mod/unlock";
 import { assertInteraction } from "types";
 import { safeChannel } from "utils/safeThings";
@@ -29,9 +27,7 @@ export const data = new SlashCommandSubcommandBuilder()
       );
   });
 
-export async function run(
-  interaction: ChatInputCommandInteraction,
-): Promise<Message | InteractionResponse | undefined> {
+export async function run(interaction: ChatInputCommandInteraction): Promise<void> {
   assertInteraction(interaction);
 
   const channelOption = interaction.options.getChannel("channel");
@@ -46,13 +42,7 @@ export async function run(
     moderator: interaction.user,
   });
 
-  if (result.success)
-    await interaction.reply({
-      flags: ["IsComponentsV2", "Ephemeral"],
-      components: [await buildModEmbed(result.out)],
-    });
-  else {
-    await errorEmbed(false, { interaction, ...result.out });
-  }
-  return;
+  return result.success
+    ? await modEmbed({ ...result.out, interaction })
+    : await errorEmbed(result.reason === "exception", { interaction, ...result.out });
 }

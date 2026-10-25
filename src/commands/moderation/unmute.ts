@@ -1,6 +1,6 @@
 import { SlashCommandSubcommandBuilder, type ChatInputCommandInteraction } from "discord.js";
 import { errorEmbed } from "embeds/errorEmbed";
-import { buildModEmbed } from "embeds/modEmbed";
+import { modEmbed } from "embeds/modEmbed";
 import { unmute } from "features/mod/unmute";
 import { assertInteraction } from "types";
 import { shouldModerateSilently } from "utils/silent";
@@ -38,13 +38,7 @@ export async function run(interaction: ChatInputCommandInteraction): Promise<voi
     isSilent,
   });
 
-  if (result.success)
-    await interaction.reply({
-      flags: isSilent ? ["IsComponentsV2", "Ephemeral"] : "IsComponentsV2",
-      components: [await buildModEmbed(result.out)],
-    });
-  else {
-    await errorEmbed(false, { interaction, ...result.out });
-  }
-  return;
+  return result.success
+    ? await modEmbed({ ...result.out, interaction })
+    : await errorEmbed(result.reason === "exception", { interaction, ...result.out });
 }

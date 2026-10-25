@@ -12,7 +12,7 @@
     "setup": "bun i && bun run cli/setup.ts",
     "dev": "bun --watch ./src/bot.ts",
     "start": "bun ./src/index.ts",
-    "ql": "prettier --w .; tsc --noEmit; eslint . --fix --no-warn-ignored"
+    "ql": "bun fmt; bun check; eslint . --fix --no-warn-ignored"
   },
   "dependencies": {
     "@subetedesu/honlvlimport": "npm:@jsr/subetedesu__honlvlimport@^2.0.0",

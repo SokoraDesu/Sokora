@@ -4,7 +4,7 @@ import {
   type ChatInputCommandInteraction,
 } from "discord.js";
 import { errorEmbed } from "embeds/errorEmbed";
-import { buildModEmbed } from "embeds/modEmbed";
+import { modEmbed } from "embeds/modEmbed";
 import { clear } from "features/mod/clear";
 import { assertInteraction } from "types";
 import { safeChannel } from "utils/safeThings";
@@ -62,13 +62,7 @@ export async function run(interaction: ChatInputCommandInteraction): Promise<voi
     moderator: interaction.user,
   });
 
-  if (result.success)
-    await interaction.reply({
-      flags: ["IsComponentsV2", "Ephemeral"],
-      components: [await buildModEmbed(result.out)],
-    });
-  else {
-    await errorEmbed(false, { interaction, ...result.out });
-  }
-  return;
+  return result.success
+    ? await modEmbed({ ...result.out, interaction })
+    : await errorEmbed(result.reason === "exception", { interaction, ...result.out });
 }

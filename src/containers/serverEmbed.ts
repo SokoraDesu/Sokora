@@ -23,6 +23,7 @@ import { buildLogEmbed } from "./logEmbed";
  * Gives you a CONTAINER containing information about the guild.
  * @param options Options of the container.
  * @returns Container that contains the guild info.
+ * TODO: check if i can MVC/improve/refactor this or not
  */
 export async function serverEmbed(options: ServerboardOptions): Promise<ContainerBuilder> {
   const { page, pages, guild, shouldDisableButtons } = options;

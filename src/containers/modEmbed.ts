@@ -10,44 +10,27 @@ import {
   ThumbnailBuilder,
   ContainerBuilder,
   type PermissionFlagsBits,
+  type ChatInputCommandInteraction,
 } from "discord.js";
 import ms from "enhanced-ms";
 import { mention } from "utils/mention";
 import { safeMember } from "utils/safeThings";
 import { colorize, Sokolors } from "utils/colorize";
 import { logChannel } from "utils/logChannel";
-import { type ModActionPayload, type ModActionResult, type ModError, ModErrorCode } from "types";
+import { type ModErrorOptions, type ModEmbedOptions, type ModError, ModErrorCode } from "types";
 import { lacksPerm } from "../commands/permcheck";
-
-type ErrorOptions = Partial<ModActionPayload> & {
-  errorOptions: {
-    allErrors: boolean;
-    botError: boolean;
-    channelError?: boolean;
-    outsideError?: boolean;
-    banCheckError?: boolean;
-  };
-};
-
-type ModEmbedOptions = ModActionResult & {
-  isSilent?: boolean;
-  reason?: string | null;
-  customText?: {
-    logTitle: string;
-    dmTitle?: string;
-  };
-};
 
 /**
  * Checks for errors in moderation commands.
  * @param permission The permission that the command requires. If the bot doesn't have it, it errors.
  * (TODO: might have to check for USER perms besides bot perms)
+ * TODO 2: move this elsewhere, modEmbed file is for modEmbed
  * @param options Error options.
  * @returns `true` if something goes wrong. `false` otherwise.
  */
 export async function getModError(
   desiredPermissionArray: (keyof typeof PermissionFlagsBits)[],
-  options: ErrorOptions,
+  options: ModErrorOptions,
 ): Promise<ModError | undefined> {
   const { guild, moderator, previousCaseId, target, channel, action, errorOptions } = options;
   const { allErrors, botError, channelError, outsideError, banCheckError } = errorOptions;
@@ -184,7 +167,7 @@ function produceGeneralValues(modAction: ModEmbedOptions): string[] {
  * @param reason Reason for the moderation action.
  * @returns A container with action info (or an errorEmbed if something goes wrong).
  */
-export async function buildModEmbed(modAction: ModEmbedOptions): Promise<ContainerBuilder> {
+async function buildModEmbed(modAction: ModEmbedOptions): Promise<ContainerBuilder> {
   const { guild, target, previousCaseId, caseId, action, channel, customText } = modAction;
 
   const generalValues = produceGeneralValues(modAction);
@@ -216,7 +199,7 @@ export async function buildModEmbed(modAction: ModEmbedOptions): Promise<Contain
   return container;
 }
 
-export async function buildDmModEmbed(modAction: ModEmbedOptions): Promise<ContainerBuilder> {
+async function buildDmModEmbed(modAction: ModEmbedOptions): Promise<ContainerBuilder> {
   const { guild, action, customText } = modAction;
   const generalValues = produceGeneralValues(modAction);
 
@@ -231,13 +214,21 @@ export async function buildDmModEmbed(modAction: ModEmbedOptions): Promise<Conta
     .setAccentColor(await colorize({ hue: Sokolors.Red }));
 }
 
-export async function useModEmbed(options: ModEmbedOptions, shouldDm = false): Promise<void> {
+/**
+ * Creates an embed for a moderation action and sends it to the current channel as well as the log channel (if any). Optionally sends the user a DM if needed.
+ *
+ * @param options
+ * @param shouldDm
+ */
+export async function modEmbed(
+  options: ModEmbedOptions & { shouldDm?: boolean; interaction: ChatInputCommandInteraction },
+): Promise<void> {
   const container = await buildModEmbed(options);
 
   await logChannel(
     options.guild,
     { components: [container], flags: "IsComponentsV2" },
-    shouldDm,
+    options.shouldDm,
     options.target
       ? {
           isSilent: options.isSilent ?? false,
@@ -249,4 +240,9 @@ export async function useModEmbed(options: ModEmbedOptions, shouldDm = false): P
         }
       : undefined,
   );
+
+  await options.interaction.reply({
+    flags: options.isSilent ? ["IsComponentsV2", "Ephemeral"] : "IsComponentsV2",
+    components: [container],
+  });
 }

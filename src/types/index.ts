@@ -134,6 +134,7 @@ export interface GHCommit {
 
 /// MODERATION TYPES
 
+// todo: review shape
 export type ModActionPayload = {
   guild: Guild;
   moderator: User;
@@ -155,7 +156,7 @@ export type ModActionPayload = {
     }
 );
 
-export enum ModErrorCode {
+export const enum ModErrorCode {
   CaseDoesNotExist,
   CantModerateSokora,
   ModeratorNotFound,
@@ -204,6 +205,25 @@ export type ModActionResult = ModActionPayload & {
   previousCaseId?: number;
   title: string;
   reason: string | null;
+};
+
+export type ModErrorOptions = Partial<ModActionPayload> & {
+  errorOptions: {
+    allErrors: boolean;
+    botError: boolean;
+    channelError?: boolean;
+    outsideError?: boolean;
+    banCheckError?: boolean;
+  };
+};
+
+export type ModEmbedOptions = ModActionResult & {
+  isSilent?: boolean;
+  reason?: string | null;
+  customText?: {
+    logTitle: string;
+    dmTitle?: string;
+  };
 };
 
 /// FEATURE TYPES
