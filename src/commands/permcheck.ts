@@ -164,7 +164,7 @@ export async function run(interaction: ChatInputCommandInteraction): Promise<voi
       channelComponents.push(component);
       errorCount += sum;
     }
-  } else {
+  } else
     for (const tuple of [
       [
         CHANNEL_PERMS,
@@ -213,7 +213,6 @@ export async function run(interaction: ChatInputCommandInteraction): Promise<voi
       genericComponents.push(component);
       errorCount += sum;
     }
-  }
 
   const totalIssues = errorCount + warningCount;
   if (totalIssues == 0)

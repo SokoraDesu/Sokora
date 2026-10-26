@@ -35,9 +35,7 @@ function modErrorToFeatureError(value: ModActionResult): FeatureError {
       `modErrorToFeatureError called with no error for tgt ${value?.target?.id} and action ${value.action}`,
     );
 
-  if (Error.isError(error)) {
-    return exceptionToFeatureError(error);
-  }
+  if (Error.isError(error)) return exceptionToFeatureError(error);
 
   if (error.code == ModErrorCode.CaseDoesNotExist)
     return {
@@ -60,26 +58,23 @@ function modErrorToFeatureError(value: ModActionResult): FeatureError {
       )} ${pluralOrNot("permission", error.permissions.length)}. If you want to run this command, you might want to give the bot this permission.`,
     };
 
-  if (error.code == ModErrorCode.ChannelDoesNotExist) {
+  if (error.code == ModErrorCode.ChannelDoesNotExist)
     return {
       title: "The bot can’t execute this command.",
       reason: "The provided channel does not exist!",
     };
-  }
 
-  if (error.code == ModErrorCode.TargetNotFound) {
+  if (error.code == ModErrorCode.TargetNotFound)
     return {
       title: "You can’t ban this user.",
       reason: "This user doesn’t exist.",
     };
-  }
 
-  if (error.code == ModErrorCode.AlreadyBanned) {
+  if (error.code == ModErrorCode.AlreadyBanned)
     return {
       title: "You can’t ban this user.",
       reason: "This user is already banned.",
     };
-  }
 
   if (error.code == ModErrorCode.AlreadyUnbanned)
     return {
@@ -93,13 +88,11 @@ function modErrorToFeatureError(value: ModActionResult): FeatureError {
       reason: "This user isn’t in this server.",
     };
 
-  if (error.code == ModErrorCode.CantModerateSelf) {
+  if (error.code == ModErrorCode.CantModerateSelf)
     return { title: `You can’t ${action.toLowerCase()} yourself.` };
-  }
 
-  if (error.code == ModErrorCode.CantModerateSokora) {
+  if (error.code == ModErrorCode.CantModerateSokora)
     return { title: `You can’t ${action.toLowerCase()} Sokora.` };
-  }
 
   if (error.code == ModErrorCode.NotApiModeratable)
     return {

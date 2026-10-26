@@ -403,7 +403,7 @@ export async function requestInterkora(
       [
         `**Requested at**: ${mention(message.createdTimestamp, "DEFAULT_TIMESTAMP")}`,
         `**Sent to**: ${mention(message.channelId, "CHANNEL")} (thereby guild is **${message.guild.name}**)`,
-        `**Requester is a**: ${message.author.bot ? "bot" : message.webhookId ? "webhook" : "human"}`,
+        `**Requester is a**: ${message.author.bot ? "bot" : (message.webhookId ? "webhook" : "human")}`,
         reason == "" ? "Reason wasn’t even provided." : `**Reason is**: ${reason}`,
       ].join("\n"),
     ),
@@ -540,9 +540,9 @@ async function runSetter<K extends keyof TS>(o: ParsedSetter<K>): Promise<string
 
   return o.action.order === "drop"
     ? `DROP  "${o.action.key}" -- (*this resets the whole table!*)`
-    : o.action.order === "reset"
+    : (o.action.order === "reset"
       ? `RESET "${o.action.key}.${o.action.subKey}"`
-      : `SET   "${o.action.key}.${o.action.subKey}" TO (\n${Bun.YAML.stringify(o.action.value)}\n)`;
+      : `SET   "${o.action.key}.${o.action.subKey}" TO (\n${Bun.YAML.stringify(o.action.value)}\n)`);
 }
 
 export interface ResolvedEntity {
@@ -579,9 +579,9 @@ export async function resolveEntity(
   const effectivePermissions =
     effectivePermissionGrant === "o" || effectivePermissionGrant === "a"
       ? "rwx"
-      : effectivePermissionGrant === "u"
+      : (effectivePermissionGrant === "u"
         ? "/"
-        : await getEntityPermissions(guild.id, id);
+        : await getEntityPermissions(guild.id, id));
 
   return {
     avatarURL,

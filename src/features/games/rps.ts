@@ -82,12 +82,11 @@ export async function rps(
       const cID = buttonInteraction.customId;
       if (cID == "please") return;
 
-      if (buttonInteraction.user.id != opponent.id && buttonInteraction.user.id != player.id) {
+      if (buttonInteraction.user.id != opponent.id && buttonInteraction.user.id != player.id)
         return await errorEmbed(false, {
           interaction: buttonInteraction,
           title: "You aren’t participating.",
         });
-      }
 
       playerChoices.set(buttonInteraction.user.id, cID.split("_", 2)[1] as RPSChoice);
       if (opponent.bot) halt("game-complete");
@@ -146,9 +145,9 @@ export async function rps(
             hue:
               winner == 0
                 ? Sokolors.Blue
-                : winner == 2 && opponent.bot
+                : (winner == 2 && opponent.bot
                   ? Sokolors.Red
-                  : Sokolors.Green,
+                  : Sokolors.Green),
           }),
         );
 

@@ -629,11 +629,11 @@ export async function getSetting<K extends keyof TS, S extends SettingKeyFor<K>>
   if (Array.isArray(value)) {
     const result = value.map(valuelet => switchTypes(valuelet, set)) as SettingReturnType<K, S>;
     return set.iterable && set.type === "OBJECT"
-      ? id
+      ? (id
         ? ((result as { $: string }[]).find(
             resultling => resultling.$ == id,
           ) as ParameterReturnType<K, S, SettingReturnType<K, S>>)
-        : ((result as unknown[]).toSorted(set.sorting) as SettingReturnType<K, S>)
+        : ((result as unknown[]).toSorted(set.sorting) as SettingReturnType<K, S>))
       : result;
   }
 

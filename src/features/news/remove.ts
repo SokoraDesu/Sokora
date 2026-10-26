@@ -18,17 +18,14 @@ async function method(
   const [ok, fail, options] = parameters;
   const { id, userMember, guild, fallbackChannel } = options;
 
-  if (!userMember.permissions.has("ManageGuild")) {
+  if (!userMember.permissions.has("ManageGuild"))
     return fail({
       title: "You can’t execute this command.",
       reason: "You need the **Manage Server** permission.",
     });
-  }
 
   const news = await getNews(guild.id, id);
-  if (!news) {
-    return fail({ title: "The specified news post doesn’t exist." });
-  }
+  if (!news) return fail({ title: "The specified news post doesn’t exist." });
 
   const newsChannel = (await safeChannel(
     guild,

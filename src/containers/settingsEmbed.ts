@@ -249,21 +249,21 @@ function rowGenerator(
     .setCustomId(cID)
     .setLabel(
       isNormal
-        ? settingObject.type === "OBJECT" || settingObject.iterable
+        ? (settingObject.type === "OBJECT" || settingObject.iterable
           ? "Open"
-          : "Edit"
-        : constructMode.resetting.has(cID)
+          : "Edit")
+        : (constructMode.resetting.has(cID)
           ? "Unselect"
-          : "Select",
+          : "Select"),
     )
     .setDisabled(
       isNormal || constructMode.resetting.has(cID)
         ? false
-        : setting == null ||
+        : (setting == null ||
             (setting as unknown[]).length === 0 ||
             (settingObject.val && settingObject.val == setting)
           ? true
-          : false,
+          : false),
     )
     .setStyle(
       isNormal || constructMode.resetting.has(cID) ? ButtonStyle.Secondary : ButtonStyle.Danger,
@@ -436,9 +436,9 @@ function baseObjectViewSuffixGenerator<K extends keyof TS, S extends SettingKeyF
         )
         .setLabel(
           currentState.views == "create_or_save" || currentState.views == "itr_obj_child"
-            ? isDisabled
+            ? (isDisabled
               ? "(Finish editing to save)"
-              : "Save"
+              : "Save")
             : "Create",
         )
         .setStyle(ButtonStyle.Success)
@@ -451,16 +451,16 @@ function baseObjectViewSuffixGenerator<K extends keyof TS, S extends SettingKeyF
           .setCustomId(
             currentState.views == "create_or_save"
               ? EXEMPT_CIDs.OBJECT_GO_BACK
-              : currentState.views == "itr_obj_child"
+              : (currentState.views == "itr_obj_child"
                 ? EXEMPT_CIDs.OBJECT_DELETE_CHILD
-                : EXEMPT_CIDs.OBJECT_CLEAR,
+                : EXEMPT_CIDs.OBJECT_CLEAR),
           )
           .setLabel(
             currentState.views == "create_or_save"
               ? "Cancel"
-              : currentState.views == "itr_obj_child"
+              : (currentState.views == "itr_obj_child"
                 ? "Delete"
-                : "Clear",
+                : "Clear"),
           )
           .setStyle(ButtonStyle.Danger),
       );
@@ -476,7 +476,7 @@ function baseObjectViewSuffixGenerator<K extends keyof TS, S extends SettingKeyF
   lbl.addActionRowComponents(actionRow);
   lbl.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(
-      `-# You’re ${currentState.views === "default" ? "touching" : currentState.views === "create_or_save" ? "creating a new object within" : "altering an object within"} **${currentState.key} > ${currentState.setting}** configuration, which is a${ctl.def.iterable ? "n iterable" : " static"} object`,
+      `-# You’re ${currentState.views === "default" ? "touching" : (currentState.views === "create_or_save" ? "creating a new object within" : "altering an object within")} **${currentState.key} > ${currentState.setting}** configuration, which is a${ctl.def.iterable ? "n iterable" : " static"} object`,
     ),
   );
 
@@ -769,7 +769,7 @@ async function toggleHandler<K extends keyof TS, S extends SettingKeyFor<K>>(
                 ? `**${dotCheck({ string: methods ? setting.emoji : "✅", twoSides: true, includeString: true })}${humanizeSettings(cID)}** got changed`
                 : `**${dotCheck({ string: methods ? setting.emoji : "❌", twoSides: true, includeString: true })}${humanizeSettings(cID)}** couldn’t be changed!`,
               isNewValueValid
-                ? `The ${modalValue.length < 50 ? "value" : "**value**"} has been set ${modalValue.length >= 500 ? "successfully." : modalValue.length >= 50 ? `to ${newValue}` : `to **${newValue}**`}`
+                ? `The ${modalValue.length < 50 ? "value" : "**value**"} has been set ${modalValue.length >= 500 ? "successfully." : (modalValue.length >= 50 ? `to ${newValue}` : `to **${newValue}**`)}`
                 : `Given data is invalid. Ensure it’s of the valid type (${humanizeSettingType(setting)}) and try again.${modalValue.length >= 500 ? "" : `\nData entered was:\n${codeBlock(modalValue)}`}`,
               isNewValueValid ? Sokolors.Blue : Sokolors.Red,
             ),

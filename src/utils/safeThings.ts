@@ -213,9 +213,9 @@ export async function safeMessage(
   if (shouldAssert) assertMessage(message);
   message.content = (
     message.content === "" && message.components.length > 0
-      ? message.components[0].type === ComponentType.TextDisplay
+      ? (message.components[0].type === ComponentType.TextDisplay
         ? message.components[0].content
-        : ""
+        : "")
       : message.content
   ).trim();
   return as<SafeMessage>(message);

@@ -33,14 +33,13 @@ export async function run(interaction: ChatInputCommandInteraction): Promise<voi
   }
 
   const pages = guildList.length;
-  if (!pages) {
+  if (!pages)
     return await errorEmbed(false, {
       interaction,
       title: "No public server found.",
       reason:
         "By some magical miracle, all the servers using Sokora turned off their visibility. Use /settings serverboard `shown: True` to make your server publicly visible.",
     });
-  }
 
   let page = Math.max(0, Math.min(interaction.options.getNumber("page") ?? 0, pages) - 1);
   async function getContainer(shouldDisableButtons?: boolean): Promise<ContainerBuilder> {

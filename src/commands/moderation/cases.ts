@@ -98,7 +98,7 @@ async function generateContainer(options: {
   const container = new ContainerBuilder()
     .addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
-        `## ${id ? capitalize(displayedCases[0].type?.toLowerCase()) : type ? `${capitalize(type.toLowerCase())} cases` : pluralOrNot("Case", cases.length)} ${id ? `#${id}` : user ? `of ${user.username}` : "in the server"}`,
+        `## ${id ? capitalize(displayedCases[0].type?.toLowerCase()) : (type ? `${capitalize(type.toLowerCase())} cases` : pluralOrNot("Case", cases.length))} ${id ? `#${id}` : (user ? `of ${user.username}` : "in the server")}`,
       ),
     )
     .setAccentColor(await colorize({ hue: Sokolors.Blue }));

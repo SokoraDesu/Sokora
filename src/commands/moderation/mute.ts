@@ -36,13 +36,12 @@ export async function run(interaction: ChatInputCommandInteraction): Promise<voi
 
   const durationMillisec = ms(duration);
 
-  if (!durationMillisec) {
+  if (!durationMillisec)
     return await errorEmbed(false, {
       interaction,
       title: `You can’t mute ${target.username}.`,
       reason: "The duration is invalid.",
     });
-  }
 
   const isSilent = await shouldModerateSilently(interaction);
 

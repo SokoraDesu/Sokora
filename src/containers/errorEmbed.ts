@@ -60,11 +60,10 @@ function addContent(title?: string, reason?: string): string {
   const content = [];
   if (title) content.push(`**${title}**`);
   if (reason) content.push(reason);
-  if (!title && !reason) {
+  if (!title && !reason)
     content.push(
       "The bot has experienced an internal error.\nPretty please join the support server if you wish to report the issue! https://discord.gg/c6C25P4BuY",
     );
-  }
 
   return content.join("\n");
 }
@@ -89,9 +88,9 @@ function showErrors(
         [
           "**📜 • Error stack**",
           error.stack
-            ? error.stack.length <= 2048
+            ? (error.stack.length <= 2048
               ? codeBlock(error.stack)
-              : "The error stacktrace is an attachment below due to it being too large."
+              : "The error stacktrace is an attachment below due to it being too large.")
             : "No error stacktrace.",
         ].join("\n"),
       ),
@@ -103,12 +102,12 @@ function showErrors(
           "**🛡️ • Pinpoint this issue**",
           interaction
             ? `**User is** <@${interaction.user.id}> (${interaction.user.id})\n**Guild is** ${interaction.guild?.name} (${interaction.guild?.id})\nError sent on **${mention(interaction.createdTimestamp, "DETAILED_TIMESTAMP")}**`
-            : extras && Object.keys(extras).length > 0
+            : (extras && Object.keys(extras).length > 0
               ? Object.entries(extras)
                   .map(([extra, value]) => (value ? `\`${extra}\`: ${value}` : null))
                   .filter(extra => extra != null)
                   .join("\n")
-              : "So, funnily enough, this errorEmbed relies on `client`, not `interaction`, so I cannot tell you who caused this. Good luck.",
+              : "So, funnily enough, this errorEmbed relies on `client`, not `interaction`, so I cannot tell you who caused this. Good luck."),
         ].join("\n"),
       ),
     );

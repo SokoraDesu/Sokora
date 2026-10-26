@@ -59,9 +59,9 @@ export default (async function run(message) {
         ),
         new TextDisplayBuilder().setContent(
           content.length <= 2048
-            ? content && content.length > 0
+            ? (content && content.length > 0
               ? content
-              : "*Empty message*"
+              : "*Empty message*")
             : "*The deleted message is an attachment below due to it being too large.*",
         ),
       )

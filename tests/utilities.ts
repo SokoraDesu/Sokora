@@ -82,9 +82,8 @@ export function setup(): Promise<void> {
         console.log("Slava Ukraini!");
         console.log(`Logged in as ${client.user?.tag}`);
 
-        if (!DEV_GUILD_ID || !TESTER_USER_A || !TESTER_USER_B) {
+        if (!DEV_GUILD_ID || !TESTER_USER_A || !TESTER_USER_B)
           throw new Error("Required environment variables are not set");
-        }
 
         state.guild = await client.guilds.fetch(DEV_GUILD_ID);
         state.moderator = await client.users.fetch(TESTER_USER_A);

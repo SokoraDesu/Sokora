@@ -23,19 +23,17 @@ async function method(
 ): Promise<FeatureOutput<{ ok: true }>> {
   const [ok, fail, options] = parameters;
   const { id, guild, userMember, fallbackChannel, rawTitle, rawBody } = options;
-  if (!userMember.permissions.has("ManageGuild")) {
+  if (!userMember.permissions.has("ManageGuild"))
     return fail({
       title: "You can’t execute this command.",
       reason: "You need the **Manage Server** permission.",
     });
-  }
 
   const news = await getNews(guild.id, id);
-  if (!news) {
+  if (!news)
     return fail({
       title: "The specified news post doesn’t exist.",
     });
-  }
 
   const title = await replaceVariables(rawTitle, guild, userMember.user);
 

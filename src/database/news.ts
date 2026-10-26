@@ -21,6 +21,9 @@ type Def = Satisfies<
   }
 >;
 
+// TODO: better figure out typing for database stuff
+export type NewsPost = TypeOfDefinition<Def>;
+
 const sendQuery = async (
   guild_id: string,
   title: string,

@@ -137,10 +137,6 @@ export default defineConfig(
       "unicorn/no-await-in-promise-methods": "warn",
       // warn instead of erroring because some features are forced into being async
       "@typescript-eslint/require-await": "warn",
-      // TODO: Temporal, disable when done with MVC-ing
-      "unicorn/no-nested-ternary": "off",
-      "@typescript-eslint/no-non-null-assertion": "off",
-      curly: "off",
     },
   },
 );

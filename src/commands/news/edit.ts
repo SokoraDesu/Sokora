@@ -31,9 +31,7 @@ export async function run(interaction: ChatInputCommandInteraction): Promise<voi
   const guild = interaction.guild;
   // TODO: duplicate within the feature?
   const news = await getNews(guild.id, id);
-  if (!news) {
-    return await errorEmbed(false, { title: "The specified news post doesn’t exist." });
-  }
+  if (!news) return await errorEmbed(false, { title: "The specified news post doesn’t exist." });
 
   try {
     await interaction.showModal(await newsModal(news));
@@ -64,9 +62,7 @@ export async function run(interaction: ChatInputCommandInteraction): Promise<voi
       fallbackChannel: interaction.channel,
     });
 
-    if (!result.success) {
-      return await errorEmbed(false, { interaction, ...result.out });
-    }
+    if (!result.success) return await errorEmbed(false, { interaction, ...result.out });
 
     const editedContainer = new ContainerBuilder()
       .addTextDisplayComponents(new TextDisplayBuilder().setContent("## News post edited."))

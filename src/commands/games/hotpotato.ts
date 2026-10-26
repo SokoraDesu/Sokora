@@ -69,12 +69,12 @@ async function burnThePotato(
           ),
           new TextDisplayBuilder().setContent(
             user.id === holdingUser.id
-              ? isSuccess
+              ? (isSuccess
                 ? `Poor human being… **${mention(holdingUser.id, "USER")} got muted for ${muteDurationMs}**, because their mouth burnt.\n\nBetter luck next time.`
-                : `Worst part is ${mention(holdingUser.id, "USER")} isn’t actually getting any punishment for loosing because Sokora can’t mute them. Is this even fair?`
-              : isSuccess
+                : `Worst part is ${mention(holdingUser.id, "USER")} isn’t actually getting any punishment for loosing because Sokora can’t mute them. Is this even fair?`)
+              : (isSuccess
                 ? `Poor human being… **${mention(holdingUser.id, "USER")} got muted for ${muteDurationMs}**, because their mouth burnt.\n\nHow about y’all wait before taking the potato next time?`
-                : `Well, bad idea unless you’re more powerful than Sokora, which ${mention(holdingUser.id, "USER")} somehow is. They didn’t burn, actually, but at least they lost and we all know it. Laugh at them or something.`,
+                : `Well, bad idea unless you’re more powerful than Sokora, which ${mention(holdingUser.id, "USER")} somehow is. They didn’t burn, actually, but at least they lost and we all know it. Laugh at them or something.`),
           ),
         )
         .setAccentColor(

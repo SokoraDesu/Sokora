@@ -136,9 +136,7 @@ export async function getServerboardEntry(
                 .url;
         else inviteChannel = 1;
       } else inviteChannel = 1;
-    } else {
-      inviteChannel = 1;
-    }
+    } else inviteChannel = 1;
   }
 
   return {
@@ -158,9 +156,9 @@ export async function getServerboardEntry(
     nsfwLevel:
       guild.nsfwLevel == GuildNSFWLevel.Explicit
         ? "Explicit"
-        : guild.nsfwLevel == GuildNSFWLevel.Safe
+        : (guild.nsfwLevel == GuildNSFWLevel.Safe
           ? "Safe"
-          : "Age restricted",
+          : "Age restricted"),
     has2fa: guild.mfaLevel == GuildMFALevel.Elevated,
     memberCount: guild.memberCount,
     textChannelCount: channelSizes.text,

@@ -206,13 +206,11 @@ function loop(
           const mention = unmention(actualSubKey);
           if (!Number.isNaN(numeric)) specifier = numeric;
           else if (mention != null)
-            if (mention.type === "USER" || mention.type === "TIMESTAMP") {
-              specifier = mention;
-            } else {
+            if (mention.type === "USER" || mention.type === "TIMESTAMP") specifier = mention;
+            else
               throw new InterkoraError(
                 `Specifier **${actualSubKey}** uses a mention that is of type ${mention.type} and not USER or TIMESTAMP, the ones allowed.`,
               );
-            }
 
           if (actualOperand)
             if (typeof specifier === "number" || mention?.type === "USER") {
@@ -329,9 +327,9 @@ function loop(
     value =
       preValue == "\\"
         ? parseSokoraML(restOfLines)
-        : preValue == "\\\\"
+        : (preValue == "\\\\"
           ? JSON.parse(restOfLines[0])
-          : switchInnerTypes(preValue);
+          : switchInnerTypes(preValue));
 
     if (!isSettingValueValid(value, { key, setting: subKey, def }))
       throw new InterkoraError(

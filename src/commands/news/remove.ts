@@ -46,9 +46,8 @@ export async function run(
     fallbackChannel: interaction.channel,
   });
 
-  if (!result.success) {
+  if (!result.success)
     return errorEmbed(result.reason === "exception", { interaction, ...result.out });
-  }
 
   await interaction.reply({
     components: [

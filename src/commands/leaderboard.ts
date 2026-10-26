@@ -30,13 +30,12 @@ export async function run(interaction: ChatInputCommandInteraction): Promise<voi
     });
 
   const leaderboardData = await getGuildLeaderboard(guildID);
-  if (leaderboardData.length === 0) {
+  if (leaderboardData.length === 0)
     return await errorEmbed(false, {
       interaction,
       title: "No data found.",
       reason: "There is no leveling data for this server yet.",
     });
-  }
 
   leaderboardData.sort((a, b) => (b.level == a.level ? b.xp - a.xp : b.level - a.level));
 

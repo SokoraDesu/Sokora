@@ -56,86 +56,75 @@ export async function getModError(
   if (allErrors) desiredPermissions.add("ModerateMembers");
   const clientLacks = lacksPerm(client.permissions, desiredPermissions);
 
-  if (botError && clientLacks.length > 0) {
+  if (botError && clientLacks.length > 0)
     return { code: ModErrorCode.MissingPermission, permissions: clientLacks };
-  }
 
   if (channelError) {
-    if (!channel) {
+    if (!channel)
       return {
         code: ModErrorCode.ChannelDoesNotExist,
       };
-    }
 
     if (channel.isDMBased()) return;
-    if (!channel.permissionsFor(client).has("ViewChannel")) {
+    if (!channel.permissionsFor(client).has("ViewChannel"))
       return {
         code: ModErrorCode.MissingPermission,
         permissions: ["ViewChannel"],
       };
-    }
   }
 
   const memberLacks = lacksPerm(member.permissions, desiredPermissions);
 
-  if (memberLacks.length > 0) {
+  if (memberLacks.length > 0)
     return {
       code: ModErrorCode.MissingPermission,
       permissions: memberLacks,
     };
-  }
 
   if (banCheckError) {
-    if (!target) {
+    if (!target)
       return {
         code: ModErrorCode.TargetNotFound,
       };
-    }
 
     const isBanned = (await guild.bans.fetch()).has(target.id);
-    if (isBanned && action == "BAN") {
+    if (isBanned && action == "BAN")
       return {
         code: ModErrorCode.AlreadyBanned,
       };
-    }
 
-    if (!isBanned && action == "UNBAN") {
+    if (!isBanned && action == "UNBAN")
       return {
         code: ModErrorCode.AlreadyUnbanned,
       };
-    }
   }
 
   if (!allErrors || !target || !action) return;
 
-  if (outsideError && !target) {
+  if (outsideError && !target)
     // target SHOULD exist in server
     return {
       code: ModErrorCode.TargetOutside,
     };
-  }
 
   if (!target) return;
 
-  if (target.id == moderator.id) {
+  if (target.id == moderator.id)
     return {
       code: ModErrorCode.CantModerateSelf,
     };
-  }
 
-  if (target.id == client.user.id) {
+  if (target.id == client.user.id)
     return {
       code: ModErrorCode.CantModerateSokora,
     };
-  }
 
   const targetMember = await safeMember(guild, target.id);
 
-  if (!targetMember.moderatable) {
+  if (!targetMember.moderatable)
     return {
       code: ModErrorCode.NotApiModeratable,
     };
-  }
 
   const highestModPos = member.roles.highest.position;
   const highestTargetPos = targetMember.roles.highest.position;
@@ -175,9 +164,7 @@ async function buildModEmbed(modAction: ModEmbedOptions): Promise<ContainerBuild
   const avatar = target ? target.displayAvatarURL() : serverAvatar;
   let title = `${previousCaseId ? "Edited a " : ""}${previousCaseId ? action?.toLowerCase() : action}${previousCaseId ? " on" : ""}${target ? mention(target.id, "USER") : ""}`;
 
-  if (previousCaseId ?? caseId) {
-    title += `  •  #${previousCaseId ?? caseId}`;
-  }
+  if (previousCaseId ?? caseId) title += `  •  #${previousCaseId ?? caseId}`;
 
   const textDisplayComponents = [
     new TextDisplayBuilder().setContent(`**${customText?.logTitle ?? title}**`),

@@ -52,9 +52,8 @@ export async function run(interaction: ChatInputCommandInteraction): Promise<voi
       category,
     });
 
-    if (!result.success) {
+    if (!result.success)
       return errorEmbed(result.reason === "exception", { interaction, ...result.out });
-    }
 
     await modalInteraction.reply({
       components: [

@@ -1,10 +1,11 @@
-import { listAllNews, listAllNewsInCategory } from "database/news";
+import { listAllNews, listAllNewsInCategory, type NewsPost } from "database/news";
 import {
   SlashCommandSubcommandBuilder,
   type StringSelectMenuInteraction,
   type ButtonInteraction,
   type ChatInputCommandInteraction,
   type ContainerBuilder,
+  type Guild,
 } from "discord.js";
 import { errorEmbed } from "embeds/errorEmbed";
 import { newsEmbed } from "embeds/newsEmbed";
@@ -20,6 +21,23 @@ export const data = new SlashCommandSubcommandBuilder()
   .addNumberOption(number =>
     number.setName("page").setDescription("The news post that you want to see."),
   );
+
+async function getContainer(
+  guild: Guild,
+  post: NewsPost,
+  pages: number,
+  page: number,
+  isDisabled: boolean,
+): Promise<ContainerBuilder> {
+  const { author_id, title, body, id, image_url } = post;
+
+  return await newsEmbed(guild, { title, body, author_id, id, image_url }, false, {
+    pages,
+    page,
+    isDisabled,
+    willShowCategories: true,
+  });
+}
 
 export async function run(interaction: ChatInputCommandInteraction): Promise<void> {
   const guild = interaction.guild;
@@ -41,19 +59,8 @@ export async function run(interaction: ChatInputCommandInteraction): Promise<voi
 
   let page = Math.max(0, Math.min(interaction.options.getNumber("page") ?? 0, pages) - 1);
 
-  async function getContainer(isDisabled: boolean): Promise<ContainerBuilder> {
-    const { author_id, title, body, id, image_url } = news[page];
-
-    return await newsEmbed(guild!, { title, body, author_id, id, image_url }, false, {
-      pages,
-      page,
-      isDisabled,
-      willShowCategories: true,
-    });
-  }
-
   const reply = await interaction.reply({
-    components: [await getContainer(false)],
+    components: [await getContainer(guild, news[page], pages, page, false)],
     flags: "IsComponentsV2",
   });
 
@@ -85,14 +92,16 @@ export async function run(interaction: ChatInputCommandInteraction): Promise<voi
       });
       await safeEdit({
         interaction: buttonInteraction,
-        editOptions: { components: [await getContainer(false)] },
+        editOptions: { components: [await getContainer(guild, news[page], pages, page, false)] },
       });
     },
   );
 
   collector.on("end", async () => {
     try {
-      await interaction.editReply({ components: [await getContainer(true)] });
+      await interaction.editReply({
+        components: [await getContainer(guild, news[page], pages, page, true)],
+      });
     } catch (error) {
       if (Error.isError(error) && error.message.toLowerCase().includes("unknown message")) return;
       throw error;
