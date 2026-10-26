@@ -2,8 +2,17 @@ import type { Client } from "discord.js";
 
 function error(config: {
   request: Request;
+  /** machine parseable error code
+   * TODO: statically type
+   */
   title: string;
+  /**
+   * HTTP status code
+   */
   status: number;
+  /**
+   * human-readable short explanation of what's wrong
+   */
   detail: string;
 }): Response {
   return Response.json(
@@ -11,7 +20,7 @@ function error(config: {
       type: `https://sokora.org/docs/interkora-http/#error-${config.title}`,
       title: config.title,
       status: config.status,
-      detail: 'Order "999" does not exist for customer "42".',
+      detail: config.detail,
       instance: config.request.url,
     },
     {
@@ -46,7 +55,7 @@ export const server = (client: Client): ReturnType<typeof Bun.serve> => {
       },
     },
 
-    fetch(request) {
+    fetch: request => {
       return error({
         request,
         status: 404,

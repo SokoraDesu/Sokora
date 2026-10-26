@@ -115,9 +115,11 @@ if (import.meta.main) {
     const user = client.user;
     // second to last log should be date of the second to last shutdown
     const lastNLogLines = await tailLog();
-    const lastShutdown = new Date(Number(lastNLogLines[0].split("\t", 1)[0]) - MILLISEC_30M);
+    const lastShutdown = Temporal.Instant.fromEpochMilliseconds(
+      Number(lastNLogLines[0].split("\t", 1)[0]) - MILLISEC_30M,
+    );
     const response = await fetch(
-      `https://api.github.com/repos/SokoraDesu/Sokora/commits?since=${lastShutdown.toISOString()}&until=${new Date().toISOString()}`,
+      `https://api.github.com/repos/SokoraDesu/Sokora/commits?since=${lastShutdown.toString()}&until=${Temporal.Now.instant().toString()}`,
       {
         headers: {
           Accept: "application/vnd.github+json",

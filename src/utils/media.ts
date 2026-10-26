@@ -16,7 +16,7 @@ import { ENABLE_MEDIA_FETCHING } from "const";
  * WITH GREAT POWER COMES GREAT RESPONSIBILITY (or smth).
  *
  * @param message Message to fetch media from.
- * @returns Message's media: an image, video (or a gif) or a thumbnail
+ * @returns Message's media: an image, video (or a GIF) or a thumbnail
  */
 export async function fetchMedia(
   message: Message,

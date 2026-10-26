@@ -21,7 +21,7 @@
  * but yes to the point where this comment is unneed
  * like imagine us saying on our website we’re a "BEAUTIFULLY CRAFTED" bot
  * then open the source code and see a 17-line warning about how bad the code is
- * (ofc i’ll remove this comment from git history before opening the PR, in case you’re reading this for whatev reason)
+ * (ofc i’ll remove this comment from Git history before opening the PR, in case you’re reading this for whatev reason)
  */
 
 import {

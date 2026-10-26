@@ -32,7 +32,7 @@ function modErrorToFeatureError(value: ModActionResult): FeatureError {
 
   if (!error)
     throw new Error(
-      `modErrorToFeatureError called with no error for tgt ${value?.target?.id} and action ${value.action}`,
+      `modErrorToFeatureError called with no error for tgt ${target?.id} and action ${action}`,
     );
 
   if (Error.isError(error)) return exceptionToFeatureError(error);

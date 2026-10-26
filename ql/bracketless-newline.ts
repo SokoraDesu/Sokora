@@ -9,7 +9,7 @@ export const bracketlessNewline: Rule.RuleModule = {
       missingNewline: "Add a newline after a bracketless if statement.",
     },
   },
-  create(context) {
+  create: context => {
     return {
       // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
       IfStatement(node) {

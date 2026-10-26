@@ -38,7 +38,7 @@ export interface Mention {
 }
 
 /**
- * Force typescript to recognize a variable as a certain type *in place*. Useful for polymorphic const variables, for example.
+ * Force TypeScript to recognize a variable as a certain type *in place*. Useful for polymorphic const variables, for example.
  * @param _v The variable you want to force the type of
  * @returns The variable, now of the type specified in `<T>`
  */
