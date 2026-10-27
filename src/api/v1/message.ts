@@ -366,22 +366,21 @@ export async function buildPayloadFromMessage(
     ownerId: message.guild.ownerId,
   });
 
-  // TODO: do this
-  const effectiveStack = ["@order"];
+  const effectiveStack = ["@msg#" + entity.userId];
 
   if (message.content.startsWith("soko!request")) {
     await requestInterkora(isEnabled, isAllowed, entity, message);
+    effectiveStack.push(`${Temporal.Now.instant().toString()} Requested`);
     return {
       entity,
       gid: message.guildId,
       effectiveStack: effectiveStack.join("\n"),
       effectiveName: "Requested",
-      // TODO : ???
-      // typing of this is broken
     };
   }
 
-  if (!isEnabled)
+  if (!isEnabled) {
+    effectiveStack.push(`${Temporal.Now.instant().toString()} Disabled`);
     return {
       entity,
       gid: message.guildId,
@@ -389,8 +388,10 @@ export async function buildPayloadFromMessage(
       effectiveStack: effectiveStack.join("\n"),
       errorMessage: "Not enabled.",
     };
+  }
 
-  if (!isAllowed)
+  if (!isAllowed) {
+    effectiveStack.push(`${Temporal.Now.instant().toString()} NoPermission`);
     return {
       entity,
       gid: message.guildId,
@@ -398,6 +399,7 @@ export async function buildPayloadFromMessage(
       effectiveName: "NoPermission",
       errorMessage: `At ${mention(Date.now(), "DEFAULT_TIMESTAMP")}, unauthorized user/application ${mention(message.author.id, "USER")} attempted to run Interkora commands.`,
     };
+  }
 
   let queryGuildId = message.guildId;
   const payload: InterkoraPayload = {
@@ -422,6 +424,10 @@ export async function buildPayloadFromMessage(
       const c = gidParameter ? _c.replaceAll(gidRegex, "") : _c;
 
       const out = loop(c);
+
+      effectiveStack.push(
+        `${Temporal.Now.instant().toString()} Order#${index}:${out.action.order}`,
+      );
 
       if (isParsedQueryOperand(out)) {
         if (gidParameter)
@@ -500,12 +506,13 @@ export async function buildPayloadFromMessage(
     : payload;
 }
 
-// this is obviously temp.
+// TODO:  this is obviously temp.
 export async function buildMessageFromPayload(
   payload: Awaited<ReturnType<typeof interkora>>,
 ): Promise<string> {
-  await fetch("https://bing.com" + JSON.stringify(payload));
-  return "sic seben";
+  console.log(payload);
+  await fetch("https://sokora.org/");
+  return "buildMessageFromPayload placeholder";
 }
 
 function isEntityAllowed(argument0: {

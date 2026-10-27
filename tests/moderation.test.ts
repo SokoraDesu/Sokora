@@ -5,7 +5,7 @@ import { getCase } from "database/moderation";
 import { mute } from "features/mod/mute";
 import { unmute } from "features/mod/unmute";
 import { db } from "database/index";
-import { setup, state } from "./utilities";
+import { expectSuccess, setup, state } from "./utilities";
 
 beforeAll(async () => {
   await setup();
@@ -25,7 +25,7 @@ describe("moderation features", () => {
       isSilent: false,
     });
 
-    expect(result.success).toBe(true);
+    expectSuccess(result);
 
     const cases = await getCase(guild.id);
 
@@ -47,7 +47,7 @@ describe("moderation features", () => {
       durationMillisec: MILLISEC_30M,
     });
 
-    expect(muteResult.success).toBe(true);
+    expectSuccess(muteResult);
 
     const cases = await getCase(guild.id);
     expect(cases.length).toBeGreaterThan(0);
@@ -72,7 +72,7 @@ describe("moderation features", () => {
       isSilent: false,
     });
 
-    expect(unmuteResult.success).toBe(true);
+    expectSuccess(unmuteResult);
 
     const casesAgain = await getCase(guild.id);
     expect(casesAgain.length).toBeGreaterThan(cases.length);

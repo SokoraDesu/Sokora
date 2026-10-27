@@ -1,11 +1,25 @@
 import type { Client } from "discord.js";
+import type { ERROR_CODE } from ".";
+
+/**
+ * TypeScript monster that turns PascalCase into kebab-case literal types. Not mine :pray:.
+ */
+type Hell<S extends string, First extends boolean = true> = S extends `${infer C}${infer Rest}`
+  ? `${C extends Uppercase<C>
+      ? C extends Lowercase<C>
+        ? C
+        : `${First extends true ? "" : "-"}${Lowercase<C>}`
+      : C}${Hell<Rest, false>}`
+  : S;
+
+type HTTPAPI_ERROR_CODE = Hell<ERROR_CODE | "NotFound">;
 
 function error(config: {
   request: Request;
   /** machine parseable error code
    * TODO: statically type
    */
-  title: string;
+  title: HTTPAPI_ERROR_CODE;
   /**
    * HTTP status code
    */
@@ -49,7 +63,7 @@ export const server = (client: Client): ReturnType<typeof Bun.serve> => {
           : error({
               request,
               status: 404,
-              title: "guild-not-found",
+              title: "not-found",
               detail: `Guild ID "${request.params.guild_id}" was not found in bot cache.`,
             });
       },

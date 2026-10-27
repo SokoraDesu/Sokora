@@ -10,8 +10,9 @@ import {
   TESTER_USER_A,
   TESTER_USER_B,
 } from "const";
-import { as } from "types";
+import { as, type FeatureOutput } from "types";
 import { safeMember } from "utils/safeThings";
+import { expect } from "bun:test";
 
 // TODO: replace in favor of dual-client fetching
 export const mockGuild = as<Guild>({
@@ -104,3 +105,8 @@ export function setup(): Promise<void> {
 
   return readyPromise;
 }
+
+export const expectSuccess = (o: FeatureOutput<unknown>): void => {
+  if (!o.success) console.error(o.out, o.reason);
+  return expect(o.success).toBe(true);
+};

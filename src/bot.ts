@@ -58,11 +58,10 @@ if (import.meta.main) {
 
   client = new Client(CLIENT_PAYLOAD("your feedback!", ActivityType.Listening));
 
-  if (!TOPGG_TOKEN) throw new Error("No TOPGG_TOKEN but somehow top.gg handler got called.");
-
-  const topgg = new Topgg.Api(TOPGG_TOKEN);
+  const topgg = TOPGG_TOKEN ? new Topgg.Api(TOPGG_TOKEN) : null;
 
   const topggCommandHandler = async (app: ClientApplication): Promise<void> => {
+    if (!topgg) return;
     try {
       const commands = (await app.commands.fetch()).map(command =>
         command.toJSON(),
@@ -75,6 +74,7 @@ if (import.meta.main) {
   };
 
   const topggVoteHandler = async (): Promise<void> => {
+    if (!topgg) return;
     try {
       await topgg.postMetrics({ serverCount: (await client.guilds.fetch()).size });
       console.log("Posted statistics to top.gg!");

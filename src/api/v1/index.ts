@@ -574,8 +574,14 @@ export async function resolveEntity(
 
   const whitelist = await getSetting(guild.id, "interkora", correspondingWhitelist);
 
-  const effectivePermissionGrant =
-    id === guild.ownerId ? "o" : hasAdminPermission ? "a" : whitelist.includes(id) ? "g" : "u";
+  let effectivePermissionGrant: "u" | "g" | "a" | "o" = "u";
+
+  if (whitelist.includes(id)) effectivePermissionGrant = "g";
+
+  if (hasAdminPermission) effectivePermissionGrant = "a";
+
+  if (id === guild.ownerId) effectivePermissionGrant = "o";
+
   const effectivePermissions =
     effectivePermissionGrant === "o" || effectivePermissionGrant === "a"
       ? "rwx"
