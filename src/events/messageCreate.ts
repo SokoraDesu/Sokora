@@ -161,7 +161,7 @@ export default (async function run(_message) {
 
   const newXp = multiplier * xpGain + xp;
   const newLevel = calculateLevel({ xp: newXp, difficulty });
-  await setUserXp(guild.id, author.id, newXp);
+  await setUserXp({ guild_id: guild.id, user_id: author.id, xp: newXp });
   if (newLevel <= calculateLevel({ xp, difficulty })) return;
   const avatar = author.displayAvatarURL();
   const rewards = (await getLevelRewards(guild.id))?.filter(r => r.level <= newLevel);
@@ -188,8 +188,6 @@ export default (async function run(_message) {
         !clientMember.permissions.has("ManageChannels")
       ) {
         await removeLevelRewards(guild.id, [reward]);
-        // TODO: now i realized why log/forward were options...
-        // I HATE MYSELF AND HOW STUPID I AM
         return await errorEmbed(false, {
           client,
           title: "A level reward has been removed.",

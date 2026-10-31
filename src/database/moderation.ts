@@ -1,6 +1,7 @@
 import type { Channel, Guild, User } from "discord.js";
 import { db, values } from ".";
 import type { Satisfies, TableDefinition, TypeOfDefinition } from "types";
+import { insertObject } from "utils/insObject";
 
 export type Case = Satisfies<
   TableDefinition,
@@ -28,7 +29,7 @@ export async function createCase(
   modType: ModType,
   moderator: User,
   reason: string | null,
-  expiresAt?: Date,
+  expires_at?: Temporal.Instant,
 ): Promise<number> {
   const id: number =
     (values<number>(
@@ -36,17 +37,16 @@ export async function createCase(
       true,
     )[0] ?? 0) + 1;
 
-  const insObject: TypeOfDefinition<Case> = {
+  await insertObject<Case>("moderation", {
     guild_id: guild.id,
     target_id: target.id,
     type: modType,
     moderator_id: moderator.id,
     reason: reason ?? undefined,
     id,
-    timestamp: new Date(),
-    expires_at: expiresAt,
-  };
-  await db`INSERT INTO moderation ${db(insObject)};`; // Rare conflict possible if two mods add a case at the approx same moment ?
+    timestamp: Temporal.Now.instant(),
+    expires_at,
+  }); // Rare conflict possible if two mods add a case at the approx same moment ?
   return id;
 }
 
@@ -105,8 +105,10 @@ export async function removeCase(guildID: string | number, id: number): Promise<
   await db`DELETE FROM moderation WHERE "guild_id" = ${guildID} AND id = ${id};`;
 }
 
-export async function getPendingBans(currentTime?: number): Promise<TypeOfDefinition<Case>[]> {
+export async function getPendingBans(
+  currentTimeMillisec?: number,
+): Promise<TypeOfDefinition<Case>[]> {
   return values<TypeOfDefinition<Case>>(
-    await db`SELECT * FROM moderation WHERE "type" = ${"BAN"} AND expires_at IS NOT NULL ${currentTime ? db`AND expires_at > ${new Date(currentTime)}` : db``} ORDER BY guild_id;`,
+    await db`SELECT * FROM moderation WHERE "type" = ${"BAN"} AND expires_at IS NOT NULL ${currentTimeMillisec ? db`AND expires_at > ${Temporal.Instant.fromEpochMilliseconds(currentTimeMillisec).toString()}` : db``} ORDER BY guild_id;`,
   );
 }

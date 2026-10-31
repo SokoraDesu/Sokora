@@ -96,7 +96,7 @@ export const server = (client: Client): ReturnType<typeof Bun.serve> => {
 
         const id = await getIdByToken(token.replace("Bearer ", ""));
 
-        if (!  id || id.trim() == "" )
+        if (!id || id.trim() == "")
           return respond({
             error: true,
             request,

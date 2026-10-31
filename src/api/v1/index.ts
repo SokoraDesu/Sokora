@@ -23,11 +23,17 @@ import {
   type ButtonInteraction,
   GuildMember,
 } from "discord.js";
-import type { SettingReturnType, SettingKeyFor } from "types";
+import {
+  type SettingReturnType,
+  type SettingKeyFor,
+  type EntityPermissions,
+  PermissionGrants,
+  PermissionOrigins,
+} from "types";
 import { mention } from "utils/mention";
 import { colorize, Sokolors } from "utils/colorize";
 import { safeAlertChannel, safeGuild, safeMember } from "utils/safeThings";
-import type { Mention, SafeMessage } from "types";
+import type { Mention, ResolvedEntity, SafeMessage } from "types";
 import { getCase, listUserCases, listGuildCases } from "database/moderation";
 import { fetchServerboard, getServerboardEntry } from "database/serverboard";
 import { getGuildLeaderboard, getUserXp } from "database/leveling";
@@ -356,21 +362,10 @@ async function runGetter(
 }
 
 export async function requestInterkora(
-  isEnabled: boolean,
-  isWhitelisted: boolean,
   entity: ResolvedEntity,
   message: SafeMessage,
 ): Promise<void> {
-  if (!isEnabled) {
-    await message.reply("Interkora is not enabled in this guild.");
-    return;
-  }
-  if (isWhitelisted) {
-    await message.reply("You’re already whitelisted!");
-    return;
-  }
-
-  const entityType = entity.correspondingWhitelist === "webhook_whitelist" ? "h" : "u";
+  const entityType = entity.whitelistName === "webhook_whitelist" ? "h" : "u";
 
   const requestors = await getRequestors(message.guildId, entityType);
   const isRequestor = requestors.some(v => v.entity_id === entity.userId);
@@ -468,7 +463,7 @@ async function runQuery(out: ParsedQueryOperand): Promise<string> {
     if (!entity)
       throw new InterkoraError("Tried to query effective permissions of non-existant ID.");
 
-    return `Entity ${entity.userId} effective permission [${entity.effectivePermissionGrant}] is ${JSON.stringify(entity.effectivePermissions, null, 2)}`;
+    return `Entity ${entity.userId} effective permission [${entity.permissionOrigin}] is ${JSON.stringify(entity.permissions, null, 2)}`;
   }
   if (out.action.key === "get-req") {
     const reqs = await getRequestors(out.gid, out.action.specifier);
@@ -512,16 +507,6 @@ async function runSetter<K extends keyof TS>(o: ParsedSetter<K>): Promise<string
       : `SET   "${o.action.key}.${o.action.subKey}" TO (\n${Bun.YAML.stringify(o.action.value)}\n)`);
 }
 
-export interface ResolvedEntity {
-  userId: string;
-  avatarURL: string | undefined;
-  hasAdminPermission: boolean;
-  correspondingWhitelist: "whitelist" | "webhook_whitelist";
-  effectivePermissions: Record<COMMAND, "r" | "x"> | "r" | "rw" | "rwx" | "/";
-  /** Owner, Admin, Granted, Unauth… */
-  effectivePermissionGrant: "o" | "a" | "g" | "u";
-}
-
 export async function resolveEntity(
   id: string,
   message: SafeMessage | undefined,
@@ -537,34 +522,40 @@ export async function resolveEntity(
   const userId = typeof member === "string" ? member : member.id;
   const hasAdminPermission: boolean =
     member instanceof GuildMember && member.permissions.has("Administrator");
-  const correspondingWhitelist = member instanceof Webhook ? "webhook_whitelist" : "whitelist";
+  const whitelistName = member instanceof Webhook ? "webhook_whitelist" : "whitelist";
 
-  const whitelist = await getSetting(guild.id, "interkora", correspondingWhitelist);
+  const isEnabled = await getSetting(guild.id, "interkora", "enabled");
+  const whitelist = await getSetting(guild.id, "interkora", whitelistName);
+  const isWhitelisted = whitelist.includes(id);
 
-  let effectivePermissionGrant: "u" | "g" | "a" | "o" = "u";
+  let permissionOrigin: PermissionOrigins = isWhitelisted
+    ? PermissionOrigins.Whitelisted
+    : PermissionOrigins.None;
 
-  if (whitelist.includes(id)) effectivePermissionGrant = "g";
+  if (hasAdminPermission) permissionOrigin = PermissionOrigins.Admin;
 
-  if (hasAdminPermission) effectivePermissionGrant = "a";
-
-  if (id === guild.ownerId) effectivePermissionGrant = "o";
+  if (id === guild.ownerId) permissionOrigin = PermissionOrigins.Owner;
 
   const registration = await getRegistration(id);
 
-  const effectivePermissions =
-    effectivePermissionGrant === "o" || effectivePermissionGrant === "a"
-      ? "rwx"
-      : (effectivePermissionGrant === "u"
-        ? "/"
-        : (registration?.payload.requestedPermissions ?? "/"));
+  let permissions: EntityPermissions =
+    permissionOrigin === PermissionOrigins.None
+      ? PermissionGrants.Nothing
+      : (registration?.payload.requestedPermissions ?? PermissionGrants.Nothing);
+
+  if (permissionOrigin === PermissionOrigins.Owner) permissions = PermissionGrants.Everything;
+  if (permissionOrigin === PermissionOrigins.Admin) permissions = PermissionGrants.WriteAll;
 
   return {
     avatarURL,
     userId,
-    correspondingWhitelist,
+    isWhitelisted,
+    isEnabled,
+    whitelistName,
+    whitelist,
     hasAdminPermission,
-    effectivePermissionGrant,
-    effectivePermissions,
+    permissionOrigin,
+    permissions,
   };
 }
 

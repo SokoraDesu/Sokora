@@ -99,7 +99,7 @@ describe("moderation features", () => {
     const channel = await safeChannel(guild, TESTER_CHANNEL);
     if (!channel?.isTextBased() || channel.isDMBased()) throw new Error("No irl tester channel?");
 
-    const TIME = 6000
+    const TIME = 6000;
 
     const makeSlowResult = await slowdown({
       guild,

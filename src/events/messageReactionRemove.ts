@@ -152,15 +152,15 @@ export default (async function run(reaction, user) {
     }
 
     await starMessage.edit({ components: containers, flags: "IsComponentsV2" });
-    await setStarred(
-      guild.id,
-      id,
-      existingStarred.channel_id,
-      author.id,
-      existingStarred.message_id,
-      starCount,
-      new Date(message.createdTimestamp),
-    );
+    await setStarred({
+      guild_id: guild.id,
+      star_message_id: id,
+      channel_id: existingStarred.channel_id,
+      author_id: author.id,
+      message_id: existingStarred.message_id,
+      stars: starCount,
+      timestamp: Temporal.Instant.fromEpochMilliseconds(message.createdTimestamp),
+    });
   } catch (error) {
     await errorEmbed(true, {
       client,

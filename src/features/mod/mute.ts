@@ -1,6 +1,6 @@
 import { createCase } from "database/moderation";
 import type { Guild, User } from "discord.js";
-import { getModError } from "embeds/modEmbed";
+import { getModError } from "utils/modError";
 import type { FeatureOutput, ModActionResult } from "types";
 import { MILLISEC_28D } from "utils/constants";
 import { errorToFeature } from "utils/errorType";
@@ -44,9 +44,9 @@ async function method(
       reason: "The user is already muted.",
     });
 
-  const time = new Date(
-    Date.parse(new Date().toISOString()) + Date.parse(new Date(durationMillisec).toISOString()),
-  ).toISOString();
+  const time = Temporal.Now.instant()
+    .add({ milliseconds: durationMillisec })
+    .toString({ smallestUnit: "millisecond" });
 
   await (
     await safeMember(guild, target.id)

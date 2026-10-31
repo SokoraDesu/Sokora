@@ -1,6 +1,6 @@
 import { createCase } from "database/moderation";
 import type { Guild, User } from "discord.js";
-import { getModError } from "embeds/modEmbed";
+import { getModError } from "utils/modError";
 import type { FeatureOutput, ModActionResult } from "types";
 import { errorToFeature } from "utils/errorType";
 import { feature, type MethodParameters } from "utils/feature";

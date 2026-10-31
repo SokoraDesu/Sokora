@@ -1,7 +1,6 @@
 import { getSetting, setSetting } from "database/settings";
 import { db } from "database/index";
-import type { TableDefinition, TypeOfDefinition, Satisfies } from "types";
-import type { COMMAND } from "api/v1";
+import type { TableDefinition, TypeOfDefinition, Satisfies, PermissionTable } from "types";
 
 type RequestorsDef = Satisfies<
   TableDefinition,
@@ -36,7 +35,7 @@ interface RegisteredIntegration {
   name: string;
   description: string;
   type: "webhook" | "bot" | "remote";
-  requestedPermissions: Record<COMMAND, "r" | "x">;
+  requestedPermissions: PermissionTable;
 }
 
 interface Registration {

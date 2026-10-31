@@ -1,6 +1,6 @@
 import { createCase } from "database/moderation";
 import type { Channel, Guild, User } from "discord.js";
-import { getModError } from "embeds/modEmbed";
+import { getModError } from "utils/modError";
 import ms from "enhanced-ms";
 import type { FeatureOutput, ModActionResult } from "types";
 import { MILLISEC_6H } from "utils/constants";

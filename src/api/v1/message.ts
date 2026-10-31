@@ -1,9 +1,14 @@
 import { getSetting, getSettingDef } from "database/settings";
-import { type SettingSettableValue, isSettingValueValid } from "types";
-import { AttachmentBuilder, codeBlock, type MessageCreateOptions } from "discord.js";
+import {
+  PermissionGrants,
+  PermissionOrigins,
+  type SettingSettableValue,
+  isSettingValueValid,
+} from "types";
+import { AttachmentBuilder, codeBlock, type Guild, type MessageCreateOptions } from "discord.js";
 import { kominator } from "utils/kominator";
-import { mention, unmention } from "utils/mention";
-import type { Mention, SafeMessage } from "types";
+import { unmention } from "utils/mention";
+import type { Mention, ResolvedEntity, SafeMessage } from "types";
 import {
   InterkoraError,
   assertClause,
@@ -26,7 +31,6 @@ import {
   type InterkoraPayloadIssue,
   isParsedSetter,
   type interkora,
-  type ResolvedEntity,
 } from ".";
 
 function switchInnerTypes(value: string): SettingSettableValue {
@@ -331,18 +335,10 @@ export async function buildPayloadFromMessage(
 
   if (!entity) throw new Error("where the fuck is the entity");
 
-  const isEnabled = await getSetting(message.guild.id, "interkora", "enabled");
-  const whitelist = await getSetting(message.guild.id, "interkora", entity.correspondingWhitelist);
-  const isAllowed = isEntityAllowed({
-    whitelist,
-    entity,
-    ownerId: message.guild.ownerId,
-  });
-
   const effectiveStack = ["@msg#" + entity.userId];
 
   if (message.content.startsWith("soko$request")) {
-    await requestInterkora(isEnabled, isAllowed, entity, message);
+    await requestInterkora(entity, message);
     effectiveStack.push(`@Requested`);
     return {
       error: true,
@@ -353,7 +349,7 @@ export async function buildPayloadFromMessage(
     };
   }
 
-  if (!isEnabled) {
+  if (!entity.isEnabled) {
     effectiveStack.push(`@Disabled`);
     return {
       error: true,
@@ -365,6 +361,9 @@ export async function buildPayloadFromMessage(
     };
   }
 
+  /* TODO;  fine-grained checks  const isAllowed = isEntityAllowed(entity,
+      message.guild);
+
   if (!isAllowed) {
     effectiveStack.push(`@NoPermission`);
     return {
@@ -375,7 +374,7 @@ export async function buildPayloadFromMessage(
       effectiveName: "NoPermission",
       errorMessage: `At ${mention(Date.now(), "DEFAULT_TIMESTAMP")}, unauthorized user/application ${mention(message.author.id, "USER")} attempted to run Interkora commands.`,
     };
-  }
+  } */
 
   let queryGuildId = message.guildId;
   const payload: InterkoraPayload = {
@@ -515,14 +514,25 @@ export function buildMessageFromPayloadIssue(payload: InterkoraPayloadIssue): Me
   };
 }
 
-function isEntityAllowed(argument0: {
-  whitelist: string[];
-  entity: ResolvedEntity;
-  ownerId: string;
-}): boolean {
-  console.log(argument0);
-  // TODO!!
-  return true;
+function isEntityAllowed(
+  entity: ResolvedEntity,
+  guild: Guild,
+  order: ParsedGetter | ParsedSetter,
+): boolean {
+  if (entity.permissionOrigin === PermissionOrigins.None) return false;
+  if (
+    entity.permissionOrigin === PermissionOrigins.Admin ||
+    entity.isWhitelisted ||
+    entity.permissionOrigin === PermissionOrigins.Owner
+  )
+    return true;
+
+  if (entity.permissions === PermissionGrants.Nothing) return false;
+  if (entity.permissions === PermissionGrants.ReadAll) return isParsedGetter(order);
+  if (entity.permissions === PermissionGrants.WriteAll)
+    return isParsedGetter(order) || isParsedSetter(order);
+
+  return entity.permissions === PermissionGrants.Everything;
 }
 
 /*

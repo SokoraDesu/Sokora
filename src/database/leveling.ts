@@ -9,6 +9,7 @@ import {
   type Supported,
   type UserLevels,
 } from "@subetedesu/honlvlimport";
+import { insertObject } from "utils/insObject";
 
 type Def = Satisfies<
   TableDefinition,
@@ -36,14 +37,10 @@ export async function getUserXp(guildID: string, userID: string): Promise<number
   return res.length === 0 ? 0 : res[0].xp;
 }
 
-export async function setUserXp(
-  guildID: string | number,
-  userID: string,
-  xp: number,
-): Promise<void> {
+export async function setUserXp(payload: TypeOfDefinition<Def>): Promise<void> {
   await db.begin(async tx => {
-    await tx`DELETE FROM leveling WHERE "guild_id" = ${guildID} AND "user_id" = ${userID};`;
-    await tx`INSERT INTO leveling ("guild_id", "user_id", "xp") VALUES (${guildID}, ${userID}, ${xp});`;
+    await tx`DELETE FROM leveling WHERE "guild_id" = ${payload.guild_id} AND "user_id" = ${payload.user_id};`;
+    await insertObject<Def>("leveling", payload, tx);
   });
 }
 
@@ -162,7 +159,7 @@ export async function importLevels(
 
     const previousXp = await getUserXp(guild.id, user[1].id);
     const newXp = (behavior == "merge" ? previousXp : 0) + imported.current_xp;
-    await setUserXp(guild.id, user[1].id, newXp);
+    await setUserXp({ guild_id: guild.id, user_id: user[1].id, xp: newXp });
     res.push(
       `${user[1].user.username} updated from ${previousXp} XP (level ${calculateLevel({ xp: previousXp, difficulty })}) to **XP ${newXp} (level ${calculateLevel({ xp: newXp, difficulty })})**.`,
     );

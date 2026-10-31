@@ -3,6 +3,7 @@ import type { Satisfies } from "types";
 import { db, values } from ".";
 import type { TableDefinition, TypeOfDefinition } from "types";
 import { errorEmbed } from "embeds/errorEmbed";
+import { insertObject } from "utils/insObject";
 
 type Def = Satisfies<
   TableDefinition,
@@ -30,27 +31,10 @@ export async function getStarred(
   return res.length === 0 ? null : res[0];
 }
 
-export async function setStarred(
-  guildID: string,
-  messageID: string,
-  channelID: string,
-  authorID: string,
-  starMessageID: string,
-  stars: number,
-  timestamp: Date,
-): Promise<void> {
-  const insObject: TypeOfDefinition<Def> = {
-    guild_id: guildID,
-    message_id: messageID,
-    channel_id: channelID,
-    author_id: authorID,
-    star_message_id: starMessageID,
-    stars,
-    timestamp,
-  };
+export async function setStarred(payload: TypeOfDefinition<Def>): Promise<void> {
   await db.begin(async tx => {
-    await tx`DELETE FROM starboard WHERE "guild_id" = ${guildID} AND "message_id" = ${messageID};`;
-    await tx`INSERT INTO starboard ${db(insObject)};`;
+    await tx`DELETE FROM starboard WHERE "guild_id" = ${payload.guild_id} AND "message_id" = ${payload.message_id};`;
+    await insertObject<Def>("starboard", payload, tx);
   });
 }
 

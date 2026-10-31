@@ -24,8 +24,8 @@ CREATE TABLE IF NOT EXISTS moderation (
   moderator_id TEXT,
   reason TEXT,
   id INTEGER NOT NULL,
-  timestamp TIMESTAMP,
-  expires_at TIMESTAMP
+  timestamp TIMESTAMPZ,
+  expires_at TIMESTAMPZ
 );
 
 CREATE TABLE IF NOT EXISTS news (
@@ -33,8 +33,8 @@ CREATE TABLE IF NOT EXISTS news (
   title TEXT,
   body TEXT,
   author_id TEXT,
-  created_at TIMESTAMP,
-  updated_at TIMESTAMP,
+  created_at TIMESTAMPZ,
+  updated_at TIMESTAMPZ,
   message_id TEXT,
   image_url TEXT,
   id INTEGER,
@@ -48,21 +48,21 @@ CREATE TABLE IF NOT EXISTS starboard (
   author_id TEXT,
   star_message_id TEXT,
   stars INTEGER,
-  timestamp TIMESTAMP
+  timestamp TIMESTAMPZ
 );
 
 CREATE TABLE IF NOT EXISTS itk_requestors (
   guild_id TEXT NOT NULL,
   entity_id TEXT NOT NULL,
   entity_type TEXT NOT NULL,
-  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  timestamp TIMESTAMPZ DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS itk_registrations (
     entity_id TEXT NOT NULL,
     payload JSONB NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_at TIMESTAMPZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TIMESTAMPZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     -- todo: review how safe it is to leave this here
     token TEXT NOT NULL
 );

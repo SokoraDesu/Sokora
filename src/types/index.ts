@@ -140,7 +140,7 @@ export type ModActionPayload = {
   moderator: User;
   duration?: number;
   shouldDm?: boolean;
-  expiresAt?: Date;
+  expiresAt?: Temporal.Instant;
   previousCaseId?: number;
 } & (
   | {
@@ -271,6 +271,51 @@ export type FeatureOutput<S, F = FeatureError> =
  */
 export type AppOnlyFeatureOutput = FeatureOutput<ContainerBuilder>;
 
+/// INTERKORA TYPES
+
+export const enum PermissionTableValue {
+  /** Permission is NOT granted. */
+  Disabled,
+  /** Permission is granted to read data, not to touch it. */
+  ReadOnly,
+  /** Permission is granted to do anything. */
+  ReadWrite,
+}
+
+export type PermissionTable = Record<
+  "settings" | "moderation" | "leveling" | "news" | "starboard",
+  PermissionTableValue
+>;
+
+export const enum PermissionGrants {
+  ReadAll,
+  WriteAll,
+  Everything,
+  Nothing,
+}
+
+export type EntityPermissions = PermissionGrants | PermissionTable;
+
+export const enum PermissionOrigins {
+  Owner,
+  Admin,
+  Whitelisted,
+  Installed,
+  None,
+}
+
+export interface ResolvedEntity {
+  userId: string;
+  avatarURL: string | undefined;
+  isEnabled: boolean;
+  hasAdminPermission: boolean;
+  whitelistName: "whitelist" | "webhook_whitelist";
+  whitelist: string[];
+  isWhitelisted: boolean;
+  permissions: EntityPermissions;
+  permissionOrigin: PermissionOrigins;
+}
+
 /// DATABASE TYPES
 
 export type FieldData =
@@ -303,8 +348,8 @@ export type SqlType<T extends FieldData> = {
   mINTEGER: Maybe<number>;
   TEXT: string;
   mTEXT: Maybe<string>;
-  TIMESTAMP: Date;
-  mTIMESTAMP: Maybe<Date>;
+  TIMESTAMP: Temporal.Instant;
+  mTIMESTAMP: Maybe<Temporal.Instant>;
   CHANNEL: string;
   mCHANNEL: Maybe<string>;
   USER: string;
@@ -422,7 +467,7 @@ export interface SettingDefinitionRecord {
   settings: Record<string, SingleSettingDefinition>;
 }
 
-type BaseSettingSettableValue = string | boolean | number | Date | undefined;
+type BaseSettingSettableValue = string | boolean | number | Temporal.Instant | undefined;
 export type SettingSettableValue = BaseSettingSettableValue | BaseSettingSettableValue[];
 
 type BaseSettingValueFromDef<T extends SingleSettingDefinition> = T extends { iterable: true }

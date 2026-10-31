@@ -171,30 +171,32 @@ export default (async function run(reaction, user) {
 
   try {
     if (!existingStarred) {
-      await setStarred(
-        guild.id,
-        id,
-        message.channel.id,
-        author.id,
-        (await starboardChannel.send({ components: containers, flags: "IsComponentsV2" })).id,
-        starCount,
-        new Date(message.createdTimestamp),
-      );
+      await setStarred({
+        guild_id: guild.id,
+        star_message_id: id,
+        channel_id: message.channel.id,
+        author_id: author.id,
+        message_id: (
+          await starboardChannel.send({ components: containers, flags: "IsComponentsV2" })
+        ).id,
+        stars: starCount,
+        timestamp: Temporal.Instant.fromEpochMilliseconds(message.createdTimestamp),
+      });
       return;
     }
 
     const starMessage = await starboardChannel.messages.fetch(existingStarred.star_message_id);
     if (starMessage.partial) await starMessage.fetch();
     await starMessage.edit({ components: containers, flags: "IsComponentsV2" });
-    await setStarred(
-      guild.id,
-      id,
-      existingStarred.channel_id,
-      author.id,
-      existingStarred.message_id,
-      starCount,
-      new Date(message.createdTimestamp),
-    );
+    await setStarred({
+      guild_id: guild.id,
+      star_message_id: id,
+      channel_id: existingStarred.channel_id,
+      author_id: author.id,
+      message_id: existingStarred.message_id,
+      stars: starCount,
+      timestamp: Temporal.Instant.fromEpochMilliseconds(message.createdTimestamp),
+    });
   } catch (error) {
     return await errorEmbed(true, {
       client,

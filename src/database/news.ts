@@ -1,6 +1,7 @@
 import type { Satisfies } from "types";
 import { db, values } from ".";
 import type { TableDefinition, TypeOfDefinition } from "types";
+import { insertObject } from "utils/insObject";
 
 type Def = Satisfies<
   TableDefinition,
@@ -25,31 +26,10 @@ type Def = Satisfies<
 export type NewsPost = TypeOfDefinition<Def>;
 
 const sendQuery = async (
-  guild_id: string,
-  title: string,
-  body: string,
-  author_id: string,
-  created_at: Date,
-  updated_at: Date | undefined,
-  message_id: string,
-  image_url: string | undefined,
-  id: number,
-  category_id: string | undefined,
+  payload: TypeOfDefinition<Def>,
   sql_: Bun.SQL = db, // what's this supposed to do?
 ): Promise<void> => {
-  const insObject: TypeOfDefinition<Def> = {
-    guild_id,
-    title,
-    body,
-    author_id,
-    created_at,
-    updated_at,
-    message_id,
-    image_url,
-    id,
-    category_id,
-  };
-  await sql_`INSERT INTO news ${db(insObject)};`;
+  await insertObject<Def>("news", payload, sql_);
 };
 
 export const listAllNews = async (guildID: string): Promise<TypeOfDefinition<Def>[]> => {
@@ -77,27 +57,13 @@ const deleteQuery = async (guildID: string, id: number, sql_: Bun.SQL = db): Pro
   await sql_`DELETE FROM news WHERE "guild_id" = ${guildID} AND "id" = ${id};`;
 
 export async function postNews(
-  guildID: string,
-  title: string,
-  body: string,
-  author: string,
-  messageID: string,
-  imageURL: string | undefined,
-  id: number,
-  category_id: string | undefined,
+  payload: Omit<TypeOfDefinition<Def>, "created_at" | "updated_at">,
 ): Promise<void> {
-  await sendQuery(
-    guildID,
-    title,
-    body,
-    author,
-    new Date(),
-    undefined,
-    messageID,
-    imageURL,
-    id,
-    category_id,
-  );
+  await sendQuery({
+    ...payload,
+    created_at: Temporal.Now.instant(),
+    updated_at: undefined,
+  });
 }
 
 export async function getNews(guildID: string, id: number): Promise<TypeOfDefinition<Def> | null> {
@@ -123,16 +89,18 @@ export async function updateNews(
   await db.begin(async tx => {
     await deleteQuery(guildID, id, tx);
     await sendQuery(
-      lastElement.guild_id,
-      title ?? lastElement.title,
-      body ?? lastElement.body,
-      lastElement.author_id,
-      lastElement.created_at,
-      new Date(),
-      messageID ?? lastElement.message_id,
-      imageURL ?? lastElement.image_url,
-      id,
-      lastElement.category_id,
+      {
+        guild_id: lastElement.guild_id,
+        title: title ?? lastElement.title,
+        body: body ?? lastElement.body,
+        author_id: lastElement.author_id,
+        created_at: lastElement.created_at,
+        updated_at: Temporal.Now.instant(),
+        message_id: messageID ?? lastElement.message_id,
+        image_url: imageURL ?? lastElement.image_url,
+        id,
+        category_id: lastElement.category_id,
+      },
       tx,
     );
   });

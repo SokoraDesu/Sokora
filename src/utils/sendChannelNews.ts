@@ -62,5 +62,14 @@ export async function sendChannelNews(
     return;
   }
 
-  await postNews(guild.id, title, body, author_id, message.id, image_url, id, category_id);
+  await postNews({
+    guild_id: guild.id,
+    title,
+    body,
+    author_id,
+    message_id: message.id,
+    image_url,
+    id,
+    category_id,
+  });
 }

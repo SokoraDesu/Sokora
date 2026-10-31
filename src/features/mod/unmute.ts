@@ -1,5 +1,5 @@
 import type { Guild, User } from "discord.js";
-import { getModError } from "embeds/modEmbed";
+import { getModError } from "utils/modError";
 import { safeMember } from "utils/safeThings";
 import type { FeatureOutput, ModActionResult } from "types";
 import { errorToFeature } from "utils/errorType";
