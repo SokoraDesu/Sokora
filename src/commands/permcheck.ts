@@ -21,7 +21,8 @@ export function lacksPerm(
   const missing = new PermissionsBitField();
 
   for (const permission of desiredPermissions)
-    if (!entityPermissions.has(permission)) missing.add(permission);
+    if (entityPermissions.has(permission)) continue;
+    else missing.add(permission);
 
   return missing.toArray();
 }

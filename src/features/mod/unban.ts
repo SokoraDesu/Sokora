@@ -22,6 +22,8 @@ async function method(
   const error = await getModError(["BanMembers"], {
     target,
     action: "UNBAN",
+    guild,
+    moderator,
     errorOptions: { allErrors: false, botError: true, banCheckError: true },
   });
 

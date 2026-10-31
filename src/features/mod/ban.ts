@@ -34,6 +34,8 @@ async function method(
 
   const error = await getModError(["BanMembers"], {
     target,
+    guild,
+    moderator,
     action: "BAN",
     errorOptions: {
       allErrors: isMember,

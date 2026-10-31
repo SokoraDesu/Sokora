@@ -23,6 +23,9 @@ async function method(
 
   const error = await getModError(["ManageChannels"], {
     channel,
+    action: "SLOWDOWN",
+    guild,
+    moderator,
     errorOptions: { allErrors: false, botError: true, channelError: true },
   });
 

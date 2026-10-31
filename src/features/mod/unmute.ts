@@ -24,6 +24,8 @@ async function method(
   const error = await getModError(["ModerateMembers"], {
     target: targetUser,
     action: "UNMUTE",
+    guild,
+    moderator,
     errorOptions: { allErrors: false, botError: true, outsideError: true },
   });
 

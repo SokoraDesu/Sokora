@@ -193,6 +193,8 @@ export async function errorEmbed(isException: boolean, options: Options): Promis
   const { interaction, dmOwner } = options;
   const client = interaction?.client ?? options.client;
 
+  console.error(options.title, options.reason, isException, "eE");
+
   if (!client) throw new Error("errorEmbed cannot work without a client. This is a problem.");
 
   const error = errorType(options.error);

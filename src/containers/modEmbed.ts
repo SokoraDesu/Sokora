@@ -1,8 +1,7 @@
 // TODO: this is worse than before, not better
 // i mean technically better but awful CQ
 
-import { client as originalClient } from "botfile";
-import { getCase } from "database/moderation";
+import { getCase, type ModType } from "database/moderation";
 import {
   PermissionsBitField,
   SectionBuilder,
@@ -11,13 +10,21 @@ import {
   ContainerBuilder,
   type PermissionFlagsBits,
   type ChatInputCommandInteraction,
+  type Guild,
+  type User,
 } from "discord.js";
 import ms from "enhanced-ms";
 import { mention } from "utils/mention";
 import { safeMember } from "utils/safeThings";
 import { colorize, Sokolors } from "utils/colorize";
 import { logChannel } from "utils/logChannel";
-import { type ModErrorOptions, type ModEmbedOptions, type ModError, ModErrorCode } from "types";
+import {
+  type ModErrorOptions,
+  type ModEmbedOptions,
+  ModErrorCode,
+  type ModActionError,
+  as,
+} from "types";
 import { lacksPerm } from "../commands/permcheck";
 
 /**
@@ -30,101 +37,112 @@ import { lacksPerm } from "../commands/permcheck";
  */
 export async function getModError(
   desiredPermissionArray: (keyof typeof PermissionFlagsBits)[],
-  options: ModErrorOptions,
-): Promise<ModError | undefined> {
+  options: ModErrorOptions & { guild: Guild; moderator: User; action: ModType },
+): Promise<ModActionError | undefined> {
   const { guild, moderator, previousCaseId, target, channel, action, errorOptions } = options;
   const { allErrors, botError, channelError, outsideError, banCheckError } = errorOptions;
 
-  if (!guild) return;
+  const r = (error: ModActionError["error"]): ModActionError => {
+    return as<ModActionError>({
+      guild,
+      moderator,
+      previousCaseId,
+      target,
+      channel,
+      action,
+      error,
+    });
+  };
 
   if (previousCaseId) {
     const previousCase = await getCase(guild.id, previousCaseId);
     if (
       previousCase.length === 0 ||
-      previousCase[0].user_id != target?.id ||
+      previousCase[0].target_id != target?.id ||
       previousCase[0].type != action
     )
-      return { code: ModErrorCode.CaseDoesNotExist };
+      return r({ code: ModErrorCode.CaseDoesNotExist });
   }
 
-  if (!moderator) return { code: ModErrorCode.ModeratorNotFound };
+  if (!moderator) return r({ code: ModErrorCode.ModeratorNotFound });
 
   const member = await safeMember(guild, moderator.id);
-  const client = await safeMember(guild, originalClient.user.id);
+  const client = await safeMember(guild, guild.client.user.id);
 
   const desiredPermissions = new PermissionsBitField(desiredPermissionArray);
   if (allErrors) desiredPermissions.add("ModerateMembers");
   const clientLacks = lacksPerm(client.permissions, desiredPermissions);
+  console.log("ARR", desiredPermissionArray, "PRODUCES", desiredPermissions.toArray());
 
   if (botError && clientLacks.length > 0)
-    return { code: ModErrorCode.MissingPermission, permissions: clientLacks };
+    return r({ code: ModErrorCode.MissingPermission, permissions: clientLacks });
 
   if (channelError) {
     if (!channel)
-      return {
+      return r({
         code: ModErrorCode.ChannelDoesNotExist,
-      };
+      });
 
     if (channel.isDMBased()) return;
     if (!channel.permissionsFor(client).has("ViewChannel"))
-      return {
+      return r({
         code: ModErrorCode.MissingPermission,
         permissions: ["ViewChannel"],
-      };
+      });
   }
 
   const memberLacks = lacksPerm(member.permissions, desiredPermissions);
 
   if (memberLacks.length > 0)
-    return {
+    return r({
       code: ModErrorCode.MissingPermission,
       permissions: memberLacks,
-    };
+    });
 
   if (banCheckError) {
     if (!target)
-      return {
+      return r({
         code: ModErrorCode.TargetNotFound,
-      };
+      });
 
     const isBanned = (await guild.bans.fetch()).has(target.id);
     if (isBanned && action == "BAN")
-      return {
+      return r({
         code: ModErrorCode.AlreadyBanned,
-      };
+      });
 
     if (!isBanned && action == "UNBAN")
-      return {
+      return r({
         code: ModErrorCode.AlreadyUnbanned,
-      };
+      });
   }
 
   if (!allErrors || !target || !action) return;
 
   if (outsideError && !target)
     // target SHOULD exist in server
-    return {
+    return r({
       code: ModErrorCode.TargetOutside,
-    };
+    });
 
   if (!target) return;
 
   if (target.id == moderator.id)
-    return {
+    return r({
       code: ModErrorCode.CantModerateSelf,
-    };
+    });
 
   if (target.id == client.user.id)
-    return {
+    return r({
       code: ModErrorCode.CantModerateSokora,
-    };
+    });
 
   const targetMember = await safeMember(guild, target.id);
 
   if (!targetMember.moderatable)
-    return {
+    return r({
       code: ModErrorCode.NotApiModeratable,
-    };
+    });
 
   const highestModPos = member.roles.highest.position;
   const highestTargetPos = targetMember.roles.highest.position;
@@ -132,9 +150,9 @@ export async function getModError(
   if (highestModPos <= highestTargetPos && member.id != guild.ownerId) {
     const isSamePos: boolean = highestModPos == highestTargetPos;
     {
-      return {
+      return r({
         code: isSamePos ? ModErrorCode.RolePosSame : ModErrorCode.TargetRolePosHigher,
-      };
+      });
     }
   }
 
@@ -150,6 +168,27 @@ function produceGeneralValues(modAction: ModEmbedOptions): string[] {
   return generalValues;
 }
 
+function produceVerb(action: ModType, slowdownValue?: number): string {
+  if (action == "SLOWDOWN" && slowdownValue == 0) return "Removed slowdown";
+
+  const verbAction = (
+    {
+      MUTE: "Muted",
+      UNMUTE: "Unmuted",
+      WARN: "Warned",
+      KICK: "Kicked",
+      BAN: "Banned",
+      UNBAN: "Unbanned",
+      LOCK: "Locked",
+      UNLOCK: "Unlocked",
+      SLOWDOWN: "Slowed",
+      CLEAR: "Cleared",
+    } as Record<typeof action, string>
+  )[action];
+
+  return verbAction;
+}
+
 /**
  * Sends a container containing information about a moderation action.
  * @param options Options
@@ -159,10 +198,12 @@ function produceGeneralValues(modAction: ModEmbedOptions): string[] {
 async function buildModEmbed(modAction: ModEmbedOptions): Promise<ContainerBuilder> {
   const { guild, target, previousCaseId, caseId, action, channel, customText } = modAction;
 
+  // TODO: get this to somehow produce removed slowdown
+  const verb = produceVerb(action);
   const generalValues = produceGeneralValues(modAction);
   const serverAvatar = (guild.icon ? guild.iconURL() : undefined) ?? undefined;
   const avatar = target ? target.displayAvatarURL() : serverAvatar;
-  let title = `${previousCaseId ? "Edited a " : ""}${previousCaseId ? action?.toLowerCase() : action}${previousCaseId ? " on" : ""}${target ? mention(target.id, "USER") : ""}`;
+  let title = `${previousCaseId ? "Edited a " : ""}${previousCaseId ? verb?.toLowerCase() : verb}${previousCaseId ? " on" : ""} ${target ? mention(target.id, "USER") : ""}`;
 
   if (previousCaseId ?? caseId) title += `  •  #${previousCaseId ?? caseId}`;
 

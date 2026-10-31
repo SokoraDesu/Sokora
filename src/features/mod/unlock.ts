@@ -20,6 +20,9 @@ async function method(
 
   const error = await getModError(["ManageRoles"], {
     channel,
+    guild,
+    moderator,
+    action: "UNLOCK",
     errorOptions: { allErrors: false, botError: true, channelError: true },
   });
 

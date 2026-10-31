@@ -1,11 +1,13 @@
 import { beforeAll, describe, expect, test } from "bun:test";
-import { MILLISEC_30M } from "utils/constants";
+import { MILLISEC_30M, TESTER_CHANNEL } from "utils/constants";
 import { warn } from "features/mod/warn";
 import { getCase } from "database/moderation";
 import { mute } from "features/mod/mute";
 import { unmute } from "features/mod/unmute";
 import { db } from "database/index";
 import { expectSuccess, setup, state } from "./utilities";
+import { slowdown } from "features/mod/slowdown";
+import { safeChannel } from "utils/safeThings";
 
 beforeAll(async () => {
   await setup();
@@ -30,7 +32,7 @@ describe("moderation features", () => {
     const cases = await getCase(guild.id);
 
     expect(cases.length).toBeGreaterThan(0);
-    expect(cases[0].user_id).toBe(target.id);
+    expect(cases[0].target_id).toBe(target.id);
     expect(cases[0].moderator_id).toBe(moderator.id);
     expect(cases[0].type).toBe("WARN");
   });
@@ -56,7 +58,7 @@ describe("moderation features", () => {
 
     if (!last) throw new Error("No last case?");
 
-    expect(last.user_id).toBe(target.id);
+    expect(last.target_id).toBe(target.id);
     expect(last.moderator_id).toBe(moderator.id);
     expect(last.type).toBe("MUTE");
 
@@ -81,12 +83,72 @@ describe("moderation features", () => {
 
     if (!lastAgain) throw new Error("No last case again?");
 
-    expect(lastAgain.user_id).toBe(target.id);
+    expect(lastAgain.target_id).toBe(target.id);
     expect(lastAgain.moderator_id).toBe(moderator.id);
     expect(lastAgain.type).toBe("UNMUTE");
 
     const isStillMuted = tgtMember.isCommunicationDisabled();
 
     expect(isStillMuted).toBe(false);
+  });
+
+  test("slowdown feature works", async () => {
+    const { guild, moderator } = state;
+
+    if (!TESTER_CHANNEL) throw new Error("no tester_channel");
+    const channel = await safeChannel(guild, TESTER_CHANNEL);
+    if (!channel?.isTextBased() || channel.isDMBased()) throw new Error("No irl tester channel?");
+
+    const TIME = 6000
+
+    const makeSlowResult = await slowdown({
+      guild,
+      moderator,
+      reason: "Test slowdown",
+      timeMillisec: TIME,
+      channel,
+    });
+
+    expectSuccess(makeSlowResult);
+
+    const cases = await getCase(guild.id);
+    expect(cases.length).toBeGreaterThan(0);
+
+    const last = cases.pop();
+
+    if (!last) throw new Error("No last case?");
+
+    expect(last.target_id).toBe(channel.id);
+    expect(last.moderator_id).toBe(moderator.id);
+    expect(last.type).toBe("SLOWDOWN");
+
+    const slow = channel.rateLimitPerUser;
+
+    expect(slow).toBe(TIME / 1000);
+
+    const makeFastResult = await slowdown({
+      guild,
+      moderator,
+      reason: "Test non-slowdown",
+      timeMillisec: 0,
+      channel,
+    });
+
+    expectSuccess(makeFastResult);
+
+    const casesAgain = await getCase(guild.id);
+    expect(casesAgain.length).toBeGreaterThan(cases.length);
+
+    const lastAgain = casesAgain.pop();
+
+    if (!lastAgain) throw new Error("No last case again?");
+
+    expect(lastAgain.target_id).toBe(channel.id);
+    expect(lastAgain.moderator_id).toBe(moderator.id);
+    expect(lastAgain.type).toBe("SLOWDOWN");
+
+    const stillSlow = channel.rateLimitPerUser;
+
+    expect(stillSlow).toBe(0);
   });
 });

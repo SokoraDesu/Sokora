@@ -133,6 +133,7 @@ export default defineConfig(
       "@typescript-eslint/no-import-type-side-effects": "error",
       "unicorn/no-useless-undefined": "error",
       "unicorn/max-nested-calls": "off",
+      "unicorn/no-nested-ternary": "warn",
       "unicorn/no-unsafe-string-replacement": "off",
       "unicorn/no-top-level-side-effects": "off",
       "unicorn/prefer-await": "off",

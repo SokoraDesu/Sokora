@@ -8,7 +8,7 @@ export type Case = Satisfies<
     name: "moderation";
     definition: {
       guild_id: "TEXT";
-      user_id: "TEXT";
+      target_id: "TEXT";
       type: "TEXT";
       moderator_id: "TEXT";
       reason: "mTEXT";
@@ -38,8 +38,7 @@ export async function createCase(
 
   const insObject: TypeOfDefinition<Case> = {
     guild_id: guild.id,
-    // TODO: migrate key to be neutrally named
-    user_id: target.id,
+    target_id: target.id,
     type: modType,
     moderator_id: moderator.id,
     reason: reason ?? undefined,
@@ -65,6 +64,7 @@ export async function listGuildCases(
   );
 }
 
+// TODO: improve so it properly says it supports filtering by user or channel
 export async function listUserCases(
   guildID: number | string,
   userID: number | string,
@@ -75,7 +75,7 @@ export async function listUserCases(
     await db`
       SELECT * FROM moderation
       WHERE "guild_id" = ${guildID}
-      AND "user_id" = ${userID}
+      AND "target_id" = ${userID}
       ${modType ? typeFilter : db``}
       ORDER BY "id" DESC;`,
   );

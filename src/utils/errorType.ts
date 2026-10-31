@@ -1,4 +1,4 @@
-import { isModErroryResult, ModErrorCode, type FeatureError, type ModActionResult } from "types";
+import { isModError, ModErrorCode, type FeatureError, type ModActionResult } from "types";
 import { dekominator } from "./kominator";
 import { pluralOrNot } from "./pluralOrNot";
 
@@ -22,7 +22,7 @@ function exceptionToFeatureError(value: unknown): FeatureError {
   const error = errorType(value);
 
   return {
-    title: "An error occurred.",
+    title: "An unknown error occurred.",
     reason: error.message,
   };
 }
@@ -116,5 +116,5 @@ function modErrorToFeatureError(value: ModActionResult): FeatureError {
 }
 
 export function errorToFeature(value: unknown): FeatureError {
-  return isModErroryResult(value) ? modErrorToFeatureError(value) : exceptionToFeatureError(value);
+  return isModError(value) ? modErrorToFeatureError(value) : exceptionToFeatureError(value);
 }

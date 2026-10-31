@@ -22,6 +22,8 @@ async function method(
   const error = await getModError(["ModerateMembers"], {
     target,
     action: "WARN",
+    guild,
+    moderator,
     errorOptions: { allErrors: true, botError: false, outsideError: true },
   });
 

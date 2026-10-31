@@ -26,7 +26,7 @@ import { mention } from "utils/mention";
 import { handlePages, pagedButtons } from "utils/pagination";
 import { pluralOrNot } from "utils/pluralOrNot";
 import { randomize } from "utils/randomize";
-import { safeEdit, safeMember, safeUser } from "utils/safeThings";
+import { safeChannel, safeEdit, safeMember, safeUser } from "utils/safeThings";
 import { isButtonErrory } from "utils/buttonCheck";
 
 // TODO: figure out how to MVC this
@@ -76,7 +76,9 @@ async function generateContainer(options: {
       ];
       let title = `**${actionsEmojis[c.type as ModType]} • ${capitalize(c.type.toLowerCase())} #${c.id}**`;
 
-      if (!user) title += ` • ${await safeUser(client, c.user_id)}`;
+      if (!user)
+        title += ` • ${c.type === "SLOWDOWN" || c.type === "CLEAR" ? await safeChannel(client, c.target_id) : await safeUser(client, c.target_id)}`;
+
       if (c.expires_at) value.push(`**Duration**: ${ms(Number(c.expires_at), "fullPrecision")}`);
 
       return new TextDisplayBuilder().setContent([title, value.join("\n")].join("\n"));

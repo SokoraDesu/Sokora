@@ -35,7 +35,7 @@ async function unbanUser(
   }
 
   caseId ??= (await getPendingBans(Date.now() - MILLISEC_1H)).find(
-    ban => ban.user_id == target.id,
+    ban => ban.target_id == target.id,
   )?.id;
   const unbanReason = `Temporary ban by <@${moderator_id}> has expired (cf. case ${caseId})`;
   // idk how can client.user be null but ok - @Golem642
@@ -106,19 +106,19 @@ export async function rescheduleUnbans(client: Client): Promise<void> {
     }
 
     try {
-      const guildBan = await (await safeGuild(client, ban.guild_id)).bans.fetch(ban.user_id);
+      const guildBan = await (await safeGuild(client, ban.guild_id)).bans.fetch(ban.target_id);
       console.log("Rescheduling", ban.id);
       const delay = ban.expires_at - now;
       if (delay > 0)
-        scheduleUnban(client, guildBan.guild, ban.user_id, ban.moderator_id, delay, ban.id);
+        scheduleUnban(client, guildBan.guild, ban.target_id, ban.moderator_id, delay, ban.id);
       else
         try {
-          await unbanUser(guildBan.guild, ban.user_id, ban.moderator_id, ban.id);
+          await unbanUser(guildBan.guild, ban.target_id, ban.moderator_id, ban.id);
         } catch (error) {
           await errorEmbed(true, {
             client,
             error,
-            title: `Failed to unban user ${ban.user_id} in guild ${ban.guild_id}.`,
+            title: `Failed to unban user ${ban.target_id} in guild ${ban.guild_id}.`,
 
             fileName: "unbanScheduler",
           });

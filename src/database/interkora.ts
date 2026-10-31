@@ -1,7 +1,7 @@
 import { getSetting, setSetting } from "database/settings";
 import { db } from "database/index";
 import type { TableDefinition, TypeOfDefinition, Satisfies } from "types";
-import type { ResolvedEntity } from "api/v1";
+import type { COMMAND } from "api/v1";
 
 type RequestorsDef = Satisfies<
   TableDefinition,
@@ -27,28 +27,37 @@ type RegistrationsDef = Satisfies<
       payload: "OBJECT";
       created_at: "TIMESTAMP";
       updated_at: "TIMESTAMP";
+      token: "TEXT";
     };
   }
 >;
 
-export async function getRegistration(entity_id: string): Promise<
-  | {
-      payload: TypeOfDefinition<RegistrationsDef>["payload"];
-      created_at: TypeOfDefinition<RegistrationsDef>["created_at"];
-      updated_at: TypeOfDefinition<RegistrationsDef>["updated_at"];
-    }
-  | undefined
-> {
+interface RegisteredIntegration {
+  name: string;
+  description: string;
+  type: "webhook" | "bot" | "remote";
+  requestedPermissions: Record<COMMAND, "r" | "x">;
+}
+
+interface Registration {
+  payload: RegisteredIntegration;
+  created_at: TypeOfDefinition<RegistrationsDef>["created_at"];
+  updated_at: TypeOfDefinition<RegistrationsDef>["updated_at"];
+}
+
+export async function getRegistration(entity_id: string): Promise<Registration | undefined> {
   const res = await db<
     TypeOfDefinition<RegistrationsDef>[]
   >`SELECT "payload", "created_at", "updated_at" FROM itk_registrations WHERE "entity_id" = ${entity_id};`;
-  return res[0] ?? undefined;
+  return (res[0] ?? undefined) as unknown as Registration | undefined;
 }
 
-export async function setRegistration(entity_id: string): Promise<void> {
-  // TODO: ??? dreamed up by zed
-  await db`INSERT INTO itk_registrations ("entity_id", "payload", "created_at", "updated_at") VALUES (${entity_id}, {}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) ON CONFLICT ("entity_id") DO UPDATE SET "updated_at" = CURRENT_TIMESTAMP;`;
-  throw new Error("Not implemented");
+export async function setRegistration(
+  entity_id: string,
+  payload: RegisteredIntegration,
+): Promise<void> {
+  const TODO_OBVIOUSLY_AN_EXAMPLE_token = "1234";
+  await db`INSERT INTO itk_registrations (payload, entity_id, token) VALUES (${entity_id}, ${db(payload)}, ${TODO_OBVIOUSLY_AN_EXAMPLE_token})`;
 }
 
 export async function addWhitelist(
@@ -88,13 +97,7 @@ export async function addRequestor(
   await db`INSERT INTO itk_requestors ("guild_id", "entity_id", "entity_type") VALUES (${guild_id}, ${entity_id}, ${entity_type});`;
 }
 
-// TODO:
-// merge this with getRegistration, properly type the payload(OBJECT)
-export async function getEntityPermissions(
-  guildId: string,
-  entId: string,
-): Promise<ResolvedEntity["effectivePermissions"]> {
-  // trash code to silence the compiler while i work on other things
-  await fetch(guildId + entId);
-  return "rwx";
+export async function getIdByToken(token: string): Promise<string | undefined> {
+  const found = await db<string>`SELECT entity_id FROM itk_registrations WHERE token = ${token};`;
+  return found ?? undefined;
 }

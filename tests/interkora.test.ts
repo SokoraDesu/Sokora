@@ -1,5 +1,5 @@
 import { test, expect, beforeAll, describe } from "bun:test";
-import { interkora } from "api/v1/index";
+import { interkora, type InterkoraPayload, type InterkoraPayloadIssue } from "api/v1/index";
 import { setup, state } from "./utilities";
 import { setSetting } from "database/settings";
 import { TESTER_CHANNEL } from "utils/constants";
@@ -13,52 +13,62 @@ beforeAll(async () => {
   await setSetting(state.guild.id, "leveling", "xp_gain", 60);
 });
 
-async function makeMessage(content: string): ReturnType<typeof buildPayloadFromMessage> {
+async function makeMessage<Correct extends boolean>(
+  content: string,
+): Promise<Correct extends true ? InterkoraPayload : InterkoraPayloadIssue> {
   if (!TESTER_CHANNEL) throw new Error("No tester_channel!");
   const channel = state.guild.channels.cache.get(TESTER_CHANNEL);
   if (!channel?.isSendable()) throw new Error("Not sendable!");
   const message = await channel.send({
     content,
   });
-  return buildPayloadFromMessage(message);
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-explicit-any
+  return buildPayloadFromMessage(message) as any;
 }
 
 describe("interkora settings module", () => {
   test("interkora getters work", async () => {
     const messages = await Promise.all([
-      makeMessage("soko!get settings leveling.enabled"),
-      makeMessage("soko!get settings interkora"),
-      makeMessage(
-        "\n\n    soko!          get                     settings                leveling.enabled        \n\n",
+      makeMessage<true>("soko$get settings leveling.enabled"),
+      makeMessage<true>("soko$get settings interkora"),
+      makeMessage<true>(
+        "\n\n    soko$          get                     settings                leveling.enabled        \n\n",
       ),
+      makeMessage<true>("soko$get settings leveling.enabled yaml"),
     ]);
     const out = await Promise.all(messages.map(async m => interkora(m, state.client)));
 
     expect(out).toEqual([
       {
         ok: true,
-        getterOutput: ["false"],
-        importOutput: [],
+        getterOutput: [["json", "false"]],
         queryOutput: [],
         setterOutput: [],
       },
       {
         ok: true,
         getterOutput: [
-          JSON.stringify({
-            enabled: true,
-            whitelist: [],
-            webhook_whitelist: [],
-          }),
+          [
+            "json",
+            JSON.stringify({
+              enabled: true,
+              whitelist: [],
+              webhook_whitelist: [],
+            }),
+          ],
         ],
-        importOutput: [],
         queryOutput: [],
         setterOutput: [],
       },
       {
         ok: true,
-        getterOutput: ["false"],
-        importOutput: [],
+        getterOutput: [["json", "false"]],
+        queryOutput: [],
+        setterOutput: [],
+      },
+      {
+        ok: true,
+        getterOutput: [["yaml", "false"]],
         queryOutput: [],
         setterOutput: [],
       },

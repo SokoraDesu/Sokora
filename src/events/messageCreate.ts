@@ -26,7 +26,11 @@ import { mention } from "utils/mention";
 import { safeChannel, safeMember, safeMessage, safeRole } from "utils/safeThings";
 import { interkora } from "api/v1";
 import { assertMessage, type Event } from "types";
-import { buildMessageFromPayload, buildPayloadFromMessage } from "api/v1/message";
+import {
+  buildMessageFromPayload,
+  buildMessageFromPayloadIssue,
+  buildPayloadFromMessage,
+} from "api/v1/message";
 import { errorEmbed } from "embeds/errorEmbed";
 import { useLogEmbed } from "embeds/logEmbed";
 
@@ -77,10 +81,14 @@ export default (async function run(_message) {
   const author = message.author;
   const content = message.content;
 
-  if (content.startsWith("soko!")) {
+  if (content.startsWith("soko$")) {
     assertMessage(message);
-    const response = await interkora(await buildPayloadFromMessage(message), message.client);
-    await message.reply(await buildMessageFromPayload(response));
+    const payload = await buildPayloadFromMessage(message);
+    if (payload.error) await message.reply(buildMessageFromPayloadIssue(payload));
+    else {
+      const response = await interkora(payload, message.client);
+      await message.reply(buildMessageFromPayload(response));
+    }
     return;
   }
 

@@ -12,6 +12,7 @@
     "setup": "bun i && bun run cli/setup.ts",
     "dev": "bun --watch ./src/bot.ts",
     "start": "bun ./src/index.ts",
+    "start:docker": "sudo docker compose down && sudo docker compose up --build --watch --remove-orphans",
     "ql": "bun fmt; bun check; eslint . --fix --no-warn-ignored"
   },
   "dependencies": {
@@ -30,13 +31,12 @@
   "devDependencies": {
     "@types/git-diff": "^2.0.7",
     "@eslint/js": "^10.0.1",
-    "@typescript-eslint/eslint-plugin": "^8.72.0",
-    "@typescript-eslint/parser": "^8.72.0",
+    "@typescript-eslint/eslint-plugin": "^8.72.1",
+    "@typescript-eslint/parser": "^8.72.1",
     "bun-types": "^1.4.4",
     "eslint": "^10.13.0",
     "eslint-plugin-unicorn": "^79.0.0",
-    "prettier": "^3.9.10",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.72.0"
+    "typescript-eslint": "^8.72.1"
   }
 }

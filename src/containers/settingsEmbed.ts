@@ -239,6 +239,10 @@ function rowGenerator(
   const maxValues = settingObject.iterable ? OBJECTS_PER_ITR_PAGE : 1;
   const isNormal = constructMode.mode === "normal";
   const cID = isNormal ? data.key : `resettgt_${data.key}`;
+  const isResetting = !isNormal && constructMode.resetting.has(cID);
+  const isNormalOrResetting = isNormal || isResetting;
+  const isSettingEmpty =
+    setting == null || (setting as unknown[]).length === 0 || settingObject.val == setting;
 
   let component:
     | ButtonBuilder
@@ -252,22 +256,12 @@ function rowGenerator(
         ? (settingObject.type === "OBJECT" || settingObject.iterable
           ? "Open"
           : "Edit")
-        : (constructMode.resetting.has(cID)
+        : (isResetting
           ? "Unselect"
           : "Select"),
     )
-    .setDisabled(
-      isNormal || constructMode.resetting.has(cID)
-        ? false
-        : (setting == null ||
-            (setting as unknown[]).length === 0 ||
-            (settingObject.val && settingObject.val == setting)
-          ? true
-          : false),
-    )
-    .setStyle(
-      isNormal || constructMode.resetting.has(cID) ? ButtonStyle.Secondary : ButtonStyle.Danger,
-    );
+    .setDisabled(!isNormalOrResetting && isSettingEmpty ? true : false)
+    .setStyle(isNormalOrResetting ? ButtonStyle.Secondary : ButtonStyle.Danger);
 
   if (isNormal)
     switch (settingObject.type) {

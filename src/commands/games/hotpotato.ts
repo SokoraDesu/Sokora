@@ -29,10 +29,9 @@ async function burnThePotato(
   const holdingUser = await interaction.guild.members.fetch(state.heldBy);
   const muteDurationMs = ms(settings.mute_duration * 1000);
   if (!muteDurationMs) return;
-  const muteDuration = new Date(
-    Date.parse(new Date().toISOString()) +
-      Date.parse(new Date(settings.mute_duration * 1000).toISOString()),
-  ).toISOString();
+  const muteDuration = Temporal.Now.instant()
+    .add(Temporal.Duration.from({ seconds: settings.mute_duration }))
+    .toString();
   let isSuccess = true;
   if (holdingUser.moderatable)
     await holdingUser.edit({

@@ -11,7 +11,6 @@ import {
 import {
   ContainerBuilder,
   TextDisplayBuilder,
-  codeBlock,
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
@@ -28,23 +27,22 @@ import type { SettingReturnType, SettingKeyFor } from "types";
 import { mention } from "utils/mention";
 import { colorize, Sokolors } from "utils/colorize";
 import { safeAlertChannel, safeGuild, safeMember } from "utils/safeThings";
-import { as, type Mention, type SafeMessage } from "types";
+import type { Mention, SafeMessage } from "types";
 import { getCase, listUserCases, listGuildCases } from "database/moderation";
 import { fetchServerboard, getServerboardEntry } from "database/serverboard";
-import { buildLeveler, getGuildLeaderboard, getUserXp } from "database/leveling";
+import { getGuildLeaderboard, getUserXp } from "database/leveling";
 import { getLatestNews, getNews } from "database/news";
 import {
   addWhitelist,
   getRequestors,
   addRequestor,
   remWhitelist,
-  getEntityPermissions,
+  getRegistration,
 } from "database/interkora";
-import { Supported, type SupportedAndRewarded } from "@subetedesu/honlvlimport";
 import { client } from "botfile";
 
-export const COMMANDS = ["set", "reset", "drop", "get", "query", "import"] as const;
-type COMMAND = (typeof COMMANDS)[number];
+export const COMMANDS = ["set", "reset", "drop", "get", "query"] as const;
+export type COMMAND = (typeof COMMANDS)[number];
 export const GETTERS = [
   "settings",
   "leaderboard",
@@ -53,7 +51,6 @@ export const GETTERS = [
   "cases",
   "news",
 ] as const;
-export const IMPORTERS = ["level:xp", "level:rewards"] as const;
 export const CLAUSES = [
   "set-guild",
   "reset-guild",
@@ -77,18 +74,16 @@ export type PagingOperand = "-" | "+";
 export type SupportedRetrievalFormats = "json" | "yaml";
 
 export class InterkoraError extends Error {
-  public effectiveStack: string;
   public effectiveName: ERROR_CODE;
 
-  constructor(message: string, effectiveName: ERROR_CODE = "InvalidSeq") {
-    super(message);
+  constructor(message: string, options?: { name?: ERROR_CODE; cause?: Error }) {
+    super(message, options);
     this.name = "InterkoraError";
-    this.effectiveName = effectiveName;
-    this.effectiveStack = "TODO";
+    this.effectiveName = options?.name ?? "InvalidSeq";
   }
 
   public toString(): string {
-    return `${this.name} [${this.effectiveName}]: ${this.message}\nAt ${this.effectiveStack}.`;
+    return `${this.name} [${this.effectiveName}]: ${this.message}.`;
   }
 }
 
@@ -96,20 +91,16 @@ export function assertOrder(o: string): asserts o is (typeof COMMANDS)[number] {
   if (typeof o === "string" && COMMANDS.includes(o as "set")) return;
   throw new InterkoraError(
     `Order **${o}** is not valid. Choose any of ${COMMANDS.map(s => `\`${s}\``).join(", ")}.`,
-    "InvalidOrder",
+    { name: "InvalidOrder" },
   );
 }
 export function assertGetter(o: string): asserts o is (typeof GETTERS)[number] {
   if (typeof o === "string" && GETTERS.includes(o as "settings")) return;
-  throw new InterkoraError(`Key **${o}** is not a getter.`, "InvalidSeq");
-}
-export function assertImporter(o: string): asserts o is (typeof IMPORTERS)[number] {
-  if (typeof o === "string" && IMPORTERS.includes(o as "level:xp")) return;
-  throw new InterkoraError(`Key **${o}** is not an importer.`, "InvalidSeq");
+  throw new InterkoraError(`Key **${o}** is not a getter.`, { name: "InvalidSeq" });
 }
 export function assertClause(o: string): asserts o is (typeof CLAUSES)[number] {
   if (typeof o === "string" && CLAUSES.includes(o as "set-guild")) return;
-  throw new InterkoraError(`Key **${o}** is not a query clause.`, "InvalidSeq");
+  throw new InterkoraError(`Key **${o}** is not a query clause.`, { name: "InvalidSeq" });
 }
 export function assertKey(k: string): asserts k is keyof TS {
   if (typeof k === "string" && serverSettingsKeys.includes(k as "leveling")) return;
@@ -130,13 +121,11 @@ export function assertSubKey<K extends keyof TS>(k: K, s: string): asserts s is 
 export const isPagingOperand = (o: string): o is PagingOperand => /(-|\+)/.test(o);
 export const isCmpOperand = (o: string): o is CmpOperand => /(>=|<=|>|<)/.test(o);
 
-type AnyPayloadMember = ParsedGetter | ParsedSetter | ParsedQueryOperand | ParsedImport;
+type AnyPayloadMember = ParsedGetter | ParsedSetter | ParsedQueryOperand;
 type AnyPayloadMemberStandalone = Omit<AnyPayloadMember, "gid">;
 
 export const isParsedGetter = (o: AnyPayloadMemberStandalone): o is Omit<ParsedGetter, "gid"> =>
   o.action.order === "get";
-export const isParsedImport = (o: AnyPayloadMemberStandalone): o is Omit<ParsedImport, "gid"> =>
-  o.action.order === "import";
 export const isParsedQueryOperand = (
   o: AnyPayloadMemberStandalone,
 ): o is Omit<ParsedQueryOperand, "gid"> => o.action.order === "query";
@@ -158,15 +147,6 @@ interface ParsedSuccess {
 }
 
 export type KS<K extends keyof TS = keyof TS> = [K, SettingKeyFor<K> | undefined];
-
-export interface ParsedImport extends Omit<ParsedSuccess, "entity"> {
-  action: {
-    order: "import";
-    key: "level:xp" | "level:rewards";
-    specifier: "MEE6" | `${keyof Omit<typeof Supported, "MEE6">}:${string}`;
-    operand: "m" | "o" | "c";
-  };
-}
 
 export interface ParsedGetter<K extends keyof TS = keyof TS> extends Omit<ParsedSuccess, "entity"> {
   action: {
@@ -258,24 +238,32 @@ export interface ParsedQueryOperand extends Omit<ParsedSuccess, "entity"> {
 }
 
 export interface InterkoraPayload extends ParsedSuccess {
+  error: false;
   actualPayload: {
     getters: ParsedGetter[];
     setters: ParsedSetter[];
-    imports: ParsedImport[];
     queries: ParsedQueryOperand[];
   };
 }
 export interface InterkoraPayloadIssue extends ParsedSuccess {
+  error: true;
   effectiveStack: string;
   effectiveName: ERROR_CODE;
   member?: AnyPayloadMember;
   errorMessage?: string;
 }
 
-async function runGetter(getter: ParsedGetter, client: Client): Promise<string> {
+async function runGetter(
+  getter: ParsedGetter,
+  client: Client,
+): Promise<[SupportedRetrievalFormats, string]> {
   const guildId = getter.gid;
-  const Stringify: (data: unknown) => string = (data: unknown) =>
-    getter.action.format === "json" ? JSON.stringify(data) : Bun.YAML.stringify(data);
+  const Stringify: (data: unknown) => [SupportedRetrievalFormats, string] = (data: unknown) => {
+    return [
+      getter.action.format,
+      getter.action.format === "json" ? JSON.stringify(data) : Bun.YAML.stringify(data),
+    ];
+  };
 
   if (getter.action.key === "settings") {
     if (!getter.action.specifier) throw new Error("No specifier provided.");
@@ -393,7 +381,7 @@ export async function requestInterkora(
 
   await addRequestor(message.guildId, entity.userId, entityType);
   const channel = await safeAlertChannel(message.guild, true);
-  const reason = message.content.replace("s!request", "").trim();
+  const reason = message.content.replace("soko$request", "").trim();
   const requestContainer = new ContainerBuilder();
   const start = [
     new TextDisplayBuilder().setContent(
@@ -421,7 +409,7 @@ export async function requestInterkora(
     .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
     .addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
-        `\n✅ Authorize this by typing \`s!query set-whitelisted ${message.author.id} ${message.webhookId ? "u" : "h"}\`, or with the button below.\n❌ Deny this by doing nothing. Note they may request it again.\n\n🛡️ After allowing, deny it if desired by running \`s!query reset-whitelisted ${message.author.id} ${message.webhookId ? "u" : "h"}\`.\n\nAll these things can also be done from PSE, access it with \`/settings interkora\`.\nDoes any of this give you doubts? Give \`/help interkora\` a quick read.`,
+        `\n✅ Authorize this by typing \`soko$query set-whitelisted ${message.author.id} ${message.webhookId ? "u" : "h"}\`, or with the button below.\n❌ Deny this by doing nothing. Note they may request it again.\n\n🛡️ After allowing, deny it if desired by running \`s!query reset-whitelisted ${message.author.id} ${message.webhookId ? "u" : "h"}\`.\n\nAll these things can also be done from PSE, access it with \`/settings interkora\`.\nDoes any of this give you doubts? Give \`/help interkora\` a quick read.`,
       ),
     )
     .addSeparatorComponents(new SeparatorBuilder().setDivider(false))
@@ -451,27 +439,6 @@ export async function requestInterkora(
     await addWhitelist(message.guildId, userId, targetList);
   });
   return;
-}
-
-async function runImport(o: ParsedImport): Promise<string> {
-  const [bot, key] = o.action.specifier.split(":", 2) as [
-    keyof typeof Supported,
-    string | undefined,
-  ];
-
-  if (!key && bot != "MEE6") throw new InterkoraError("API key expected, nothing given");
-
-  if (bot != "MEE6" && o.action.key === "level:rewards")
-    throw new InterkoraError(`${bot} doesn’t support level rewards`);
-
-  const leveler = buildLeveler(o.gid, key, bot);
-
-  const content =
-    o.action.key === "level:xp"
-      ? await leveler.GetLeaderboard(Supported[bot])
-      : await leveler.GetRewards(as<SupportedAndRewarded>(Supported[bot]));
-
-  return o.action.operand === "c" ? codeBlock("yaml", Bun.YAML.stringify(content)) : "TODO";
 }
 
 async function runQuery(out: ParsedQueryOperand): Promise<string> {
@@ -582,12 +549,14 @@ export async function resolveEntity(
 
   if (id === guild.ownerId) effectivePermissionGrant = "o";
 
+  const registration = await getRegistration(id);
+
   const effectivePermissions =
     effectivePermissionGrant === "o" || effectivePermissionGrant === "a"
       ? "rwx"
       : (effectivePermissionGrant === "u"
         ? "/"
-        : await getEntityPermissions(guild.id, id));
+        : (registration?.payload.requestedPermissions ?? "/"));
 
   return {
     avatarURL,
@@ -599,15 +568,11 @@ export async function resolveEntity(
   };
 }
 
-const isIssue = (
-  payload: InterkoraPayload | InterkoraPayloadIssue,
-): payload is InterkoraPayloadIssue => Object.hasOwn(payload, "effective");
-
-async function run<P extends AnyPayloadMember>(
+async function run<P extends AnyPayloadMember, T>(
   m: P[],
   client: Client,
-  runner: (t: P, client: Client) => Promise<string>,
-): Promise<string[]> {
+  runner: (t: P, client: Client) => Promise<T>,
+): Promise<T[]> {
   const final = [];
   for (const o of m) {
     const out = await runner(o, client);
@@ -626,11 +591,10 @@ const catcher = (error: unknown): InterkoraError => {
 function isClean(
   outputs: [
     InterkoraError | string[],
-    InterkoraError | string[],
-    InterkoraError | string[],
+    InterkoraError | [SupportedRetrievalFormats, string][],
     InterkoraError | string[],
   ],
-): outputs is [string[], string[], string[], string[]] {
+): outputs is [string[], [SupportedRetrievalFormats, string][], string[]] {
   return outputs.every(o => !(o instanceof InterkoraError));
 }
 const seqSzError = (): { ok: false; errorText: string } => {
@@ -647,26 +611,22 @@ const seqSzError = (): { ok: false; errorText: string } => {
  * @async
  */
 export async function interkora(
-  payload: InterkoraPayload | InterkoraPayloadIssue,
+  payload: InterkoraPayload,
   client: Client,
 ): Promise<
   | {
       ok: false;
       errorText: string;
     }
-  | ({
+  | {
       ok: true;
-    } & Record<`${"getter" | "setter" | "import" | "query"}Output`, string[]>)
+      getterOutput: [SupportedRetrievalFormats, string][];
+      setterOutput: string[];
+      queryOutput: string[];
+    }
 > {
-  if (isIssue(payload))
-    return {
-      ok: false,
-      errorText: "67",
-    };
-
   if (
     payload.actualPayload.queries.length > 10 ||
-    payload.actualPayload.imports.length > 10 ||
     payload.actualPayload.getters.length > 10 ||
     payload.actualPayload.setters.length > 10
   )
@@ -674,7 +634,6 @@ export async function interkora(
 
   const outputs = await Promise.all([
     run(payload.actualPayload.queries, client, runQuery).catch(catcher),
-    run(payload.actualPayload.imports, client, runImport).catch(catcher),
     run(payload.actualPayload.getters, client, runGetter).catch(catcher),
     run(payload.actualPayload.setters, client, runSetter).catch(catcher),
   ]);
@@ -683,16 +642,13 @@ export async function interkora(
     return {
       ok: true,
       queryOutput: outputs[0],
-      importOutput: outputs[1],
-      getterOutput: outputs[2],
-      setterOutput: outputs[3],
+      getterOutput: outputs[1],
+      setterOutput: outputs[2],
     };
 
-  // let sharedStack = "";
   let sharedMessages = "";
   for (const whatever of outputs) {
     if (!(whatever instanceof InterkoraError)) continue;
-    // sharedStack += whatever.effectiveStack;
     sharedMessages += whatever.message;
   }
   return {

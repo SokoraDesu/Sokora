@@ -18,12 +18,12 @@ CREATE TABLE IF NOT EXISTS leveling (
 );
 
 CREATE TABLE IF NOT EXISTS moderation (
-  guild_id TEXT,
-  user_id TEXT,
-  type TEXT,
+  guild_id TEXT NOT NULL,
+  target_id TEXT,
+  type TEXT NOT NULL,
   moderator_id TEXT,
   reason TEXT,
-  id INTEGER,
+  id INTEGER NOT NULL,
   timestamp TIMESTAMP,
   expires_at TIMESTAMP
 );
@@ -56,6 +56,15 @@ CREATE TABLE IF NOT EXISTS itk_requestors (
   entity_id TEXT NOT NULL,
   entity_type TEXT NOT NULL,
   timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS itk_registrations (
+    entity_id TEXT NOT NULL,
+    payload JSONB NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    -- todo: review how safe it is to leave this here
+    token TEXT NOT NULL
 );
 
 DO $$

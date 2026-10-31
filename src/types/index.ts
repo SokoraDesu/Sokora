@@ -172,25 +172,7 @@ export const enum ModErrorCode {
   CantModerateSelf,
 }
 
-export type ModError =
-  | {
-      code: ModErrorCode.MissingPermission;
-      permissions: (keyof typeof PermissionFlagsBits)[];
-    }
-  | {
-      code: Exclude<ModErrorCode, ModErrorCode.MissingPermission>;
-    };
-
-export function isModError(error: unknown): error is ModError {
-  return (
-    error != null &&
-    typeof error == "object" &&
-    Object.hasOwn(error, "code") &&
-    !Object.hasOwn(error, "url")
-  );
-}
-
-export function isModErroryResult(error: unknown): error is ModActionResult {
+export function isModError(error: unknown): error is ModActionResult & { error: true } {
   return (
     error != null &&
     typeof error == "object" &&
@@ -200,11 +182,32 @@ export function isModErroryResult(error: unknown): error is ModActionResult {
 }
 
 export type ModActionResult = ModActionPayload & {
-  error: null | ModError | Error;
+  error:
+    | null
+    | Error
+    | {
+        code: ModErrorCode.MissingPermission;
+        permissions: (keyof typeof PermissionFlagsBits)[];
+      }
+    | {
+        code: Exclude<ModErrorCode, ModErrorCode.MissingPermission>;
+      };
   caseId: number;
   previousCaseId?: number;
   title: string;
   reason: string | null;
+};
+
+export type ModActionError = ModActionResult & {
+  error:
+    | Error
+    | {
+        code: ModErrorCode.MissingPermission;
+        permissions: (keyof typeof PermissionFlagsBits)[];
+      }
+    | {
+        code: Exclude<ModErrorCode, ModErrorCode.MissingPermission>;
+      };
 };
 
 export type ModErrorOptions = Partial<ModActionPayload> & {
@@ -309,6 +312,7 @@ export type SqlType<T extends FieldData> = {
   ROLE: string;
   mROLE: Maybe<string>;
   SELECT: string;
+  // TODO: review this?
   OBJECT: string;
 }[T];
 

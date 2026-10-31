@@ -1,6 +1,6 @@
 import { getSetting, getSettingDef } from "database/settings";
 import { type SettingSettableValue, isSettingValueValid } from "types";
-import { codeBlock } from "discord.js";
+import { AttachmentBuilder, codeBlock, type MessageCreateOptions } from "discord.js";
 import { kominator } from "utils/kominator";
 import { mention, unmention } from "utils/mention";
 import type { Mention, SafeMessage } from "types";
@@ -8,20 +8,17 @@ import {
   InterkoraError,
   assertClause,
   assertGetter,
-  assertImporter,
   assertKey,
   assertOrder,
   assertSubKey,
   isCmpOperand,
   isPagingOperand,
   type ParsedGetter,
-  type ParsedImport,
   type ParsedQueryOperand,
   type ParsedSetter,
   type SupportedRetrievalFormats,
   type KS,
   isParsedGetter,
-  isParsedImport,
   isParsedQueryOperand,
   requestInterkora,
   resolveEntity,
@@ -91,7 +88,7 @@ function parseSokoraML(rows: string[]): unknown {
 
 function loop(
   content: string,
-): Omit<ParsedGetter | ParsedSetter | ParsedQueryOperand | ParsedImport, "gid" | "entity"> {
+): Omit<ParsedGetter | ParsedSetter | ParsedQueryOperand, "gid" | "entity"> {
   const [firstLine, ...restOfLines] = content.split("\n");
   const [order, key, subKey, preValue] = firstLine.trim().replaceAll(/\s+/g, " ").split(" ", 4);
 
@@ -148,30 +145,6 @@ function loop(
         key,
         specifier: subKey,
         operand: preValue as "u" | "h",
-      },
-    };
-  }
-
-  if (order === "import") {
-    assertImporter(key);
-
-    if (!["m", "o", "c"].includes(subKey))
-      throw new InterkoraError('operand is not any of "m","o","c"', "InvalidSeq");
-
-    const [pV1, pV2] = (preValue ?? "").split(":", 2);
-    if (!pV1 || !pV2) throw new InterkoraError("missing arguments", "InvalidSeq");
-    if (!["MEE6", "TATSU", "AMARI", "LURKR"].includes(pV1))
-      throw new InterkoraError(
-        `${pV1} is not valid, use any of "MEE6", "TATSU", "AMARI", "LURKR" (all uppercase)`,
-        "InvalidSeq",
-      );
-
-    return {
-      action: {
-        order: "import",
-        key: key,
-        operand: subKey as "m",
-        specifier: preValue as "MEE6",
       },
     };
   }
@@ -368,10 +341,11 @@ export async function buildPayloadFromMessage(
 
   const effectiveStack = ["@msg#" + entity.userId];
 
-  if (message.content.startsWith("soko!request")) {
+  if (message.content.startsWith("soko$request")) {
     await requestInterkora(isEnabled, isAllowed, entity, message);
-    effectiveStack.push(`${Temporal.Now.instant().toString()} Requested`);
+    effectiveStack.push(`@Requested`);
     return {
+      error: true,
       entity,
       gid: message.guildId,
       effectiveStack: effectiveStack.join("\n"),
@@ -380,8 +354,9 @@ export async function buildPayloadFromMessage(
   }
 
   if (!isEnabled) {
-    effectiveStack.push(`${Temporal.Now.instant().toString()} Disabled`);
+    effectiveStack.push(`@Disabled`);
     return {
+      error: true,
       entity,
       gid: message.guildId,
       effectiveName: "Disabled",
@@ -391,8 +366,9 @@ export async function buildPayloadFromMessage(
   }
 
   if (!isAllowed) {
-    effectiveStack.push(`${Temporal.Now.instant().toString()} NoPermission`);
+    effectiveStack.push(`@NoPermission`);
     return {
+      error: true,
       entity,
       gid: message.guildId,
       effectiveStack: effectiveStack.join("\n"),
@@ -403,19 +379,19 @@ export async function buildPayloadFromMessage(
 
   let queryGuildId = message.guildId;
   const payload: InterkoraPayload = {
+    error: false,
     entity,
     gid: message.guildId,
     actualPayload: {
       getters: [],
       setters: [],
-      imports: [],
       queries: [],
     },
   };
 
   const gidRegex = /gid:\d+/gm;
 
-  for (const [index, _c] of message.content.split("soko!").slice(1).entries())
+  for (const [index, _c] of message.content.split("soko$").slice(1).entries())
     try {
       const gid = gidRegex.exec(_c);
       const gidParameter = gid?.[0];
@@ -425,13 +401,12 @@ export async function buildPayloadFromMessage(
 
       const out = loop(c);
 
-      effectiveStack.push(
-        `${Temporal.Now.instant().toString()} Order#${index}:${out.action.order}`,
-      );
+      effectiveStack.push(`@Order#${index}:${out.action.order}`);
 
       if (isParsedQueryOperand(out)) {
         if (gidParameter)
           return {
+            error: true,
             gid: queryGuildId,
             errorMessage: "Query operand had a GID param for whatever reason.",
             entity,
@@ -448,6 +423,7 @@ export async function buildPayloadFromMessage(
           const isItkEnabled = await getSetting(newGuildId, "interkora", "enabled");
           if (!isItkEnabled)
             return {
+              error: true,
               gid: queryGuildId,
               errorMessage: `Guild ${newGuildId} does not exist OR does not have Interkora enabled.`,
               entity,
@@ -464,12 +440,7 @@ export async function buildPayloadFromMessage(
         });
       }
 
-      if (isParsedImport(out))
-        payload.actualPayload.imports.push({
-          ...out,
-          gid: queryGuildId,
-        });
-      else if (isParsedGetter(out))
+      if (isParsedGetter(out))
         payload.actualPayload.getters.push({
           ...out,
           gid: queryGuildId,
@@ -482,6 +453,7 @@ export async function buildPayloadFromMessage(
     } catch (error) {
       if (error instanceof InterkoraError)
         return {
+          error: true,
           effectiveName: error.effectiveName,
           effectiveStack: effectiveStack.join("\n"),
           gid: queryGuildId,
@@ -494,9 +466,9 @@ export async function buildPayloadFromMessage(
 
   return payload.actualPayload.getters.length > 10 ||
     payload.actualPayload.setters.length > 10 ||
-    payload.actualPayload.queries.length > 10 ||
-    payload.actualPayload.imports.length > 10
+    payload.actualPayload.queries.length > 10
     ? {
+        error: true,
         effectiveName: "SeqSz",
         effectiveStack: effectiveStack.join("\n"),
         gid: message.guildId,
@@ -506,13 +478,41 @@ export async function buildPayloadFromMessage(
     : payload;
 }
 
-// TODO:  this is obviously temp.
-export async function buildMessageFromPayload(
+export function buildMessageFromPayload(
   payload: Awaited<ReturnType<typeof interkora>>,
-): Promise<string> {
-  console.log(payload);
-  await fetch("https://sokora.org/");
-  return "buildMessageFromPayload placeholder";
+): MessageCreateOptions {
+  if (!payload.ok) return { content: payload.errorText };
+
+  const files = payload.getterOutput.map((s, index) =>
+    new AttachmentBuilder(Buffer.from(s[1])).setName(`${index}.${s[0]}`),
+  );
+  // TODO: check how this even looks
+  const content = payload.setterOutput.join("\n");
+
+  return {
+    content,
+    files,
+  };
+}
+
+export function buildMessageFromPayloadIssue(payload: InterkoraPayloadIssue): MessageCreateOptions {
+  const files = [
+    new AttachmentBuilder(Buffer.from(payload.effectiveStack)).setName("stacktrace.log"),
+    new AttachmentBuilder(
+      Buffer.from(
+        JSON.stringify({
+          gid: payload.gid,
+          resolvedEntity: payload.entity,
+          member: payload.member,
+        }),
+      ),
+    ),
+  ];
+
+  return {
+    content: `${payload.effectiveName}:\n${payload.errorMessage ?? "(No message)"}`,
+    files,
+  };
 }
 
 function isEntityAllowed(argument0: {
@@ -527,7 +527,7 @@ function isEntityAllowed(argument0: {
 
 /*
 IDEA for compactness
-s!set leveling xp_rate \
+soko$set leveling xp_rate \
 base 2
 multiplier 1.5
 cap 1000

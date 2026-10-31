@@ -22,6 +22,8 @@ async function method(
 
   const error = await getModError(["KickMembers"], {
     target,
+    guild,
+    moderator,
     action: "KICK",
     errorOptions: { allErrors: true, botError: true, outsideError: true },
   });

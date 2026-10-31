@@ -37,6 +37,9 @@ async function method(
 
   const error = await getModError(["ManageMessages"], {
     channel,
+    guild: channel.guild,
+    moderator,
+    action: "CLEAR",
     errorOptions: { allErrors: false, botError: true, channelError: true },
   });
 

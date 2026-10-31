@@ -592,6 +592,7 @@ export async function getSetting<K extends keyof TS, S extends SettingKeyFor<K>>
   setting: S,
   id?: GuidParameter<Setting<K, S>>,
 ): Promise<ParameterReturnType<K, S, SettingReturnType<K, S>>>;
+
 /**
  * @param entityID ID of the guild/user to touch settings for.
  * @param key Key, e.g. `leveling`, `moderation`.
@@ -682,6 +683,7 @@ export async function setSetting<K extends keyof TS, S extends SettingKeyFor<K>>
       `Attempted to set ${key}.${setting} (WHICH IS ITERABLE!) to something that is NOT a JS Array.`,
     );
 
+  // TODO: ???
   const set: unknown = isArray && !isObject ? dekominator(value) : value;
   const keySetting = `${key}.${setting}`;
   const [table, ent] = clause(db, key);
