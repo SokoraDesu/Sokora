@@ -12,62 +12,39 @@ All features take a single object with named arguments. These obviously differ f
 
 ## Return types
 
-We try to keep feature return types consisent, however this doesn’t mean identical as that’s simply not viable.
+Features return the `FeatureOutput<S, F>` type.
 
-There’s three shapes to expect, always considering that `return type = Success | Failure`:
+`S` is whatever the feature promised you, inspect that yourself. `F` is, by default, this:
 
 SHAPE A:
 
 ```ts
-type Success = {
-  success: true;
-  feature: string;
-  out: ... // this one depends on the feature
-}
-type Failure = {
-  success: false;
-  feature: string;
-  out: {
-    title: string;
-    reason: string;
-  } // yes, you can just pass { ...failure.out } to errorEmbed()
-}
-
-// use literal value of `success` to tell types of "out" apart
+type F = {
+  title: string;
+  reason: string;
+} // yes, you can just pass { ...failure.out } to errorEmbed()
 ```
 
-SHAPE B:
+Note that this is actually wrapped in a result object:
 
 ```ts
-type Success = {
+type FeatureOutput<S, F = {
+  title: string;
+  reason: string;
+}> = {
   success: true;
   feature: string;
-  out: ContainerBuilder; // pre-made, just reply with it no matter what
-};
-type Failure = {
+  out: S;
+} | {
   success: false;
   feature: string;
-  out: {
-    title: string;
-    reason: string;
-  }; // yes, you can just pass { ...failure.out } to errorEmbed()
+  reason: "exception" | "user";
+  out: F;
 };
 
-// use literal value of `success` to tell types of "out" apart
+// use literal value of `success` to discriminate the type of "out"
 ```
 
-SHAPE C:
+As you’d expect, `reason` tells you if the error is a user/setting/input/whatever error that should be shown to them, or an exception that should also be reported to us.
 
-```ts
-type Success = void;
-type Failure = void;
-```
-
-Shape A is for _Interkorable_ features, as it’s required to always return neutral data that can be used to build both a Container or an HTTP response.
-
-Shape B and C are for features that only exist on Discord. B is preferred, however features that involve collectors and other strange patterns where there’s not just one final success embed will return `void` to signal that the view logic got trapped inside the controller so as to keep things working.
-
-Shape C features will respond to the interaction for you, so just end the command handler with `return [await] feature()`.
-
-> [!TIP]
-> Separation of duties is still achieved in Shape C, it’s just not as pretty. View-related functions are declared before controller-related ones, then used accordingly.
+Features should be _Interkorable_ features, as it’s required to always return neutral data that can be used to build both a Container or an HTTP response. This doesn’t mean that all features _will_ be used by Interkora, some features only exist on Discord, yet they’re here.

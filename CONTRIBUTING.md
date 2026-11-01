@@ -67,9 +67,9 @@ If you prefer to run the Docker container, run `docker compose up --build --watc
 
 ## Contribution guide
 
-A few, simple guidelines onto how to contribute to Sokora. These are more than enough if you’re aiming at a single pull request helping with something specific; more determined developers might want the much more complete [developer docsite instead](https://docs.sokora.org/dev).
+A few, simple guidelines onto how to contribute to Sokora. These guides, together with a few other `README.md` files you’ll find in some places, are more than enough if you’re aiming at a single pull request helping with something specific. However, more determined developers will want the much more complete [developer docsite instead](https://docs.sokora.org/dev).
 
-Some things you should keep in mind at all times.
+### Some things you should keep in mind at all times
 
 - Ensure to run the static formatter and analyzer (via `bun run ql`) before committing. It's relatively strict, fix any issues it reports and resort to ignore comments only if absolutely necessary.
 - Remember to commit changes to `bun.lock` file.

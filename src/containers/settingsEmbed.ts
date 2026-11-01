@@ -15,13 +15,6 @@
  * Under doubt, distrust anything the compiler (or heck, the typecasts/comments) tell you.
  *
  * [^1]: Good luck.
- *
- * TODO:/NOTE: as part of the MVC rewrite-ish thing I want to revisit this idiot and rewrite it
- * maybe not to the point its an MVC-compliant masterpiece, i can make an exception on that
- * but yes to the point where this comment is unneed
- * like imagine us saying on our website we’re a "BEAUTIFULLY CRAFTED" bot
- * then open the source code and see a 17-line warning about how bad the code is
- * (ofc i’ll remove this comment from Git history before opening the PR, in case you’re reading this for whatev reason)
  */
 
 import {

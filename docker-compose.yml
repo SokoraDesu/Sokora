@@ -34,7 +34,7 @@ services:
       POSTGRES_PASSWORD: 1234
       POSTGRES_DB: sokora-db
     ports:
-      - "5433:5432"
+      - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
