@@ -87,7 +87,7 @@ async function burnThePotato(
 export async function run(interaction: ChatInputCommandInteraction): Promise<void> {
   assertInteraction(interaction);
 
-  if (!interaction.channel.isSendable()) return; // TODO: maybe move to assert?
+  if (!interaction.channel.isSendable()) return; // IDEA: maybe move to assert?
   const settings = await getSetting(interaction.guildId, "games", "hot_potato");
 
   if (!settings?.enabled) {

@@ -2,9 +2,9 @@ import type { Mention, Mentionable } from "types";
 
 /**
  * Handles role mentions, channel mentions, timestamps, and more.
- * @param {string | number} who Who to mention? If it's a timestamp, pass `Date.now()`.
- * @param {string} type What to mention?
- * @returns {string} A `<MENTION>` string.
+ * @param who - Who to mention? If it's a timestamp, pass the current epoch.
+ * @param type - What to mention?
+ * @returns A `<MENTION>` string.
  */
 export function mention(who: string | number, type: Mentionable): string {
   switch (type) {
@@ -41,8 +41,8 @@ export function mention(who: string | number, type: Mentionable): string {
 /**
  * Reverses mentions, telling you the type and giving you the value.
  *
- * @param mnt Mention
- * @returns {Mention | undefined} `undefined` if not a valid mention, `Mention` otherwise.
+ * @param mnt - Mention
+ * @returns `undefined` if not a valid mention, `Mention` otherwise.
  */
 export function unmention(mnt: string): undefined | Mention {
   const out = /<(#|@|@&|t:)(\d+)(:D|:d|:S)?>/.exec(mnt);

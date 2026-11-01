@@ -13,7 +13,7 @@ const changelog = await Bun.file("./CHANGELOG.md").text();
 
 /**
  * Gets the changelog of a specified Sokora version (directly from CHANGELOG.md).
- * @param ver Version to get changelog for.
+ * @param ver - Version to get changelog for.
  * @returns An object with changelog data.
  */
 export function getChangelog(version: string): TParsedChangelog {

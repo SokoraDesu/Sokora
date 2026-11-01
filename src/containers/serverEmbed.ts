@@ -21,7 +21,7 @@ import { buildLogEmbed } from "./logEmbed";
 
 /**
  * Gives you a CONTAINER containing information about the guild.
- * @param options Options of the container.
+ * @param options - Options of the container.
  * @returns Container that contains the guild info.
  * TODO: check if i can MVC/improve/refactor this or not
  */

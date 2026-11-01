@@ -25,7 +25,7 @@ async function method(
     target,
     guild,
     moderator,
-    // TODO: add delwarn or document that warn is used for delwarn too, either of those
+    // TODO(v0.4)(@ZakaHaceCosas): document that warn is used for delwarn too, (after adding a moderator’s docsite)
     action: "WARN",
     errorOptions: { allErrors: true, botError: false },
   });

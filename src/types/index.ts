@@ -39,7 +39,7 @@ export interface Mention {
 
 /**
  * Force TypeScript to recognize a variable as a certain type *in place*. Useful for polymorphic const variables, for example.
- * @param _v The variable you want to force the type of
+ * @param _v - The variable you want to force the type of
  * @returns The variable, now of the type specified in `<T>`
  */
 // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters, @typescript-eslint/no-explicit-any
@@ -61,9 +61,9 @@ export type SafeChatInteraction = ChatInputCommandInteraction & {
 /**
  * Type-checks that the interaction is usable and **properly** tells the compiler about it.
  *
- * @param {ChatInputCommandInteraction} interaction Any command interaction to check for.
+ * @param interaction - Any command interaction to check for.
  * @returns True if it is usable, false otherwise.
- * @throws {Error} If it’s unsafe, it throws. Handle accordingly.
+ * @throws If it’s unsafe, it throws. Handle accordingly.
  */
 export function assertInteraction(
   interaction: ChatInputCommandInteraction,
@@ -91,14 +91,12 @@ export type SafeMessage = Message & {
 /**
  * Type-checks that the message is usable and **properly** tells the compiler about it.
  *
- * You’re expected to not use this directly, though. `safeMessage()` calls this internally.
+ * @remarks You’re expected to not use this directly. `safeMessage()` calls this internally.
  *
- * **Throws if the message is a DM / not in a guild.**
- *
- * @see `safeMessage` from safeThings.
- * @param {Message} message Any type of message to check for.
+ * @see {@link safeMessage} from safeThings.
+ * @param message - Any type of message to check for.
  * @returns True if it is usable, false otherwise.
- * @throws {Error} If it’s unsafe, it throws. Handle accordingly.
+ * @throws If it’s unsafe (**includes the message being a DM**), it throws. Handle accordingly.
  */
 export function assertMessage(message: Message): asserts message is SafeMessage {
   if (message.partial)
@@ -134,7 +132,7 @@ export interface GHCommit {
 
 /// MODERATION TYPES
 
-// todo: review shape
+// IDEA: review shape
 export type ModActionPayload = {
   guild: Guild;
   moderator: User;
@@ -283,7 +281,7 @@ export const enum PermissionTableValue {
 }
 
 export type PermissionTable = Record<
-  "settings" | "moderation" | "leveling" | "news" | "starboard",
+  "settings" | "moderation" | "leaderboard" | "news" | "starboard",
   PermissionTableValue
 >;
 
@@ -357,7 +355,7 @@ export type SqlType<T extends FieldData> = {
   ROLE: string;
   mROLE: Maybe<string>;
   SELECT: string;
-  // TODO: review this?
+  // IDEA: review this?
   OBJECT: string;
 }[T];
 
@@ -530,8 +528,8 @@ export type SettingsGlueFix1<
  *
  * Also, when validating iterable settings, it expects an array. If validating a single entry, wrap it in `[]` so it works.
  *
- * @param value Value to validate
- * @param def Definition to validate against.
+ * @param value - Value to validate
+ * @param def - Definition to validate against.
  * @returns `true` if everything is valid, false otherwise.
  */
 export function isSettingValueValid<K extends keyof TS, S extends SettingKeyFor<K>>(

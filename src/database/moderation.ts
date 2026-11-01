@@ -20,8 +20,13 @@ export type Case = Satisfies<
   }
 >;
 
-export type ModType =
-  "MUTE" | "UNMUTE" | "WARN" | "KICK" | "BAN" | "UNBAN" | "LOCK" | "UNLOCK" | "SLOWDOWN" | "CLEAR";
+export type ModTypeChannelTimeless = "UNLOCK" | "CLEAR";
+export type ModTypeChannelTimefull = "LOCK" | "SLOWDOWN";
+export type ModTypeChannel = ModTypeChannelTimefull | ModTypeChannelTimeless;
+export type ModTypeUserTimeless = "UNMUTE" | "WARN" | "KICK" | "UNBAN";
+export type ModTypeUserTimefull = "MUTE" | "BAN";
+export type ModTypeUser = ModTypeUserTimefull | ModTypeUserTimeless;
+export type ModType = ModTypeChannel | ModTypeUser;
 
 export async function createCase(
   guild: Guild,

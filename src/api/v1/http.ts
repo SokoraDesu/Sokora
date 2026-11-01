@@ -134,7 +134,7 @@ export const server = (client: Client): ReturnType<typeof Bun.serve> => {
           json: {
             id: guild.id,
             name: guild.name,
-            isUsable: true, // TODO: make false if interkora is disabled AND not add the thing below
+            isUsable: true, // TODO(v0.4.1): make false if interkora is disabled AND not add the thing below
             _links: {
               self: {
                 href: path(request),

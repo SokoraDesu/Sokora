@@ -22,6 +22,8 @@ import {
   type Guild,
   type ButtonInteraction,
   GuildMember,
+  type User,
+  type Channel,
 } from "discord.js";
 import {
   type SettingReturnType,
@@ -29,12 +31,21 @@ import {
   type EntityPermissions,
   PermissionGrants,
   PermissionOrigins,
+  PermissionTableValue,
 } from "types";
 import { mention } from "utils/mention";
 import { colorize, Sokolors } from "utils/colorize";
 import { safeAlertChannel, safeGuild, safeMember } from "utils/safeThings";
 import type { Mention, ResolvedEntity, SafeMessage } from "types";
-import { getCase, listUserCases, listGuildCases } from "database/moderation";
+import {
+  getCase,
+  listUserCases,
+  listGuildCases,
+  type ModTypeUserTimeless,
+  type ModTypeUserTimefull,
+  type ModTypeChannelTimeless,
+  type ModTypeChannelTimefull,
+} from "database/moderation";
 import { fetchServerboard, getServerboardEntry } from "database/serverboard";
 import { getGuildLeaderboard, getUserXp } from "database/leveling";
 import { getLatestNews, getNews } from "database/news";
@@ -46,6 +57,7 @@ import {
   getRegistration,
 } from "database/interkora";
 import { client } from "botfile";
+import { warn } from "features/mod/warn";
 
 export const COMMANDS = ["set", "reset", "drop", "get", "query"] as const;
 export type COMMAND = (typeof COMMANDS)[number];
@@ -127,11 +139,13 @@ export function assertSubKey<K extends keyof TS>(k: K, s: string): asserts s is 
 export const isPagingOperand = (o: string): o is PagingOperand => /(-|\+)/.test(o);
 export const isCmpOperand = (o: string): o is CmpOperand => /(>=|<=|>|<)/.test(o);
 
-type AnyPayloadMember = ParsedGetter | ParsedSetter | ParsedQueryOperand;
+type AnyPayloadMember = ParsedGetter | ParsedSetter | ParsedQueryOperand | ParsedModder;
 type AnyPayloadMemberStandalone = Omit<AnyPayloadMember, "gid">;
 
 export const isParsedGetter = (o: AnyPayloadMemberStandalone): o is Omit<ParsedGetter, "gid"> =>
   o.action.order === "get";
+export const isParsedModder = (o: AnyPayloadMemberStandalone): o is Omit<ParsedModder, "gid"> =>
+  o.action.order === "mod";
 export const isParsedQueryOperand = (
   o: AnyPayloadMemberStandalone,
 ): o is Omit<ParsedQueryOperand, "gid"> => o.action.order === "query";
@@ -153,6 +167,38 @@ interface ParsedSuccess {
 }
 
 export type KS<K extends keyof TS = keyof TS> = [K, SettingKeyFor<K> | undefined];
+
+export interface ParsedModder extends Omit<ParsedSuccess, "entity"> {
+  action: {
+    order: "mod";
+    format: SupportedRetrievalFormats;
+    onBehalfOf: GuildMember;
+  } & (
+    | ({
+        operand: Channel;
+      } & (
+        | {
+            specifier: ModTypeChannelTimeless;
+          }
+        | {
+            specifier: ModTypeChannelTimefull;
+            timeMillisec?: number;
+          }
+      ))
+    | ({
+        operand: User;
+        suggestSilent: boolean;
+      } & (
+        | {
+            specifier: ModTypeUserTimeless;
+          }
+        | {
+            specifier: ModTypeUserTimefull;
+            timeMillisec?: number;
+          }
+      ))
+  );
+}
 
 export interface ParsedGetter<K extends keyof TS = keyof TS> extends Omit<ParsedSuccess, "entity"> {
   action: {
@@ -248,6 +294,7 @@ export interface InterkoraPayload extends ParsedSuccess {
   actualPayload: {
     getters: ParsedGetter[];
     setters: ParsedSetter[];
+    modders: ParsedModder[];
     queries: ParsedQueryOperand[];
   };
 }
@@ -259,10 +306,53 @@ export interface InterkoraPayloadIssue extends ParsedSuccess {
   errorMessage?: string;
 }
 
-async function runGetter(
-  getter: ParsedGetter,
-  client: Client,
-): Promise<[SupportedRetrievalFormats, string]> {
+async function runModder(modder: ParsedModder): Promise<[SupportedRetrievalFormats, string]> {
+  const Stringify: (data: unknown) => [SupportedRetrievalFormats, string] = (data: unknown) => {
+    return [
+      modder.action.format,
+      modder.action.format === "json" ? JSON.stringify(data) : Bun.YAML.stringify(data),
+    ];
+  };
+
+  let out;
+
+  // TODO(v0.4): this is lying, documentation says we *request* to run actions
+  // rather than running them outright, for now it's good for a placeholder
+  // but it shouldn't make it to 0.4
+  switch (modder.action.specifier) {
+    /* case "BAN": {
+     out = await ban({
+        moderator: modder.action.onBehalfOf.user,
+        isSilent: modder.action.suggestSilent,
+        "target": modder.action.operand,
+        "durationMillisec": modder.action.timeMillisec,
+        guild: modder.action.onBehalfOf.guild,
+        reason: `Automated via Interkora by.`,
+        delMessageSeconds: undefined
+      });
+      break;
+    } */
+
+    case "WARN": {
+      out = await warn({
+        moderator: modder.action.onBehalfOf.user,
+        isSilent: modder.action.suggestSilent,
+        target: modder.action.operand,
+        guild: modder.action.onBehalfOf.guild,
+        reason: `Automated via Interkora by (i have to pass entityId to runners).`,
+      });
+      break;
+    }
+
+    default: {
+      console.debug("TODO(v0.4): the rest");
+    }
+  }
+
+  return Stringify(out);
+}
+
+async function runGetter(getter: ParsedGetter): Promise<[SupportedRetrievalFormats, string]> {
   const guildId = getter.gid;
   const Stringify: (data: unknown) => [SupportedRetrievalFormats, string] = (data: unknown) => {
     return [
@@ -336,8 +426,8 @@ async function runGetter(
 
     // TODO: get user level too
     // which takes me to another task
-    // TODO: add more methods that use pure SQL instead of JS-side logic for getting things
-    // and maybe TODO: move pagination too from JS slicing to SQL limiting
+    // TODO(v0.5): add more methods that use pure SQL instead of JS-side logic for getting things
+    // and also move pagination too from JS slicing to SQL limiting
     return Stringify({
       xp,
     });
@@ -580,14 +670,22 @@ const catcher = (error: unknown): InterkoraError => {
 };
 
 function isClean(
+  // TODO(v0.4)(@ZakaHaceCosas): make this better for fucks sake
   outputs: [
     InterkoraError | string[],
     InterkoraError | [SupportedRetrievalFormats, string][],
     InterkoraError | string[],
+    InterkoraError | [SupportedRetrievalFormats, string][],
   ],
-): outputs is [string[], [SupportedRetrievalFormats, string][], string[]] {
+): outputs is [
+  string[],
+  [SupportedRetrievalFormats, string][],
+  string[],
+  [SupportedRetrievalFormats, string][],
+] {
   return outputs.every(o => !(o instanceof InterkoraError));
 }
+
 const seqSzError = (): { ok: false; errorText: string } => {
   return {
     ok: false,
@@ -596,10 +694,58 @@ const seqSzError = (): { ok: false; errorText: string } => {
 };
 
 /**
- * Runs Interkora for the given payload.
+ * Checks if an entity is actually allowed to do what it’s trying to do.
  *
- * @export
- * @async
+ * @remarks
+ * This isn’t currently async, but it’ll likely be (or add a parameter for you to give setting state).
+ *
+ * This is because, during testing, permission tables will be a block. You either add the integration with all permissions it asked for, or you do not add it. In the future however there’ll be permission settings, which we’ll have to read here.
+ *
+ * @param entity - Entity that’s running Interkora.
+ * @param order - Specific order to check.
+ * @returns True if it should proceed, false if no permission.
+ */
+export function isOrderAllowed(
+  entity: ResolvedEntity,
+  order: Omit<ParsedGetter | ParsedSetter | ParsedModder, "gid" | "entity">,
+): boolean {
+  if (entity.permissionOrigin === PermissionOrigins.None) return false;
+  if (
+    entity.permissionOrigin === PermissionOrigins.Admin ||
+    entity.isWhitelisted ||
+    entity.permissionOrigin === PermissionOrigins.Owner
+  )
+    return true;
+
+  if (entity.permissions === PermissionGrants.Nothing) return false;
+  if (entity.permissions === PermissionGrants.Everything) return true;
+  if (entity.permissions === PermissionGrants.ReadAll) return isParsedGetter(order);
+  if (entity.permissions === PermissionGrants.WriteAll)
+    return isParsedGetter(order) || isParsedSetter(order);
+
+  if (isParsedGetter(order)) {
+    // TODO(v0.4): review if serverboard should have a perm entry or not
+    // it is read only and its easy to gather data anyway, but ¯\_(ツ)_/¯
+    if (order.action.key === "serverboard") return true;
+    if (order.action.key === "cases")
+      return entity.permissions.moderation === PermissionTableValue.Disabled ? false : true;
+
+    return entity.permissions[order.action.key] === PermissionTableValue.Disabled ? false : true;
+  }
+
+  if (isParsedSetter(order)) {
+    if (order.action.key === "serverboard") return true;
+    return entity.permissions.settings === PermissionTableValue.Disabled ||
+      entity.permissions.settings === PermissionTableValue.ReadOnly
+      ? false
+      : true;
+  }
+
+  return entity.permissions.moderation === PermissionTableValue.ReadWrite;
+}
+
+/**
+ * Runs Interkora for the given payload.
  */
 export async function interkora(
   payload: InterkoraPayload,
@@ -614,12 +760,14 @@ export async function interkora(
       getterOutput: [SupportedRetrievalFormats, string][];
       setterOutput: string[];
       queryOutput: string[];
+      modderOutput: [SupportedRetrievalFormats, string][];
     }
 > {
   if (
     payload.actualPayload.queries.length > 10 ||
     payload.actualPayload.getters.length > 10 ||
-    payload.actualPayload.setters.length > 10
+    payload.actualPayload.setters.length > 10 ||
+    payload.actualPayload.modders.length > 10
   )
     return seqSzError();
 
@@ -627,6 +775,7 @@ export async function interkora(
     run(payload.actualPayload.queries, client, runQuery).catch(catcher),
     run(payload.actualPayload.getters, client, runGetter).catch(catcher),
     run(payload.actualPayload.setters, client, runSetter).catch(catcher),
+    run(payload.actualPayload.modders, client, runModder).catch(catcher),
   ]);
 
   if (isClean(outputs))
@@ -635,6 +784,7 @@ export async function interkora(
       queryOutput: outputs[0],
       getterOutput: outputs[1],
       setterOutput: outputs[2],
+      modderOutput: outputs[3],
     };
 
   let sharedMessages = "";

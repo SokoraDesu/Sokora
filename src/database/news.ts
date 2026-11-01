@@ -22,7 +22,7 @@ type Def = Satisfies<
   }
 >;
 
-// TODO: better figure out typing for database stuff
+// IDEA: better figure out typing for database stuff
 export type NewsPost = TypeOfDefinition<Def>;
 
 const sendQuery = async (
@@ -58,12 +58,14 @@ const deleteQuery = async (guildID: string, id: number, sql_: Bun.SQL = db): Pro
 
 export async function postNews(
   payload: Omit<TypeOfDefinition<Def>, "created_at" | "updated_at">,
-): Promise<void> {
-  await sendQuery({
+): Promise<NewsPost> {
+  const post = {
     ...payload,
     created_at: Temporal.Now.instant(),
     updated_at: undefined,
-  });
+  };
+  await sendQuery(post);
+  return post;
 }
 
 export async function getNews(guildID: string, id: number): Promise<TypeOfDefinition<Def> | null> {
@@ -79,31 +81,32 @@ export async function updateNews(
   body?: string,
   messageID?: string,
   imageURL?: string | null,
-): Promise<void> {
+): Promise<NewsPost> {
   const lastElement = await getNews(guildID, id);
   if (!lastElement)
     throw new Error(
       `Trying to update news with ID ${id} on GUILD ${guildID} failed because getNews(guildID, id) somehow returned null`,
     );
 
+  const updated = {
+    guild_id: lastElement.guild_id,
+    title: title ?? lastElement.title,
+    body: body ?? lastElement.body,
+    author_id: lastElement.author_id,
+    created_at: lastElement.created_at,
+    updated_at: Temporal.Now.instant(),
+    message_id: messageID ?? lastElement.message_id,
+    image_url: imageURL ?? lastElement.image_url,
+    id,
+    category_id: lastElement.category_id,
+  };
+
   await db.begin(async tx => {
     await deleteQuery(guildID, id, tx);
-    await sendQuery(
-      {
-        guild_id: lastElement.guild_id,
-        title: title ?? lastElement.title,
-        body: body ?? lastElement.body,
-        author_id: lastElement.author_id,
-        created_at: lastElement.created_at,
-        updated_at: Temporal.Now.instant(),
-        message_id: messageID ?? lastElement.message_id,
-        image_url: imageURL ?? lastElement.image_url,
-        id,
-        category_id: lastElement.category_id,
-      },
-      tx,
-    );
+    await sendQuery(updated, tx);
   });
+
+  return updated;
 }
 
 export async function deleteNews(guildID: string, id: number): Promise<void> {

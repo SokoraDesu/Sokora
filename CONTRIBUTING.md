@@ -74,7 +74,7 @@ Some things you should keep in mind at all times.
 - Ensure to run the static formatter and analyzer (via `bun run ql`) before committing. It's relatively strict, fix any issues it reports and resort to ignore comments only if absolutely necessary.
 - Remember to commit changes to `bun.lock` file.
 - Do not repeat yourself, at all. Code duplication creates problems. Extract.
-- Document via JSDoc anything that isn’t _actually_ self-explanatory and other developers will have to touch often (like utility functions or important parts of important files).
+- Document via TSDoc anything that isn’t _actually_ self-explanatory and other developers will have to touch often (like utility functions or important parts of important files).
 - Use the functions from `safeThings` instead of using `discord.js` provided methods whenever there’s one available.
 
 ### Coding guidelines

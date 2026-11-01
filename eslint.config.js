@@ -3,6 +3,7 @@ import unicorn from "eslint-plugin-unicorn";
 import { defineConfig, globalIgnores } from "eslint/config";
 import tseslint from "typescript-eslint";
 import { bracketlessNewline } from "./ql/bracketless-newline.ts";
+import tsdocPlugin from "eslint-plugin-tsdoc";
 
 export default defineConfig(
   globalIgnores(["eslint.config.js"]),
@@ -12,6 +13,7 @@ export default defineConfig(
   unicorn.configs.recommended,
   {
     plugins: {
+      tsdoc: tsdocPlugin,
       local: {
         rules: {
           "no-bracketless-if-without-blank-line": bracketlessNewline,
@@ -26,6 +28,7 @@ export default defineConfig(
     },
     rules: {
       curly: ["warn", "multi"],
+      "tsdoc/syntax": "warn",
       "local/no-bracketless-if-without-blank-line": "warn",
       "@typescript-eslint/no-floating-promises": "error",
       "unicorn/string-content": [
@@ -122,7 +125,7 @@ export default defineConfig(
       "unicorn/consistent-compound-words": "warn",
       "no-unreachable-loop": "error",
       "unicorn/error-message": "error",
-      "unicorn/expiring-todo-comments": "error", // TODO: check this out
+      "unicorn/expiring-todo-comments": "error", // IDEA: check this out
       "unicorn/explicit-length-check": "warn",
       "@typescript-eslint/no-confusing-void-expression": "off",
       "unicorn/single-line-block-comment-style": "off",

@@ -73,7 +73,7 @@ export default (async function run(reaction, user) {
   }
 
   const message = reaction.message as Message;
-  // TODO (and considering reactionGuild), review this code a little more
+  // TODO(v0.4): (and considering reactionGuild), review this code a little more
   const { guild, author, content, createdAt, url, id, attachments } = message;
   if (!guild) return;
 

@@ -44,14 +44,15 @@ function produceVerb(action: ModType, slowdownValue?: number): string {
 
 /**
  * Sends a container containing information about a moderation action.
- * @param options Options
- * @param reason Reason for the moderation action.
+ * @param options - Options
+ * @param reason - Reason for the moderation action.
  * @returns A container with action info (or an errorEmbed if something goes wrong).
  */
 async function buildModEmbed(modAction: ModEmbedOptions): Promise<ContainerBuilder> {
+  // FIXME(@MrSerge01): if you look at Discord i kinda broke the rendering of some actions
   const { guild, target, previousCaseId, caseId, action, channel, customText } = modAction;
 
-  // TODO: get this to somehow produce removed slowdown
+  // FIXME(v0.4): have to get this to somehow produce removed slowdown
   const verb = produceVerb(action);
   const generalValues = produceGeneralValues(modAction);
   const serverAvatar = (guild.icon ? guild.iconURL() : undefined) ?? undefined;
@@ -98,8 +99,8 @@ async function buildDmModEmbed(modAction: ModEmbedOptions): Promise<ContainerBui
 /**
  * Creates an embed for a moderation action and sends it to the current channel as well as the log channel (if any). Optionally sends the user a DM if needed.
  *
- * @param options
- * @param shouldDm
+ * @param options - Options for the embed.
+ * @param shouldDm - Set to true if the targeted user should be DMed.
  */
 export async function modEmbed(
   options: ModEmbedOptions & { shouldDm?: boolean; interaction: ChatInputCommandInteraction },

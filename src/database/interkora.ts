@@ -1,6 +1,7 @@
 import { getSetting, setSetting } from "database/settings";
 import { db } from "database/index";
 import type { TableDefinition, TypeOfDefinition, Satisfies, PermissionTable } from "types";
+import { insertObject } from "utils/insObject";
 
 type RequestorsDef = Satisfies<
   TableDefinition,
@@ -25,8 +26,9 @@ type RegistrationsDef = Satisfies<
       entity_id: "TEXT";
       payload: "OBJECT";
       created_at: "TIMESTAMP";
-      updated_at: "TIMESTAMP";
-      token: "TEXT";
+      updated_at: "mTIMESTAMP";
+      token_hash: "TEXT";
+      token_date: "TIMESTAMP";
     };
   }
 >;
@@ -51,12 +53,36 @@ export async function getRegistration(entity_id: string): Promise<Registration |
   return (res[0] ?? undefined) as unknown as Registration | undefined;
 }
 
+/**
+ * Registers an integration to generate an HTTP token and a marketplace listing.
+ *
+ * @param entity_id - ID of the entity to register
+ * @param payload - JSON payload
+ * @returns The database result and the bearer token. **Show it only once.**
+ */
 export async function setRegistration(
   entity_id: string,
   payload: RegisteredIntegration,
-): Promise<void> {
-  const TODO_OBVIOUSLY_AN_EXAMPLE_token = "1234";
-  await db`INSERT INTO itk_registrations (payload, entity_id, token) VALUES (${entity_id}, ${db(payload)}, ${TODO_OBVIOUSLY_AN_EXAMPLE_token})`;
+): Promise<{
+  result: TypeOfDefinition<RegistrationsDef>;
+  token: string;
+}> {
+  const token = ((): string => {
+    const bytes = crypto.getRandomValues(new Uint8Array(32));
+    return `itk_${Buffer.from(bytes).toString("base64url")}`;
+  })();
+
+  const result: TypeOfDefinition<RegistrationsDef> = {
+    payload: db(payload) as unknown as string,
+    entity_id,
+    token_date: Temporal.Now.instant(),
+    token_hash: new Bun.CryptoHasher("sha3-512").update(token).digest("base64url"),
+    created_at: Temporal.Now.instant(),
+    updated_at: undefined,
+  };
+
+  await insertObject<RegistrationsDef>("itk_registrations", result);
+  return { result, token };
 }
 
 export async function addWhitelist(

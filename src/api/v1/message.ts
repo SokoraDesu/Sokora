@@ -1,14 +1,9 @@
 import { getSetting, getSettingDef } from "database/settings";
-import {
-  PermissionGrants,
-  PermissionOrigins,
-  type SettingSettableValue,
-  isSettingValueValid,
-} from "types";
-import { AttachmentBuilder, codeBlock, type Guild, type MessageCreateOptions } from "discord.js";
+import { type SettingSettableValue, isSettingValueValid } from "types";
+import { AttachmentBuilder, codeBlock, type MessageCreateOptions } from "discord.js";
 import { kominator } from "utils/kominator";
-import { unmention } from "utils/mention";
-import type { Mention, ResolvedEntity, SafeMessage } from "types";
+import { mention, unmention } from "utils/mention";
+import type { Mention, SafeMessage } from "types";
 import {
   InterkoraError,
   assertClause,
@@ -31,6 +26,8 @@ import {
   type InterkoraPayloadIssue,
   isParsedSetter,
   type interkora,
+  isOrderAllowed,
+  isParsedModder,
 } from ".";
 
 function switchInnerTypes(value: string): SettingSettableValue {
@@ -361,21 +358,6 @@ export async function buildPayloadFromMessage(
     };
   }
 
-  /* TODO;  fine-grained checks  const isAllowed = isEntityAllowed(entity,
-      message.guild);
-
-  if (!isAllowed) {
-    effectiveStack.push(`@NoPermission`);
-    return {
-      error: true,
-      entity,
-      gid: message.guildId,
-      effectiveStack: effectiveStack.join("\n"),
-      effectiveName: "NoPermission",
-      errorMessage: `At ${mention(Date.now(), "DEFAULT_TIMESTAMP")}, unauthorized user/application ${mention(message.author.id, "USER")} attempted to run Interkora commands.`,
-    };
-  } */
-
   let queryGuildId = message.guildId;
   const payload: InterkoraPayload = {
     error: false,
@@ -385,6 +367,7 @@ export async function buildPayloadFromMessage(
       getters: [],
       setters: [],
       queries: [],
+      modders: [],
     },
   };
 
@@ -439,6 +422,21 @@ export async function buildPayloadFromMessage(
         });
       }
 
+      // @ts-expect-error bad typing as always (TODO:)
+      const isAllowed = isOrderAllowed(entity, out);
+
+      if (!isAllowed) {
+        effectiveStack.push(`@NoPermission`);
+        return {
+          error: true,
+          entity,
+          gid: message.guildId,
+          effectiveStack: effectiveStack.join("\n"),
+          effectiveName: "NoPermission",
+          errorMessage: `At ${mention(Date.now(), "DEFAULT_TIMESTAMP")}, unauthorized user/application ${mention(message.author.id, "USER")} attempted to run Interkora commands.`,
+        };
+      }
+
       if (isParsedGetter(out))
         payload.actualPayload.getters.push({
           ...out,
@@ -446,6 +444,11 @@ export async function buildPayloadFromMessage(
         });
       else if (isParsedSetter(out))
         payload.actualPayload.setters.push({
+          ...out,
+          gid: queryGuildId,
+        });
+      else if (isParsedModder(out))
+        payload.actualPayload.modders.push({
           ...out,
           gid: queryGuildId,
         });
@@ -485,7 +488,7 @@ export function buildMessageFromPayload(
   const files = payload.getterOutput.map((s, index) =>
     new AttachmentBuilder(Buffer.from(s[1])).setName(`${index}.${s[0]}`),
   );
-  // TODO: check how this even looks
+  // TODO(v0.4): check how this even looks
   const content = payload.setterOutput.join("\n");
 
   return {
@@ -512,27 +515,6 @@ export function buildMessageFromPayloadIssue(payload: InterkoraPayloadIssue): Me
     content: `${payload.effectiveName}:\n${payload.errorMessage ?? "(No message)"}`,
     files,
   };
-}
-
-function isEntityAllowed(
-  entity: ResolvedEntity,
-  guild: Guild,
-  order: ParsedGetter | ParsedSetter,
-): boolean {
-  if (entity.permissionOrigin === PermissionOrigins.None) return false;
-  if (
-    entity.permissionOrigin === PermissionOrigins.Admin ||
-    entity.isWhitelisted ||
-    entity.permissionOrigin === PermissionOrigins.Owner
-  )
-    return true;
-
-  if (entity.permissions === PermissionGrants.Nothing) return false;
-  if (entity.permissions === PermissionGrants.ReadAll) return isParsedGetter(order);
-  if (entity.permissions === PermissionGrants.WriteAll)
-    return isParsedGetter(order) || isParsedSetter(order);
-
-  return entity.permissions === PermissionGrants.Everything;
 }
 
 /*

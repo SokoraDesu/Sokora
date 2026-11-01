@@ -14,7 +14,6 @@ import { COLLECTOR_DURATION } from "utils/constants";
 import { handlePages } from "utils/pagination";
 import { safeEdit } from "utils/safeThings";
 
-// TODO: turn this collected thingy into a feature
 export const data = new SlashCommandSubcommandBuilder()
   .setName("view")
   .setDescription("View the news of this server.")

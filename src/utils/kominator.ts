@@ -1,6 +1,6 @@
 /**
  * Splits a string using commas.
- * @param {string} string String to split.
+ * @param string - String to split.
  * @returns An array of strings from the original string.
  */
 export function kominator(string: string | undefined): string[] {
@@ -11,8 +11,8 @@ export function kominator(string: string | undefined): string[] {
 
 /**
  * Joins an array using commas.
- * @param {string[]} strings Array to join.
- * @param {boolean} shouldList List the contents of the array like a list, e.g "a, b, c and d"
+ * @param strings - Array to join.
+ * @param shouldList - List the contents of the array like a list, e.g "a, b, c and d"
  * @returns A string with all elements of the array, joined.
  */
 export function dekominator(strings: string[], shouldList?: boolean): string {

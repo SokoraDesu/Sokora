@@ -8,6 +8,7 @@ import { ENABLE_MEDIA_FETCHING } from "const";
  *
  * Requires the ENABLE_MEDIA_FETCHING environment variable to be on.
  *
+ * @remarks
  * This code fetches certain meta tags, as well as other content (e.g, images, videos), from external URLs sent by users.
  * This is a MAJOR security risk, as it can lead to skids being able to retrieve the bot's IP address by sending a link to a webserver that they control, possibly leading to DDoS attacks.
  * If you are self hosting this, it's highly recommended to disable this feature within your .env configuration to prevent this from happening.
@@ -15,7 +16,7 @@ import { ENABLE_MEDIA_FETCHING } from "const";
  *
  * WITH GREAT POWER COMES GREAT RESPONSIBILITY (or smth).
  *
- * @param message Message to fetch media from.
+ * @param message - Message to fetch media from.
  * @returns Message's media: an image, video (or a GIF) or a thumbnail
  */
 export async function fetchMedia(

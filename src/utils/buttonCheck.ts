@@ -10,10 +10,10 @@ import { errorEmbed } from "embeds/errorEmbed";
 
 /**
  * Checks buttons (or select menus) for common errors.
- * @param i The component to check.
- * @param reply The reply that will be checked against the original message.
- * @param interaction The interaction that will have its user checked against the button's interaction
- * @param checkExecutorError Makes the function check user IDs.
+ * @param i - The component to check.
+ * @param reply - The reply that will be checked against the original message.
+ * @param interaction - The interaction that will have its user checked against the button's interaction
+ * @param checkExecutorError - Makes the function check user IDs.
  * @returns An errorEmbed if something goes wrong.
  */
 export async function isButtonErrory(options: {

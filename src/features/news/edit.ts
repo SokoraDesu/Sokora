@@ -1,14 +1,15 @@
-import { getNews, updateNews } from "database/news";
+import { type NewsPost, updateNews } from "database/news";
 import { getSetting } from "database/settings";
 import type { Guild, GuildMember, TextChannel } from "discord.js";
 import { newsEmbed } from "embeds/newsEmbed";
 import { replaceVariables } from "utils/replace";
-import { safeChannel } from "utils/safeThings";
+import { safeTypedChannel } from "utils/safeThings";
 import { sendChannelNews } from "utils/sendChannelNews";
 import type { FeatureOutput } from "types";
 import { feature, type MethodParameters } from "utils/feature";
 
 interface P {
+  previousPost: NewsPost;
   id: number;
   guild: Guild;
   userMember: GuildMember;
@@ -18,54 +19,58 @@ interface P {
   rawBody: string;
 }
 
-async function method(
-  ...parameters: MethodParameters<P, { ok: true }>
-): Promise<FeatureOutput<{ ok: true }>> {
+interface O {
+  old: NewsPost;
+  updated: NewsPost;
+}
+
+async function method(...parameters: MethodParameters<P, O>): Promise<FeatureOutput<O>> {
   const [ok, fail, options] = parameters;
-  const { id, guild, userMember, fallbackChannel, rawTitle, rawBody } = options;
+  const { id, guild, userMember, fallbackChannel, rawTitle, rawBody, previousPost } = options;
   if (!userMember.permissions.has("ManageGuild"))
     return fail({
       title: "You can’t execute this command.",
       reason: "You need the **Manage Server** permission.",
     });
 
-  const news = await getNews(guild.id, id);
-  if (!news)
+  const channelId = (await getSetting(guild.id, "news", "channel")) ?? fallbackChannel.id;
+  const channel = await safeTypedChannel(guild, channelId, "NewsOrText");
+
+  if (!channel)
     return fail({
-      title: "The specified news post doesn’t exist.",
+      title: "Failed to update news.",
+      reason: `Somehow, channel ${channelId} doesn’t exist.`,
     });
 
   const title = await replaceVariables(rawTitle, guild, userMember.user);
-
   const body = await replaceVariables(rawBody, guild, userMember.user);
 
   if (!(await getSetting(guild.id, "news", "edit_original_message"))) {
-    await sendChannelNews(
+    const updated = await sendChannelNews(
       guild,
-      fallbackChannel,
-      { title, body, author_id: news.author_id, id },
+      channel,
+      { title, body, author_id: previousPost.author_id, id },
       true,
     );
-    return ok({ ok: true });
+    if (!updated) throw new Error("An unknown error caused the post to fail. Please report this.");
+    return ok({ old: previousPost, updated });
   }
 
-  const channel = (await safeChannel(
+  const embed = await newsEmbed(
     guild,
-    (await getSetting(guild.id, "news", "channel")) ?? fallbackChannel.id,
-  )) as TextChannel; // TODO: change this assertion
+    { title, body, author_id: previousPost.author_id, id },
+    true,
+  );
 
-  const embed = await newsEmbed(guild, { title, body, author_id: news.author_id, id }, true);
-
-  await Promise.all([
-    channel.messages.edit(news.message_id, {
+  const [updated] = await Promise.all([
+    updateNews(guild.id, id, title, body),
+    channel.messages.edit(previousPost.message_id, {
       components: [embed],
       flags: "IsComponentsV2",
     }),
-    updateNews(guild.id, id, title, body),
   ]);
 
-  // TODO
-  return ok({ ok: true });
+  return ok({ old: previousPost, updated });
 }
 
 export const edit = feature("news/edit", method);

@@ -30,10 +30,10 @@ export function replace(
 
 /**
  * Takes a string with dynamic `(variables)` and replaces them with the string they represent.
- * @param {string} text String to have its variables replaced.
- * @param {Guild} guild Guild.
- * @param {User} user User.
- * @returns {string} String with values replaced. The function is async because it depends on `fetchOwner()`.
+ * @param text - String to have its variables replaced.
+ * @param guild - Guild.
+ * @param user - User.
+ * @returns String with values replaced. The function is async because it depends on `fetchOwner()`.
  */
 export async function replaceVariables(text: string, guild: Guild, user: User): Promise<string> {
   const replacementVariables: Replacements = [

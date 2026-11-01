@@ -4,7 +4,7 @@ import type { SafeChatInteraction } from "types";
 /**
  * Returns whether a moderation action should be performed silently.
  *
- * @param interaction
+ * @param interaction - An asserted chat interaction.
  * @returns
  */
 export async function shouldModerateSilently(interaction: SafeChatInteraction): Promise<boolean> {

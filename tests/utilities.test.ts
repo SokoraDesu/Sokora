@@ -139,7 +139,8 @@ test("checkForS() works", () => {
 });
 
 test.todo("colorize.ts works", () => {
-  // TODO(@MrSerge01)
+  // (@MrSerge01)
+  return;
 });
 
 test("dotCheck() works", () => {

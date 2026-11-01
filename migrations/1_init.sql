@@ -63,8 +63,8 @@ CREATE TABLE IF NOT EXISTS itk_registrations (
     payload JSONB NOT NULL,
     created_at TIMESTAMPZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    -- todo: review how safe it is to leave this here
-    token TEXT NOT NULL
+    token_hash TEXT NOT NULL,
+    token_date TIMESTAMPZ DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
 DO $$

@@ -88,8 +88,8 @@ export async function getLevelRewards(guildID: string): Promise<LevelReward[]> {
 
 /**
  * Shorthand for adding level rewards to DB.
- * @param guildID
- * @param rewards Array of constructed reward objects, without GUID.
+ * @param guildID - ID of the guild.
+ * @param rewards - Array of constructed reward objects, without GUID.
  */
 export async function addLevelRewards(guildID: string, rewards: LevelReward$Less[]): Promise<void> {
   const content = await getLevelRewards(guildID);
@@ -105,8 +105,8 @@ export async function addLevelRewards(guildID: string, rewards: LevelReward$Less
 
 /**
  * Shorthand for deleting rewards from the DB.
- * @param guildID
- * @param rewards Array of constructed reward objects with GUID.
+ * @param guildID - Guild ID.
+ * @param rewards - Array of constructed reward objects with GUID.
  */
 export async function removeLevelRewards(guildID: string, rewards: LevelReward[]): Promise<void> {
   const content = await getLevelRewards(guildID);
@@ -133,9 +133,9 @@ export function buildLeveler(
 /**
  * Given an imported XP dataset, applies it on top of the Sokora one.
  *
- * @param guild Guild to import for
- * @param levels Data to bring
- * @param behavior Merge or overwrite?
+ * @param guild - Guild to import for
+ * @param levels - Data to bring
+ * @param behavior - Merge or overwrite?
  * @returns Array of result strings for the embed
  */
 export async function importLevels(

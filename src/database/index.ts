@@ -11,8 +11,8 @@ const preferredHashType = "sha1";
 
 /**
  * Retrieves the ACTUAL values from a query result because PostgreSQL adds unwanted data at the end
- * @param queryResult The returned object from a bun SQL query without using .values()
- * @param requiresSingles If true when selecting only one column, returns an array of only the column values instead. Else, returns like normal
+ * @param queryResult - The returned object from a bun SQL query without using .values()
+ * @param requiresSingles - If true when selecting only one column, returns an array of only the column values instead. Else, returns like normal
  * @returns An array containing the objects (or direct values if `requiresSingles`) of the query result
  */
 export function values<T = Record<string, unknown>>(

@@ -21,9 +21,9 @@ function isValid(channel: Channel): channel is TextChannel | NewsChannel {
 
 /** Checks if a channel that the user specified as the value of any setting (moderation.channel for example) is valid.
  * "Valid" = Exists, is either a Text or News channel, and Sokora has the requested permissions for it (either send, view, or both).
- * @param options Options.
+ * @param options - Options.
  * @returns Status of the channel. (if the bot can view it/send in it or not)
- * TODO: review MVCness of this clusterfuck?
+ * TODO(v0.4): review MVCness of this clusterfuck?
  */
 export async function channelCheck<K extends keyof TS>(options: {
   channel: Channel | GuildBasedChannel | null;
@@ -64,9 +64,9 @@ export async function channelCheck<K extends keyof TS>(options: {
 }
 
 /** Checks if the bot has the specified permissions in a given guild channel
- * @param channel Channel.
- * @param permissions Permission name or bitfield.
- * @returns Boolean indicating whether yes or no the bot has enough permissions
+ * @param channel - Channel.
+ * @param permissions - Permission name or bitfield.
+ * @returns Boolean indicating whether the bot has enough permissions
  */
 export function hasChannelPerms(
   channel: TextBasedChannel,

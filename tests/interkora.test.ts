@@ -44,6 +44,7 @@ describe("interkora settings module", () => {
         getterOutput: [["json", "false"]],
         queryOutput: [],
         setterOutput: [],
+        modderOutput: [],
       },
       {
         ok: true,
@@ -59,18 +60,21 @@ describe("interkora settings module", () => {
         ],
         queryOutput: [],
         setterOutput: [],
+        modderOutput: [],
       },
       {
         ok: true,
         getterOutput: [["json", "false"]],
         queryOutput: [],
         setterOutput: [],
+        modderOutput: [],
       },
       {
         ok: true,
         getterOutput: [["yaml", "false"]],
         queryOutput: [],
         setterOutput: [],
+        modderOutput: [],
       },
     ]);
   });

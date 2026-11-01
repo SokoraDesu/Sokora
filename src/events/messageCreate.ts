@@ -148,7 +148,7 @@ export default (async function run(_message) {
   const multiplier = await getSetting(guild.id, "leveling", "global_multiplier");
 
   /*
-  [TODO] redo to be more better.
+  TODO(v0.4)(@MrSerge01): redo to be more better.
   WHAT HAS TO BE DONE HERE:
   - find the highest role that the user has that a multiplier also has, then use that.
   - if same channel/role has multiple multipliers, it should apply the highest one.

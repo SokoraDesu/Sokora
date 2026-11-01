@@ -29,7 +29,7 @@ export async function run(
   const id = interaction.options.getNumber("id", true);
 
   if (
-    // TODO: maybe move to assertInteraction
+    // IDEA: maybe move to assertInteraction
     // and maybe split that into other fns + rename it as it's growing in scope
     !interaction.member ||
     !interaction.channel.isTextBased() ||

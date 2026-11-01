@@ -131,7 +131,7 @@ async function dispatchInternally(
 }
 
 /**
- * Builds a base errorEmbed. See {@linkcode errorEmbed}.
+ * Builds a base errorEmbed. See {@link errorEmbed}.
  *
  * @returns A fixed-length array with the Container 1st and the attachments 2nd.
  */
@@ -185,7 +185,8 @@ async function buildInteractiveErrorEmbed(
 /**
  * Creates and dispatches a container containing an error.
  *
- * First argument is a boolean, **set to true for errors that we should become aware of, and to false for predictable errors (e.g. ones related to user input)**.
+ * @param isException - **Set to true for errors that we should become aware of, and to false for predictable errors (e.g. ones related to user input)**.
+ * @param options - Error options.
  *
  * @returns Void, all logic is self-contained.
  */

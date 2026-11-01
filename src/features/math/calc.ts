@@ -2,7 +2,7 @@ import { evaluate } from "mathjs";
 import type { FeatureOutput } from "types";
 import { feature, type MethodParameters } from "utils/feature";
 
-// TODO: figure out how to make feature()'s asyncness not create warnings
+// IDEA: figure out how to make feature()'s asyncness not create warnings
 // eslint-disable-next-line @typescript-eslint/require-await
 async function method(
   ...parameters: MethodParameters<{ expression: string }, number>

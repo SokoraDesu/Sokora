@@ -138,7 +138,7 @@ interface ResetState {
  *
  * Key is USER ID, as in ID of the command runner.
  *
- * Check type `ObjectState`'s JSDoc for what properties mean.
+ * Check type `ObjectState`'s TSDoc for what properties mean.
  */
 const ObjectStateMachine = new Map<string, ObjectState<keyof TS, never>>();
 /**
@@ -214,11 +214,11 @@ async function confirmResetModal<K extends keyof TS>(
 /**
  * Generates an individual row for settings embed. Use it in a loop.
  *
- * @param builder `ContainerBuilder`
- * @param data A tiny control object, check its properties in JSDoc.
- * @param settingObject The `SingleSettingDefinition` for the setting in use
- * @param setting Current setting value
- * @param constructMode Construction mode
+ * @param builder - A container builder.
+ * @param data - A tiny control object.
+ * @param settingObject - The `SingleSettingDefinition` for the setting in use
+ * @param setting - Current setting value
+ * @param constructMode - Construction mode
  */
 function rowGenerator(
   builder: ContainerBuilder,
@@ -589,12 +589,14 @@ interface ControlObject<
 /**
  * Band-aid function to construct properly typed `ControlObject`s, and also type-check subKeys.
  *
+ * @remarks
  * We have a rather fun issue with TypeScript inferring types which makes `SettingKeyFor<K>` be `never` in most places, because its hard for TypeScript to infer our rather complex settings system.
  *
  * Yes, it _must_ be fixable and these issues _must_ be a skill issue of mine, but so far this is the best fix I could think of.
- * @param key Setting key.
- * @param subKey Setting subKey, or `undefined` to turn `ControlsAnObjectSetting` false in the `ControlObject` definition.
- * @param id Guild/User ID, as always.
+ *
+ * @param key - Setting key.
+ * @param subKey - Setting subKey, or `undefined` to turn `ControlsAnObjectSetting` false in the `ControlObject` definition.
+ * @param id - Guild/User ID, as always.
  * @returns A properly typed `ControlObject`.
  */
 function MkControlObject<K extends keyof TS, S extends SettingKeyFor<K> | undefined>(
@@ -672,14 +674,16 @@ type Mode =
       resetting: Set<string>;
     };
 
-/** Handles toggles, i.e., whenever a setting is touched (Edit clicked, Enable/Disable toggled, Dropdown changed...).
+/**
+ * Handles toggles, i.e., whenever a setting is touched (Edit clicked, Enable/Disable toggled, Dropdown changed...).
  *
  * **Writes to DB** on every interaction, **except** OBJECT interactions in which it launches the OBJECT embed.
  *
- * @param interaction
- * @param ctl
- * @param methods Define this to use the standard handler, leave undefined for the OBJECT one.
- * @returns {Promise<SettingReturnType<K, S>> | void} If handling an OBJECT toggle, value you will want to pass to `setSettingPlease`. Void otherwise.
+ * @param interaction - Interaction to handle.
+ * @param baseInteraction - Original chat interaction.
+ * @param ctl - Control object.
+ * @param methods - Define this to use the standard handler, leave undefined for the OBJECT one.
+ * @returns If handling an OBJECT toggle, value you will want to pass to `setSettingPlease`. Void otherwise.
  */
 async function toggleHandler<K extends keyof TS, S extends SettingKeyFor<K>>(
   interaction: SettingInteraction<K, SettingKeyFor<K>> | NonExemptInteraction<K, S>,
@@ -857,10 +861,9 @@ async function constructModalContainer(
 
 /**
  * Builds the settings embed.
- * @param ctl
- * @param methods
- * @param mode On what mode to build it.
- * @returns
+ * @param ctl - Control object.
+ * @param methods - Methods object.
+ * @param mode - On what mode to build it.
  */
 async function constructBaseSettingsEmbed<K extends keyof TS>(
   ctl: ControlObject<K>,
@@ -926,9 +929,9 @@ async function constructBaseSettingsEmbed<K extends keyof TS>(
 /**
  * Pain.
  *
- * @param interaction Command interaction
- * @param keyDef Object where `key` is the settings key (`"leveling"` e.g.) and `def` is the definition itself (a `SingleDefinitionRecord`).
- * @param methods Object where you pass the `getSettingPlease` and `setSettingPlease` methods. You're supposed to pass wrappers on the DB functions.
+ * @param interaction - Command interaction
+ * @param keyDef - Object where `key` is the settings key (`"leveling"` e.g.) and `def` is the definition itself (a `SingleDefinitionRecord`).
+ * @param methods - Object where you pass the `getSettingPlease` and `setSettingPlease` methods. You're supposed to pass wrappers on the DB functions.
  */
 // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
 export async function settingsEmbed<K extends keyof TS>(

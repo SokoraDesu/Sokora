@@ -6,6 +6,7 @@ import {
   type BaseFetchOptions,
   type ButtonInteraction,
   type Channel,
+  ChannelType,
   type ChatInputCommandInteraction,
   type Client,
   type Collection,
@@ -23,13 +24,16 @@ import {
   type Role,
   type TextChannel,
   type User,
+  type ThreadChannel,
+  type PartialDMChannel,
+  type PartialGroupDMChannel,
 } from "discord.js";
 import { as, assertMessage, type SafeMessage } from "types";
 
 /**
  * Ensures that the channel that you're getting will be gotten.
- * @param option The guild or the client where the channel resides.
- * @param id The ID of the channel.
+ * @param option - The guild or the client where the channel resides.
+ * @param id - The ID of the channel.
  * @returns A channel.
  */
 export async function safeChannel(option: Guild | Client, id: string): Promise<Channel> {
@@ -38,10 +42,62 @@ export async function safeChannel(option: Guild | Client, id: string): Promise<C
   return res;
 }
 
+type DMChannelAlias = DMChannel | PartialDMChannel | PartialGroupDMChannel;
+
+/**
+ * Wraps a {@link safeChannel} call and typechecks the channel, returning `null` if it does not match the desired type.
+ * @param option - The guild or the client where the channel resides.
+ * @param id - The ID of the channel.
+ * @param desired - Channel type you want. This is based on known combos used across Sokora and manually maintained.
+ * @returns
+ */
+export async function safeTypedChannel(
+  option: Guild | Client,
+  id: string,
+  desired: "AnyTextable",
+): Promise<TextChannel | NewsChannel | ThreadChannel | null>;
+export async function safeTypedChannel(
+  option: Guild | Client,
+  id: string,
+  desired: "DM",
+): Promise<DMChannelAlias | null>;
+export async function safeTypedChannel(
+  option: Guild | Client,
+  id: string,
+  desired: "NewsOrText",
+): Promise<TextChannel | NewsChannel | null>;
+export async function safeTypedChannel(
+  option: Guild | Client,
+  id: string,
+  desired: "NewsOnly",
+): Promise<NewsChannel | null>;
+export async function safeTypedChannel(
+  option: Guild | Client,
+  id: string,
+  desired: "AnyTextable" | "DM" | "NewsOrText" | "NewsOnly",
+): Promise<TextChannel | NewsChannel | ThreadChannel | DMChannelAlias | null> {
+  const channel = await safeChannel(option, id);
+  if (!channel?.isTextBased()) return null;
+
+  if (desired === "DM") return channel.isDMBased() ? channel : null;
+
+  const isNews = channel.type === ChannelType.GuildAnnouncement;
+
+  if (desired === "NewsOnly") return isNews ? channel : null;
+
+  const isText = channel.type === ChannelType.GuildText;
+
+  if (desired === "NewsOrText") return isText || isNews ? channel : null;
+
+  if (desired === "AnyTextable") return isText || isNews || channel.isThread() ? channel : null;
+
+  return null;
+}
+
 /**
  * Ensures that the role that you're getting will be gotten.
- * @param guild The guild where the role resides.
- * @param id The ID of the role.
+ * @param guild - The guild where the role resides.
+ * @param id - The ID of the role.
  * @returns A role.
  */
 export async function safeRole(guild: Guild, id: string): Promise<Role> {
@@ -52,8 +108,8 @@ export async function safeRole(guild: Guild, id: string): Promise<Role> {
 
 /**
  * Ensures that the member that you're getting will be gotten.
- * @param guild The guild where the member resides.
- * @param id The ID of the member.
+ * @param guild - The guild where the member resides.
+ * @param id - The ID of the member.
  * @returns A member.
  */
 export async function safeMember(guild: Guild, id: string): Promise<GuildMember> {
@@ -66,8 +122,8 @@ export async function safeMembers(guild: Guild): Promise<Collection<string, Guil
 
 /**
  * Ensures that the user that you're getting will be gotten.
- * @param client The client where the user resides.
- * @param id The ID of the user.
+ * @param client - The client where the user resides.
+ * @param id - The ID of the user.
  * @returns A user.
  */
 export async function safeUser(
@@ -80,8 +136,8 @@ export async function safeUser(
 
 /**
  * Ensures that the guild that you're getting will be gotten.
- * @param client The client where the guild resides.
- * @param id The ID of the guild.
+ * @param client - The client where the guild resides.
+ * @param id - The ID of the guild.
  * @returns A guild.
  */
 export async function safeGuild(client: Client, id: string): Promise<Guild> {
@@ -90,12 +146,8 @@ export async function safeGuild(client: Client, id: string): Promise<Guild> {
 
 /**
  * Properly handles replying/following up to an interaction.
- * @param {{
- *   interaction: ChatInputCommandInteraction | ButtonInteraction | AnySelectMenuInteraction | ModalSubmitInteraction;
- *   replyOptions?: string | MessagePayload | InteractionReplyOptions;
- *   editOptions?: string | MessagePayload | InteractionEditReplyOptions;
- * }} options Options.
- * @returns {(Promise<Message<boolean> | InteractionResponse<boolean>>)}
+ * @param options - Options.
+ * @returns The reply.
  */
 export async function safeReply(options: {
   interaction: RepliableInteraction;
@@ -112,12 +164,8 @@ export async function safeReply(options: {
 
 /**
  * Properly handles editing the response/follow up to an interaction.
- * @param {{
- *   interaction: ChatInputCommandInteraction | ButtonInteraction | AnySelectMenuInteraction | ModalSubmitInteraction;
- *   replyOptions?: MessagePayload | InteractionReplyOptions;
- *   editOptions?: MessagePayload | InteractionEditReplyOptions;
- * }} options Options.
- * @returns {(Promise<Message<boolean> | InteractionResponse<boolean>>)}
+ * @param options - Options.
+ * @returns The reply
  */
 export async function safeEdit(options: {
   interaction:
@@ -160,7 +208,7 @@ function isTextableRegularChannel(
  *
  * If SOMEHOW nowhere is it possible to message, throws an Error.
  *
- * @param guild Guild to find a channel in.
+ * @param guild - Guild to find a channel in.
  */
 export async function safeAlertChannel(
   guild: Guild,
@@ -226,7 +274,7 @@ export async function safeMessage(
  *
  * When encoding data within the cID, remove the last `@` from it and whatever that goes after (a random time-based string).
  *
- * @param cid Actual ID (e.g. `submit_this`)
+ * @param cid - Actual ID (e.g. `submit_this`)
  * @returns Unique ID (e.g. `submit_this@mt7lb9nd`)
  */
 export function safeCustomId(cid: string): string {

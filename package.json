@@ -29,12 +29,13 @@
     "sharp": "^0.35.5"
   },
   "devDependencies": {
-    "@types/git-diff": "^2.0.7",
     "@eslint/js": "^10.0.1",
+    "@types/git-diff": "^2.0.7",
     "@typescript-eslint/eslint-plugin": "^8.72.1",
     "@typescript-eslint/parser": "^8.72.1",
     "bun-types": "^1.4.4",
     "eslint": "^10.13.0",
+    "eslint-plugin-tsdoc": "^0.5.4",
     "eslint-plugin-unicorn": "^79.0.0",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.72.1"

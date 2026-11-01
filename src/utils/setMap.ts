@@ -3,9 +3,9 @@
  *
  * Creates a new Set into memory. Can be asked to return an Array instead. Preserves order.
  *
- * @param set Set to map
- * @param callback Callback to the map
- * @param haveArray If true, returns an Array rather than a Set
+ * @param set - Set to map
+ * @param callback - Callback to the map
+ * @param haveArray - If true, returns an Array rather than a Set
  * @returns Mapped set
  */
 export function setMap<T, U>(set: Set<T>, callback: (value: T) => U, haveArray: true): U[];

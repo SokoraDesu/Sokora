@@ -6,10 +6,9 @@ import { safeMember } from "./safeThings";
 
 /**
  * Checks for errors in moderation commands.
- * @param permission The permission that the command requires. If the bot doesn't have it, it errors.
- * (TODO: might have to check for USER perms besides bot perms)
- * TODO 2: move this elsewhere, modEmbed file is for modEmbed
- * @param options Error options.
+ * @param permission - The permission that the command requires. If the bot doesn't have it, it errors.
+ * (TODO(v0.4): might have to check for moderator perms besides bot perms)
+ * @param options - Error options.
  * @returns `true` if something goes wrong. `false` otherwise.
  */
 export async function getModError(
@@ -49,7 +48,6 @@ export async function getModError(
   const desiredPermissions = new PermissionsBitField(desiredPermissionArray);
   if (allErrors) desiredPermissions.add("ModerateMembers");
   const clientLacks = lacksPerm(client.permissions, desiredPermissions);
-  console.log("ARR", desiredPermissionArray, "PRODUCES", desiredPermissions.toArray());
 
   if (botError && clientLacks.length > 0)
     return r({ code: ModErrorCode.MissingPermission, permissions: clientLacks });

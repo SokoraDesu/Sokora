@@ -11,18 +11,19 @@ import { colorize, Sokolors } from "utils/colorize";
 import { logChannel } from "utils/logChannel";
 import { safeUser } from "utils/safeThings";
 
-// TODO: check if i can MVC/improve/refactor this or not
-// TODO: drop build/use division here
-// TODO: ehhhh review usage of this together with usage of logEmbed
+// TODO(v0.4)(@ZakaHaceCosas):
+// - check if i can MVC / improve / refactor this or not
+// - drop build / use division here
+// - ehhhh review usage of this together with usage of logEmbed
 
 /**
  * A tinier and simpler than `errorEmbed` container that also conveys an error.
  *
  * Can be used for permission errors, other fixable errors, or even non-error important notifications.
  *
- * @param guild Guild.
- * @param title Title of the embed.
- * @param whatHappened Text below a "what happened?" title.
+ * @param guild - Guild.
+ * @param title - Title of the embed.
+ * @param whatHappened - Text below a "what happened?" title.
  * @returns
  */
 export async function buildLogEmbed(
@@ -40,11 +41,11 @@ export async function buildLogEmbed(
 }
 
 /**
- * Builds and automatically sends a logEmbed ({@linkcode buildLogEmbed}), containing a log/info message. Respects notification settings.
+ * Builds and automatically sends a logEmbed ({@link buildLogEmbed}), containing a log/info message. Respects notification settings.
  *
- * @param guild Guild.
- * @param title Title of the embed.
- * @param whatHappened Text below a "what happened?" title.
+ * @param guild - Guild.
+ * @param title - Title of the embed.
+ * @param whatHappened - Text below a "what happened?" title.
  * @returns Container with the log description.
  */
 export async function useLogEmbed(

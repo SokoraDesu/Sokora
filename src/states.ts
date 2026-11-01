@@ -1,5 +1,5 @@
 /**
- * @fileoverview Store here state machines shared across several files.
+ * Store here state machines shared across several files.
  */
 
 import { StateTracker } from "utils/stateMachine";

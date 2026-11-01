@@ -60,8 +60,7 @@ export interface ServerboardEntryData {
 /**
  * Returns data for building a server embed. Values are formatted where possible, but prioritize being API-serializable.
  *
- * @param {ServerboardOptions} options
- * @returns {Promise<ServerboardEntryData>}
+ * @param options - Options.
  */
 export async function getServerboardEntry(
   options: ServerboardOptions,
@@ -231,8 +230,8 @@ async function deletePublicServer(guildID: string): Promise<void> {
 
 /**
  * Fetches the whole serverboard for you
- * @param {Client} client Bot client.
- * @returns {ServerboardEntry[]} Sorted array of entries.
+ * @param client - Bot client.
+ * @returns Sorted array of entries.
  */
 export async function fetchServerboard(client: Client): Promise<ServerboardEntry[]> {
   const returnValue = await Promise.all(

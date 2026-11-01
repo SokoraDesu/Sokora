@@ -29,7 +29,7 @@ import { randomize } from "utils/randomize";
 import { safeChannel, safeEdit, safeMember, safeUser } from "utils/safeThings";
 import { isButtonErrory } from "utils/buttonCheck";
 
-// TODO: figure out how to MVC this
+// IDEA(v0.4)(@ZakaHaceCosas): figure out how to MVC this
 // since cases are DB i think i won't make a case feature, but instead move all the filtering done here to cases model
 // and keep this UI-code only
 

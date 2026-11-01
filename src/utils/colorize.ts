@@ -32,7 +32,7 @@ function genColor(hue: Sokolors): RGBTuple | undefined {
 
 /**
  * Gives you a (slightly) randomized color from either a predefined hue or from an image.
- * @param options Options.
+ * @param options - Options.
  * @returns Randomized color from a hue or an image.
  */
 export async function colorize(options: {

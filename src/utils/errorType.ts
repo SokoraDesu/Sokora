@@ -4,7 +4,7 @@ import { pluralOrNot } from "./pluralOrNot";
 
 /**
  * Gives you an error with the Error type.
- * @param value Error with type unknown.
+ * @param value - Error with type unknown.
  * @returns Typed error.
  */
 export function errorType(value: unknown): Error {

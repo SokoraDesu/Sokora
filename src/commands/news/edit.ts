@@ -29,12 +29,12 @@ export async function run(interaction: ChatInputCommandInteraction): Promise<voi
   const id = interaction.options.getNumber("id", true);
   const user = await safeMember(interaction.guild, interaction.user.id);
   const guild = interaction.guild;
-  // TODO: duplicate within the feature?
-  const news = await getNews(guild.id, id);
-  if (!news) return await errorEmbed(false, { title: "The specified news post doesn’t exist." });
+  const previousPost = await getNews(guild.id, id);
+  if (!previousPost)
+    return await errorEmbed(false, { title: "The specified news post doesn’t exist." });
 
   try {
-    await interaction.showModal(await newsModal(news));
+    await interaction.showModal(await newsModal(previousPost));
   } catch (error) {
     return await errorEmbed(true, { interaction, error, fileName: "edit" });
   }
@@ -46,6 +46,7 @@ export async function run(interaction: ChatInputCommandInteraction): Promise<voi
       interaction.channel.isVoiceBased() ||
       interaction.channel.isDMBased() ||
       interaction.channel.isThread() ||
+      // TODO(v0.4): what is this doing? why are we avoiding news channels?
       interaction.channel.type == ChannelType.GuildAnnouncement
     )
       return;
@@ -57,6 +58,7 @@ export async function run(interaction: ChatInputCommandInteraction): Promise<voi
       userMember: user,
       rawBody,
       rawTitle,
+      previousPost,
       guild,
       id,
       fallbackChannel: interaction.channel,

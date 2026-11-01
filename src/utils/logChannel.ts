@@ -16,17 +16,12 @@ import { safeChannel, safeMember } from "./safeThings";
 
 /**
  * Sends a message in the log channel. (if there is one set)
- * @param guild The guild where the log channel is located.
- * @param options Reply options of the log.
- * @param dm Whether or not should the bot send a DM to the user.
- * @param {{
-   isSilent: boolean;
-   user: User;
-   options: string | MessagePayload | MessageCreateOptions;
- }} dmOptions Options for sending a DM to the user.
+ * @param guild - The guild where the log channel is located.
+ * @param options - Reply options of the log.
+ * @param dm - Whether or not should the bot send a DM to the user.
+ * @param dmOptions - Options for sending a DM to the user.
  * @returns Log message.
- * TODO: improve the shape of this a little
- * TODO 2: review where i'm using this
+ * TODO(v0.4): improve the shape of this a little, and review where i'm using this
  */
 export async function logChannel(
   guild: Guild,

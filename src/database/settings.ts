@@ -567,11 +567,9 @@ export function switchTypes(value: string, set: SingleSettingDefinition): unknow
 /**
  * Dynamically gets you a properly typed setting definition as a value.
  *
- * @template {keyof TS} K
- * @template {SettingKeyFor<K>} S
- * @param {K} key Key
- * @param {S} setting Setting
- * @returns {SettingsGlueFix1<K, S>} Definition as an object
+ * @param key - Key
+ * @param setting - Setting
+ * @returns Definition as an object
  */
 export function getSettingDef<K extends keyof TS, S extends SettingKeyFor<K>>(
   key: K,
@@ -594,12 +592,14 @@ export async function getSetting<K extends keyof TS, S extends SettingKeyFor<K>>
 ): Promise<ParameterReturnType<K, S, SettingReturnType<K, S>>>;
 
 /**
- * @param entityID ID of the guild/user to touch settings for.
- * @param key Key, e.g. `leveling`, `moderation`.
- * @param setting Specific setting to get.
- * @param id The GUID of the (object setting's) parameter.
+ * Gets a setting.
+ *
+ * @remarks Do not mix user and guild IDs. That's the only thing we cannot type-check.
+ * @param entityID - ID of the guild/user to touch settings for.
+ * @param key - Key, e.g. `leveling`, `moderation`.
+ * @param setting - Specific setting to get.
+ * @param id - The GUID of the (object setting's) parameter.
  * @returns The setting's value.
- * @important Do not mix user and guild IDs. That's the only thing we cannot type-check.
  */
 export async function getSetting<K extends keyof TS, S extends SettingKeyFor<K>>(
   entityID: string,
@@ -683,7 +683,7 @@ export async function setSetting<K extends keyof TS, S extends SettingKeyFor<K>>
       `Attempted to set ${key}.${setting} (WHICH IS ITERABLE!) to something that is NOT a JS Array.`,
     );
 
-  // TODO: ???
+  // FIXME: ???
   const set: unknown = isArray && !isObject ? dekominator(value) : value;
   const keySetting = `${key}.${setting}`;
   const [table, ent] = clause(db, key);

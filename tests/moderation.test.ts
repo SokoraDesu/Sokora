@@ -49,6 +49,10 @@ describe("moderation features", () => {
       durationMillisec: MILLISEC_30M,
     });
 
+    // NOTE: Discord latency has made tests fail a few times…
+    // should wait a little on it
+    await Bun.sleep(2000);
+
     expectSuccess(muteResult);
 
     const cases = await getCase(guild.id);
