@@ -13,7 +13,7 @@ import { safeUser } from "utils/safeThings";
 
 // TODO(v0.4)(@ZakaHaceCosas):
 // - check if i can MVC / improve / refactor this or not
-// - drop build / use division here
+// - drop build/use division here
 // - ehhhh review usage of this together with usage of logEmbed
 
 /**
