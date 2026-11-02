@@ -1,5 +1,4 @@
 import {
-  ChannelType,
   ContainerBuilder,
   SlashCommandSubcommandBuilder,
   TextDisplayBuilder,
@@ -28,12 +27,12 @@ export async function run(interaction: ChatInputCommandInteraction): Promise<voi
 
   interaction.client.once("interactionCreate", async modalInteraction => {
     if (
+      // TODO: deduplicate this from edit.ts
       !modalInteraction.isModalSubmit() ||
       !interaction.channel.isTextBased() ||
       interaction.channel.isVoiceBased() ||
       interaction.channel.isDMBased() ||
-      interaction.channel.isThread() ||
-      interaction.channel.type == ChannelType.GuildAnnouncement
+      interaction.channel.isThread()
     )
       return;
 

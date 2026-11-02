@@ -13,7 +13,7 @@ import {
 } from "discord.js";
 import { mention } from "./mention";
 import type { SettingKeyFor } from "types";
-import { buildLogEmbed } from "embeds/logEmbed";
+import { logEmbed } from "embeds/logEmbed";
 
 function isValid(channel: Channel): channel is TextChannel | NewsChannel {
   return channel.type == ChannelType.GuildText || channel.type == ChannelType.GuildAnnouncement;
@@ -36,23 +36,20 @@ export async function channelCheck<K extends keyof TS>(options: {
 }): Promise<boolean> {
   const { channel, permType, guild, setting } = options;
 
-  async function reset(): Promise<boolean> {
-    await dm?.send({ components: [container], flags: "IsComponentsV2" });
+  async function reset(): Promise<false> {
     await resetSetting(guild.id, setting.category, setting.setting);
+    await logEmbed(
+      guild,
+      "A channel is misconfigured in your server!",
+      channel
+        ? (isValid(channel)
+          ? `Sokora needs ${permType == "View" ? "**View Channel**" : "both **View Channel** and **Send Messages**"} permission in ${mention(channel.id, "CHANNEL")}, requested by setting \`${setting.category}.${setting.setting}\`, but it doesn’t have it anymore. **This setting has been reset to default.**`
+          : `Sokora’s \`${setting.category}.${setting.setting}\` setting was configured to send messages to a channel that is neither a text nor an announcements channel! We cannot send messages to ${mention(channel.id, "CHANNEL")}. **This setting has been reset to default.**`)
+        : `Sokora’s \`${setting.category}.${setting.setting}\` setting was configured to send messages to a channel that no longer exists! **This setting has been reset to default.**`,
+    );
     return false;
   }
 
-  const container = await buildLogEmbed(
-    guild,
-    "A channel is misconfigured in your server!",
-    channel
-      ? (isValid(channel)
-        ? `Sokora needs ${permType == "View" ? "**View Channel**" : "both **View Channel** and **Send Messages**"} permission in ${mention(channel.id, "CHANNEL")}, requested by setting \`${setting.category}.${setting.setting}\`, but it doesn’t have it anymore. **This setting has been reset to default.**`
-        : `Sokora’s \`${setting.category}.${setting.setting}\` setting was configured to send messages to a channel that is neither a text nor an announcements channel! We cannot send messages to ${mention(channel.id, "CHANNEL")}. **This setting has been reset to default.**`)
-      : `Sokora’s \`${setting.category}.${setting.setting}\` setting was configured to send messages to a channel that no longer exists! **This setting has been reset to default.**`,
-  );
-
-  const dm = await (await guild.fetchOwner())?.createDM().catch(() => null);
   if (!channel || !isValid(channel)) return await reset();
 
   const permissions: PermissionResolvable[] = [];

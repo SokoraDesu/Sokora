@@ -41,8 +41,10 @@ async function method(
       title: "You have provided a channel that can’t be slowed down.",
     });
 
-  await channel.setRateLimitPerUser(timeMillisec / 1000, reason ?? undefined);
-  const caseId = await createCase(guild, channel, "SLOWDOWN", moderator, reason);
+  const [caseId] = await Promise.all([
+    createCase(guild, channel, "SLOWDOWN", moderator, reason),
+    channel.setRateLimitPerUser(timeMillisec / 1000, reason ?? undefined),
+  ]);
 
   return ok({
     title: timeMillisec

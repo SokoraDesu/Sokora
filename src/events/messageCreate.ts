@@ -32,7 +32,7 @@ import {
   buildPayloadFromMessage,
 } from "api/v1/message";
 import { errorEmbed } from "embeds/errorEmbed";
-import { useLogEmbed } from "embeds/logEmbed";
+import { logEmbed } from "embeds/logEmbed";
 
 const cooldowns = new Map<string, number>();
 
@@ -120,7 +120,7 @@ export default (async function run(_message) {
           }
         }
       else
-        await useLogEmbed(
+        await logEmbed(
           guild,
           "Sokora is missing permissions",
           `Easter eggs are enabled in <#${message.channel.id}> but Sokora is missing the \`Send messages\` or \`Read message history\` permissions.\nPlease fix it or remove this channel from the easter egg’s allowed channels`,

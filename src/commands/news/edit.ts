@@ -1,6 +1,5 @@
 import { getNews } from "database/news";
 import {
-  ChannelType,
   ContainerBuilder,
   SlashCommandSubcommandBuilder,
   TextDisplayBuilder,
@@ -45,9 +44,7 @@ export async function run(interaction: ChatInputCommandInteraction): Promise<voi
       !interaction.channel.isTextBased() ||
       interaction.channel.isVoiceBased() ||
       interaction.channel.isDMBased() ||
-      interaction.channel.isThread() ||
-      // TODO(v0.4): what is this doing? why are we avoiding news channels?
-      interaction.channel.type == ChannelType.GuildAnnouncement
+      interaction.channel.isThread()
     )
       return;
 

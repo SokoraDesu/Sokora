@@ -39,13 +39,16 @@ async function method(
       reason: "The channel is not locked.",
     });
 
-  await channel.permissionOverwrites.create(guild.id, {
-    SendMessages: null,
-    SendMessagesInThreads: null,
-    CreatePublicThreads: null,
-    CreatePrivateThreads: null,
-  });
-  const caseId = await createCase(guild, channel, "UNLOCK", moderator, reason);
+  const [caseId] = await Promise.all([
+    createCase(guild, channel, "UNLOCK", moderator, reason),
+    channel.permissionOverwrites.create(guild.id, {
+      SendMessages: null,
+      SendMessagesInThreads: null,
+      CreatePublicThreads: null,
+      CreatePrivateThreads: null,
+    }),
+  ]);
+
   return ok({
     title: "Unlocked channel.",
     reason,

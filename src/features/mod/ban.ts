@@ -46,12 +46,13 @@ async function method(
 
   if (error) return fail(errorToFeature(error));
 
-  await guild.members.ban(target.id, {
-    reason: reason ?? undefined,
-    deleteMessageSeconds: delMessageSeconds,
-  });
-
-  const caseId = await createCase(guild, target, "BAN", moderator, reason);
+  const [caseId] = await Promise.all([
+    createCase(guild, target, "BAN", moderator, reason),
+    guild.members.ban(target.id, {
+      reason: reason ?? undefined,
+      deleteMessageSeconds: delMessageSeconds,
+    }),
+  ]);
 
   if (durationMillisec)
     scheduleUnban(client, guild, target.id, moderator.id, durationMillisec, caseId);

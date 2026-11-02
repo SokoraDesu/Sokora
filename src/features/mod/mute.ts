@@ -48,10 +48,13 @@ async function method(
     .add({ milliseconds: durationMillisec })
     .toString({ smallestUnit: "millisecond" });
 
-  await (
-    await safeMember(guild, target.id)
-  )?.edit({ communicationDisabledUntil: time, reason: reason ?? undefined });
-  const caseId = await createCase(guild, target, "MUTE", moderator, reason);
+  const member = await safeMember(guild, target.id);
+
+  const [caseId] = await Promise.all([
+    createCase(guild, target, "MUTE", moderator, reason),
+    member.edit({ communicationDisabledUntil: time, reason: reason ?? undefined }),
+  ]);
+
   return ok({
     title: `Muted ${target.username}.`,
     reason,

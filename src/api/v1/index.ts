@@ -58,6 +58,7 @@ import {
 } from "database/interkora";
 import { client } from "botfile";
 import { warn } from "features/mod/warn";
+import { ban } from "features/mod/ban";
 
 export const COMMANDS = ["set", "reset", "drop", "get", "query"] as const;
 export type COMMAND = (typeof COMMANDS)[number];
@@ -320,18 +321,18 @@ async function runModder(modder: ParsedModder): Promise<[SupportedRetrievalForma
   // rather than running them outright, for now it's good for a placeholder
   // but it shouldn't make it to 0.4
   switch (modder.action.specifier) {
-    /* case "BAN": {
-     out = await ban({
+    case "BAN": {
+      out = await ban({
         moderator: modder.action.onBehalfOf.user,
         isSilent: modder.action.suggestSilent,
-        "target": modder.action.operand,
-        "durationMillisec": modder.action.timeMillisec,
+        target: modder.action.operand,
+        durationMillisec: modder.action.timeMillisec,
         guild: modder.action.onBehalfOf.guild,
         reason: `Automated via Interkora by.`,
-        delMessageSeconds: undefined
+        delMessageSeconds: undefined,
       });
       break;
-    } */
+    }
 
     case "WARN": {
       out = await warn({

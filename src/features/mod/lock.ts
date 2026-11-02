@@ -39,17 +39,14 @@ async function method(
       reason: "The channel is already locked.",
     });
 
-  // TODO(v0.4) (for all features)
-  // promise.all everywhere
-  // createCase everywhere
-  const [, caseId] = await Promise.all([
+  const [caseId] = await Promise.all([
+    createCase(guild, channel, "LOCK", moderator, reason),
     channel.permissionOverwrites.create(guild.id, {
       SendMessages: false,
       SendMessagesInThreads: false,
       CreatePublicThreads: false,
       CreatePrivateThreads: false,
     }),
-    createCase(guild, channel, "LOCK", moderator, reason),
   ]);
 
   return ok({

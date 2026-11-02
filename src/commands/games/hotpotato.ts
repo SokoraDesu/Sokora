@@ -13,7 +13,7 @@ import { checkForS } from "utils/checkForS";
 import { colorize, Sokolors } from "utils/colorize";
 import { mention } from "utils/mention";
 import { assertInteraction, type SafeChatInteraction } from "types";
-import { buildLogEmbed } from "embeds/logEmbed";
+import { userLogEmbed } from "embeds/logEmbed";
 
 export const data = new SlashCommandSubcommandBuilder()
   .setName("hotpotato")
@@ -40,21 +40,12 @@ async function burnThePotato(
     });
   else isSuccess = false;
 
-  try {
-    const dmChannel = await holdingUser.createDM();
-    await dmChannel.send({
-      components: [
-        await buildLogEmbed(
-          interaction.guild,
-          `Hey, you’ve been muted in ${interaction.guild.name} (not for anything bad though)`,
-          `You’ve been muted for ${muteDurationMs} because of a hot potato game you lost.\n\nIf you weren’t even playing and this annoys you, ask people at the server to lift your mute and to not play with you. Note it’s the server staff that chooses to enable the game, and it can’t be disabled per user.`,
-        ),
-      ],
-      flags: "IsComponentsV2",
-    });
-  } catch {
-    // ignore
-  }
+  await userLogEmbed(
+    holdingUser.user,
+    holdingUser.guild,
+    `Hey, you’ve been muted in ${interaction.guild.name} (not for anything bad though)`,
+    `You’ve been muted for ${muteDurationMs} because of a hot potato game you lost.\n\nIf you weren’t even playing and this annoys you, ask people at the server to lift your mute and to not play with you. Note it’s the server staff that chooses to enable the game, and it can’t be disabled per user.`,
+  );
   PotatoState.delete(interaction.guildId);
   if (!interaction.channel.isSendable()) return;
   await interaction.channel.send({

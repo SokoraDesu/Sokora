@@ -22,25 +22,30 @@ SHAPE A:
 type F = {
   title: string;
   reason: string;
-} // yes, you can just pass { ...failure.out } to errorEmbed()
+}; // yes, you can just pass { ...failure.out } to errorEmbed()
 ```
 
 Note that this is actually wrapped in a result object:
 
 ```ts
-type FeatureOutput<S, F = {
-  title: string;
-  reason: string;
-}> = {
-  success: true;
-  feature: string;
-  out: S;
-} | {
-  success: false;
-  feature: string;
-  reason: "exception" | "user";
-  out: F;
-};
+type FeatureOutput<
+  S,
+  F = {
+    title: string;
+    reason: string;
+  },
+> =
+  | {
+      success: true;
+      feature: string;
+      out: S;
+    }
+  | {
+      success: false;
+      feature: string;
+      reason: "exception" | "user";
+      out: F;
+    };
 
 // use literal value of `success` to discriminate the type of "out"
 ```

@@ -12,7 +12,7 @@ import { colorize, Sokolors } from "utils/colorize";
 import { mention } from "utils/mention";
 import { safeChannel, safeUser } from "utils/safeThings";
 import type { Event } from "types";
-import { useLogEmbed } from "embeds/logEmbed";
+import { logEmbed } from "embeds/logEmbed";
 import { errorEmbed } from "embeds/errorEmbed";
 
 export default (async function run(reaction, user) {
@@ -28,7 +28,7 @@ export default (async function run(reaction, user) {
   };
 
   if (!hasChannelPerms(reaction.message.channel, "ReadMessageHistory"))
-    return useLogEmbed(
+    return logEmbed(
       reactionGuild,
       "Sokora is missing permissions",
       `The channel <#${channelID}> does not allow Sokora to \`Read message history\`, starboard will not work in this channel until fixed`,

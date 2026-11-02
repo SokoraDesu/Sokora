@@ -1,6 +1,6 @@
 import { type NewsPost, updateNews } from "database/news";
 import { getSetting } from "database/settings";
-import type { Guild, GuildMember, TextChannel } from "discord.js";
+import type { Guild, GuildMember, NewsChannel, TextChannel } from "discord.js";
 import { newsEmbed } from "embeds/newsEmbed";
 import { replaceVariables } from "utils/replace";
 import { safeTypedChannel } from "utils/safeThings";
@@ -14,7 +14,7 @@ interface P {
   guild: Guild;
   userMember: GuildMember;
   /** Use interaction.channel on Discord, and a required channel thru the API. */
-  fallbackChannel: TextChannel;
+  fallbackChannel: TextChannel | NewsChannel;
   rawTitle: string;
   rawBody: string;
 }

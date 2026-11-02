@@ -190,7 +190,7 @@ async function buildInteractiveErrorEmbed(
  *
  * @returns Void, all logic is self-contained.
  */
-export async function errorEmbed(isException: boolean, options: Options): Promise<undefined> {
+export async function errorEmbed(isException: boolean, options: Options): Promise<void> {
   const { interaction, dmOwner } = options;
   const client = interaction?.client ?? options.client;
 

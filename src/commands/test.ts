@@ -17,7 +17,7 @@ export async function run(interaction: ChatInputCommandInteraction): Promise<voi
 
   await interaction.deferReply();
 
-  const output = (await Bun.$`bun test --timeout 10000`.nothrow()).stderr.toString();
+  const output = (await Bun.$`bun test --timeout 15000`.nothrow()).stderr.toString();
 
   await interaction.editReply({
     embeds: [

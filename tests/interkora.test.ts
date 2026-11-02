@@ -4,6 +4,7 @@ import { setup, state } from "./utilities";
 import { setSetting } from "database/settings";
 import { TESTER_CHANNEL } from "utils/constants";
 import { buildPayloadFromMessage } from "api/v1/message";
+import { PermissionGrants, PermissionOrigins } from "types";
 
 beforeAll(async () => {
   await setup();
@@ -28,7 +29,7 @@ async function makeMessage<Correct extends boolean>(
 
 describe("interkora settings module", () => {
   test("interkora getters work", async () => {
-    const messages = await Promise.all([
+    const messages1 = await Promise.all([
       makeMessage<true>("soko$get settings leveling.enabled"),
       makeMessage<true>("soko$get settings interkora"),
       makeMessage<true>(
@@ -36,9 +37,9 @@ describe("interkora settings module", () => {
       ),
       makeMessage<true>("soko$get settings leveling.enabled yaml"),
     ]);
-    const out = await Promise.all(messages.map(async m => interkora(m, state.client)));
+    const out1 = await Promise.all(messages1.map(async m => interkora(m, state.client)));
 
-    expect(out).toEqual([
+    expect(out1).toEqual([
       {
         ok: true,
         getterOutput: [["json", "false"]],
@@ -77,5 +78,24 @@ describe("interkora settings module", () => {
         modderOutput: [],
       },
     ]);
+
+    const out2 = await makeMessage<false>("soko$get settings leveling");
+
+    expect(out2).toEqual({
+      effectiveName: "Disabled",
+      error: true,
+      entity: {
+        isEnabled: false,
+        "avatarURL": "",
+        "hasAdminPermission": true,
+        "permissionOrigin": PermissionOrigins.Admin,
+        "permissions": PermissionGrants.Everything,
+        "userId": state.client?.user?.id,
+        "whitelist": [],
+        "whitelistName": "whitelist"
+      },
+      effectiveStack: [`@msg#${state.client?.user?.id}`, "@Disabled"].join("\n"),
+      gid: state.guild.id,
+    });
   });
 });

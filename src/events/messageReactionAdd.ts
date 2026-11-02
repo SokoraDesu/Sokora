@@ -8,7 +8,7 @@ import {
   TextDisplayBuilder,
 } from "discord.js";
 import { errorEmbed } from "embeds/errorEmbed";
-import { useLogEmbed } from "embeds/logEmbed";
+import { logEmbed } from "embeds/logEmbed";
 import { channelCheck, hasChannelPerms } from "utils/channelCheck";
 import { colorize, Sokolors } from "utils/colorize";
 import { mention } from "utils/mention";
@@ -32,7 +32,7 @@ export default (async function run(reaction, user) {
     return;
 
   if (!hasChannelPerms(reaction.message.channel, "ReadMessageHistory"))
-    return useLogEmbed(
+    return logEmbed(
       reaction.message.guild,
       "Sokora is missing permissions",
       `The channel <#${channelID}> does not allow Sokora to \`Read message history\`, starboard will not work in this channel until fixed`,

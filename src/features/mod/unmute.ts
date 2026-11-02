@@ -37,8 +37,11 @@ async function method(
       reason: "The user was never muted.",
     });
 
-  await target?.edit({ communicationDisabledUntil: null });
-  const caseId = await createCase(guild, targetUser, "UNMUTE", moderator, reason);
+  const [caseId] = await Promise.all([
+    createCase(guild, targetUser, "UNMUTE", moderator, reason),
+    target?.edit({ communicationDisabledUntil: null }),
+  ]);
+
   return ok({
     action: "UNMUTE",
     moderator,

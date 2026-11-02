@@ -13,8 +13,6 @@ import {
   type ButtonInteraction,
   type ChatInputCommandInteraction,
   type Client,
-  type InteractionResponse,
-  type Message,
   type User,
 } from "discord.js";
 import { errorEmbed } from "embeds/errorEmbed";
@@ -161,9 +159,7 @@ export const data = new SlashCommandSubcommandBuilder()
   })
   .addNumberOption(option => option.setName("page").setDescription("Page number to display."));
 
-export async function run(
-  interaction: ChatInputCommandInteraction,
-): Promise<undefined | InteractionResponse | Message> {
+export async function run(interaction: ChatInputCommandInteraction): Promise<void> {
   const guild = interaction.guild;
   if (!guild) return;
   if (!(await safeMember(guild, interaction.user.id)).permissions.has("ModerateMembers"))

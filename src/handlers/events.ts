@@ -1,4 +1,4 @@
-import type { Client, InteractionResponse, Message } from "discord.js";
+import type { Client, Message } from "discord.js";
 import { errorEmbed } from "embeds/errorEmbed";
 import { readdirSync } from "node:fs";
 import path from "node:path";
@@ -62,7 +62,7 @@ interface EasterEgg {
 
 export const easterEggs: EasterEgg[] = [];
 export const easterEggNames: string[] = [];
-export async function loadEasterEggs(): Promise<Message | InteractionResponse | undefined> {
+export async function loadEasterEggs(): Promise<void> {
   const eventsPath = path.join(process.cwd(), "src", "events", "easterEggs");
   for (const easterEggFile of readdirSync(eventsPath)) {
     if (!easterEggFile.endsWith(".ts")) continue;

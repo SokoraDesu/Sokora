@@ -29,8 +29,11 @@ async function method(
 
   if (error) return fail(errorToFeature(error));
 
-  await guild.members.unban(target.id, reason ?? undefined);
-  const caseId = await createCase(guild, target, "UNBAN", moderator, reason);
+  const [caseId] = await Promise.all([
+    createCase(guild, target, "UNBAN", moderator, reason),
+    guild.members.unban(target.id, reason ?? undefined),
+  ]);
+
   return ok({
     title: "Unbanned user.",
     reason,

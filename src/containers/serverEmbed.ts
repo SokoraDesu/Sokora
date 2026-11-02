@@ -6,18 +6,13 @@ import {
   SeparatorBuilder,
   TextDisplayBuilder,
   ThumbnailBuilder,
-  type NewsChannel,
-  type StageChannel,
-  type TextChannel,
-  type VoiceChannel,
 } from "discord.js";
-import { logChannel } from "utils/logChannel";
 import { pagedButtons } from "utils/pagination";
 import { colorize, Sokolors } from "utils/colorize";
 import { pluralOrNot } from "utils/pluralOrNot";
 import { IS_CANARY } from "const";
 import { getServerboardEntry, type ServerboardOptions } from "database/serverboard";
-import { buildLogEmbed } from "./logEmbed";
+import { logEmbed } from "./logEmbed";
 
 /**
  * Gives you a CONTAINER containing information about the guild.
@@ -103,30 +98,20 @@ export async function serverEmbed(options: ServerboardOptions): Promise<Containe
 
   container.addTextDisplayComponents(new TextDisplayBuilder().setContent(statValues.join("\n")));
 
-  async function noPerms(
-    channel?: NewsChannel | TextChannel | StageChannel | VoiceChannel,
-  ): Promise<ContainerBuilder> {
+  if (inviteChannel == 1) {
     await resetSetting(guild.id, "serverboard", "server_invite");
     await resetSetting(guild.id, "serverboard", "invite_channel");
-    const errorContainer = await buildLogEmbed(
+    await logEmbed(
       guild,
       "Serverboard is misconfigured in your server!",
       [
-        "Sokora does not have the **Create Invite** and **Manage Server** permissions to create an invitation, but `serverboard.server_invite` is enabled.",
-        `Please give Sokora the permission${channel ? ` for ${channel.name}` : ""} and enable the settings again in **/settings serverboard**.`,
+        "Sokora does not have the **`Create Invite`** and **`Manage Server`** permissions to create an invitation, but `serverboard.server_invite` is enabled.",
+        "Please give Sokora the needed permissions and enable the settings again in **`/settings serverboard`**.",
       ].join("\n"),
     );
 
-    await logChannel(guild, { components: [errorContainer], flags: "IsComponentsV2" }, true, {
-      isSilent: false,
-      user: owner.user,
-      options: { components: [container], flags: "IsComponentsV2" },
-    });
-
     return container;
   }
-
-  if (inviteChannel == 1) return await noPerms();
 
   if (inviteChannel != undefined)
     container.addTextDisplayComponents(

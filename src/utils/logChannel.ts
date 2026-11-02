@@ -3,8 +3,6 @@ import type {
   Channel,
   DMChannel,
   Guild,
-  InteractionResponse,
-  Message,
   MessageCreateOptions,
   MessagePayload,
   TextChannel,
@@ -33,7 +31,7 @@ export async function logChannel(
     options: string | MessagePayload | MessageCreateOptions;
   },
   logType: "moderation" | "notifications" = "moderation",
-): Promise<undefined | Message | InteractionResponse> {
+): Promise<void> {
   let channel: TextChannel | DMChannel | null;
   const logChannel = await getSetting(guild.id, logType, "channel");
 
@@ -62,9 +60,9 @@ export async function logChannel(
       if (!dmOptions || dmOptions.isSilent) return;
 
       channel = await dmOptions.user.createDM().catch(() => null);
-      return !channel || !(await safeMember(guild, dmOptions.user.id)) || dmOptions.user.bot
-        ? undefined
-        : await channel.send(dmOptions.options);
+      if (!channel || !(await safeMember(guild, dmOptions.user.id)) || dmOptions.user.bot) return;
+      await channel.send(dmOptions.options);
+      return;
     } catch (error) {
       return await errorEmbed(false, { client: guild.client, error });
     }

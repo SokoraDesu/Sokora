@@ -30,8 +30,13 @@ async function method(
 
   if (error) return fail(errorToFeature(error));
 
-  await (await safeMember(guild, target.id)).kick(reason ?? undefined);
-  const caseId = await createCase(guild, target, "KICK", moderator, reason);
+  const member = await safeMember(guild, target.id);
+
+  const [caseId] = await Promise.all([
+    createCase(guild, target, "KICK", moderator, reason),
+    member.kick(reason ?? undefined),
+  ]);
+
   return ok({
     title: `Kicked ${target.username}.`,
     reason,

@@ -1,6 +1,13 @@
 import { getLatestNews } from "database/news";
 import { getSetting } from "database/settings";
-import type { Attachment, Guild, GuildMember, ReadonlyCollection, TextChannel } from "discord.js";
+import type {
+  Attachment,
+  Guild,
+  GuildMember,
+  NewsChannel,
+  ReadonlyCollection,
+  TextChannel,
+} from "discord.js";
 import type { FeatureOutput } from "types";
 import { feature, type MethodParameters } from "utils/feature";
 import { dekominator } from "utils/kominator";
@@ -14,7 +21,7 @@ interface P {
   rawBody: string;
   media: ReadonlyCollection<string, Attachment> | null;
   category: string;
-  fallbackChannel: TextChannel;
+  fallbackChannel: TextChannel | NewsChannel;
 }
 
 async function method(
