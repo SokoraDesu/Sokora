@@ -9,7 +9,7 @@ import { safeChannel } from "./safeThings";
  * Sends news to a channel.
  * @param guild - Guild where the channel is in.
  * @param fallbackChannel - Where to send to if a news channel isn’t set.
- * (TODO(v0.4): i think we’re duplicating calls to get the news channel? review pls, as that’s bad)
+ * (TODO: i think we’re duplicating calls to get the news channel? review pls, as that’s bad perf-wise)
  * @param newsOptions - Options to send the news post.
  * @param willEdit - Whether or not should the function make a new message with some reused elements.
  * @returns News message in a channel.

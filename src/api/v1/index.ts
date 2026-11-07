@@ -671,7 +671,7 @@ const catcher = (error: unknown): InterkoraError => {
 };
 
 function isClean(
-  // TODO(v0.4)(@ZakaHaceCosas): make this better for fucks sake
+  // TODO(@ZakaHaceCosas): make this better for fucks sake
   outputs: [
     InterkoraError | string[],
     InterkoraError | [SupportedRetrievalFormats, string][],
@@ -725,7 +725,7 @@ export function isOrderAllowed(
     return isParsedGetter(order) || isParsedSetter(order);
 
   if (isParsedGetter(order)) {
-    // TODO(v0.4): review if serverboard should have a perm entry or not
+    // TODO: review if serverboard should have a perm entry or not
     // it is read only and its easy to gather data anyway, but ¯\_(ツ)_/¯
     if (order.action.key === "serverboard") return true;
     if (order.action.key === "cases")
