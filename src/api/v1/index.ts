@@ -23,7 +23,13 @@ import {
   type ButtonInteraction,
   GuildMember,
   type User,
-  type Channel,
+  type NewsChannel,
+  type PrivateThreadChannel,
+  type PublicThreadChannel,
+  type StageChannel,
+  type TextChannel,
+  type VoiceChannel,
+  SeparatorSpacingSize,
 } from "discord.js";
 import {
   type SettingReturnType,
@@ -43,7 +49,6 @@ import {
   listGuildCases,
   type ModTypeUserTimeless,
   type ModTypeUserTimefull,
-  type ModTypeChannelTimeless,
   type ModTypeChannelTimefull,
 } from "database/moderation";
 import { fetchServerboard, getServerboardEntry } from "database/serverboard";
@@ -55,12 +60,13 @@ import {
   addRequestor,
   remWhitelist,
   getRegistration,
+  addHeldModeration,
 } from "database/interkora";
 import { client } from "botfile";
-import { warn } from "features/mod/warn";
-import { ban } from "features/mod/ban";
+import { logChannel } from "utils/logChannel";
+import { capitalize } from "utils/capitalize";
 
-export const COMMANDS = ["set", "reset", "drop", "get", "query"] as const;
+export const COMMANDS = ["set", "reset", "drop", "get", "query", "mod"] as const;
 export type COMMAND = (typeof COMMANDS)[number];
 export const GETTERS = [
   "settings",
@@ -174,12 +180,24 @@ export interface ParsedModder extends Omit<ParsedSuccess, "entity"> {
     order: "mod";
     format: SupportedRetrievalFormats;
     onBehalfOf: GuildMember;
+    reason: string;
   } & (
     | ({
-        operand: Channel;
+        operand:
+          | NewsChannel
+          | StageChannel
+          | TextChannel
+          | PublicThreadChannel
+          | PrivateThreadChannel
+          | VoiceChannel;
       } & (
         | {
-            specifier: ModTypeChannelTimeless;
+            specifier: "UNLOCK";
+          }
+        | {
+            specifier: "CLEAR";
+            targetUserId: string | undefined;
+            amount: number;
           }
         | {
             specifier: ModTypeChannelTimefull;
@@ -188,7 +206,7 @@ export interface ParsedModder extends Omit<ParsedSuccess, "entity"> {
       ))
     | ({
         operand: User;
-        suggestSilent: boolean;
+        isSilentSuggested: boolean;
       } & (
         | {
             specifier: ModTypeUserTimeless;
@@ -307,7 +325,10 @@ export interface InterkoraPayloadIssue extends ParsedSuccess {
   errorMessage?: string;
 }
 
-async function runModder(modder: ParsedModder): Promise<[SupportedRetrievalFormats, string]> {
+async function runModder(
+  modder: ParsedModder,
+  entity: ResolvedEntity,
+): Promise<[SupportedRetrievalFormats, string]> {
   const Stringify: (data: unknown) => [SupportedRetrievalFormats, string] = (data: unknown) => {
     return [
       modder.action.format,
@@ -315,42 +336,135 @@ async function runModder(modder: ParsedModder): Promise<[SupportedRetrievalForma
     ];
   };
 
-  let out;
+  const base = {
+    moderatorId: modder.action.onBehalfOf.user.id,
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    isSilent: Object.hasOwn(modder.action, "isSilentSuggested")
+      ? modder.action.isSilentSuggested
+      : false,
+    targetId: modder.action.operand.id,
+    guildId: modder.action.onBehalfOf.guild.id,
+    reason: `${modder.action.reason.trim() ? modder.action.reason + " " : ""}(Automated via Interkora by \`${entity.userId}\`, on behalf of the shown moderator.)`,
+  } as const;
 
-  // TODO(v0.4): this is lying, documentation says we *request* to run actions
-  // rather than running them outright, for now it's good for a placeholder
-  // but it shouldn't make it to 0.4
+  let out:
+    | typeof base
+    | (typeof base & {
+        delMessageSeconds: number | undefined;
+        durationMillisec: undefined | number;
+      })
+    | (typeof base & { amount: number; targetUserId: string | undefined })
+    | (typeof base & { timeMillisec: number });
+
   switch (modder.action.specifier) {
     case "BAN": {
-      out = await ban({
-        moderator: modder.action.onBehalfOf.user,
-        isSilent: modder.action.suggestSilent,
-        target: modder.action.operand,
+      out = {
+        ...base,
         durationMillisec: modder.action.timeMillisec,
-        guild: modder.action.onBehalfOf.guild,
-        reason: `Automated via Interkora by.`,
         delMessageSeconds: undefined,
-      });
+      };
       break;
     }
 
     case "WARN": {
-      out = await warn({
-        moderator: modder.action.onBehalfOf.user,
-        isSilent: modder.action.suggestSilent,
-        target: modder.action.operand,
-        guild: modder.action.onBehalfOf.guild,
-        reason: `Automated via Interkora by (i have to pass entityId to runners).`,
-      });
+      out = {
+        ...base,
+      };
       break;
     }
 
-    default: {
-      console.debug("TODO(v0.4): the rest");
+    case "CLEAR": {
+      out = {
+        ...base,
+        amount: modder.action.amount,
+        targetUserId: modder.action.targetUserId,
+      };
+      break;
+    }
+
+    case "UNMUTE":
+    case "UNBAN":
+    case "LOCK":
+    case "UNLOCK":
+    case "KICK": {
+      out = {
+        ...base,
+      };
+      break;
+    }
+
+    case "MUTE": {
+      out = {
+        ...base,
+        durationMillisec: modder.action.timeMillisec,
+      };
+      break;
+    }
+
+    case "SLOWDOWN": {
+      out = {
+        ...base,
+        timeMillisec: modder.action.timeMillisec,
+      };
+      break;
     }
   }
 
-  return Stringify(out);
+  const guid = Bun.randomUUIDv7("base64url");
+  const timestamp = Temporal.Now.instant();
+
+  await addHeldModeration({
+    entity_id: entity.userId,
+    guid,
+    timestamp,
+    guild_id: modder.gid,
+    mod_payload: out,
+    action: modder.action.specifier,
+  });
+
+  await logChannel(modder.action.onBehalfOf.guild, {
+    flags: ["IsComponentsV2"],
+    components: [
+      new ContainerBuilder()
+        .setAccentColor(await colorize({ hue: Sokolors.Blue }))
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(
+            `## ${capitalize(modder.action.specifier.toLowerCase())} via Interkora?`,
+          ),
+          new TextDisplayBuilder().setContent(
+            `An Interkora integration, ${entity.userId}, has requested to run this moderation action.`,
+          ),
+        )
+        .addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small))
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(
+            ["**Action payload:**", "```yaml", Bun.YAML.stringify(out, null, 2), "```"].join("\n"),
+          ),
+        )
+        .addSeparatorComponents(
+          new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(false),
+        )
+        .addActionRowComponents(
+          new ActionRowBuilder<ButtonBuilder>().addComponents(
+            new ButtonBuilder()
+              // TODO(v0.4): actually run these
+              .setCustomId(`itkmod:y:${guid}`)
+              .setLabel("Yes, run it")
+              .setStyle(ButtonStyle.Primary),
+            new ButtonBuilder()
+              .setCustomId(`itkmod:n:${guid}`)
+              .setLabel("Don’t, remove it")
+              .setStyle(ButtonStyle.Secondary),
+          ),
+        ),
+    ],
+  });
+
+  return Stringify({
+    requested: true,
+    guid,
+    time: timestamp.toString(),
+  });
 }
 
 async function runGetter(getter: ParsedGetter): Promise<[SupportedRetrievalFormats, string]> {
@@ -772,11 +886,15 @@ export async function interkora(
   )
     return seqSzError();
 
+  async function _runModder(t: ParsedModder): Promise<[SupportedRetrievalFormats, string]> {
+    return await runModder(t, payload.entity);
+  }
+
   const outputs = await Promise.all([
     run(payload.actualPayload.queries, client, runQuery).catch(catcher),
     run(payload.actualPayload.getters, client, runGetter).catch(catcher),
     run(payload.actualPayload.setters, client, runSetter).catch(catcher),
-    run(payload.actualPayload.modders, client, runModder).catch(catcher),
+    run(payload.actualPayload.modders, client, _runModder).catch(catcher),
   ]);
 
   if (isClean(outputs))

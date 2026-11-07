@@ -1,6 +1,6 @@
 import { createCase } from "database/moderation";
 import type { Channel, Guild, User } from "discord.js";
-import { getModError } from "utils/modError";
+import { errorCheck } from "utils/errorCheck";
 import ms from "enhanced-ms";
 import type { FeatureOutput, ModActionResult } from "types";
 import { MILLISEC_6H } from "utils/constants";
@@ -21,7 +21,7 @@ async function method(
   const [ok, fail, options] = parameters;
   const { timeMillisec, reason, channel, guild, moderator } = options;
 
-  const error = await getModError(["ManageChannels"], {
+  const error = await errorCheck(["ManageChannels"], {
     channel,
     action: "SLOWDOWN",
     guild,

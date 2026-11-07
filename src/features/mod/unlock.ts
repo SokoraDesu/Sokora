@@ -1,6 +1,6 @@
 import { createCase } from "database/moderation";
 import type { Channel, Guild, User } from "discord.js";
-import { getModError } from "utils/modError";
+import { errorCheck } from "utils/errorCheck";
 import type { FeatureOutput, ModActionResult } from "types";
 import { errorToFeature } from "utils/errorType";
 import { feature, type MethodParameters } from "utils/feature";
@@ -18,7 +18,7 @@ async function method(
   const [ok, fail, options] = parameters;
   const { guild, channel, moderator, reason } = options;
 
-  const error = await getModError(["ManageRoles"], {
+  const error = await errorCheck(["ManageRoles"], {
     channel,
     guild,
     moderator,

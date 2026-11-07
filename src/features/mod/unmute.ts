@@ -1,5 +1,5 @@
 import type { Guild, User } from "discord.js";
-import { getModError } from "utils/modError";
+import { errorCheck } from "utils/errorCheck";
 import { safeMember } from "utils/safeThings";
 import type { FeatureOutput, ModActionResult } from "types";
 import { errorToFeature } from "utils/errorType";
@@ -21,7 +21,7 @@ async function method(
   const { target: targetUser, reason, guild, moderator, isSilent } = options;
   const target = await safeMember(guild, targetUser.id);
 
-  const error = await getModError(["ModerateMembers"], {
+  const error = await errorCheck(["ModerateMembers"], {
     target: targetUser,
     action: "UNMUTE",
     guild,

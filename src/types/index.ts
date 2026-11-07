@@ -356,7 +356,7 @@ export type SqlType<T extends FieldData> = {
   mROLE: Maybe<string>;
   SELECT: string;
   // IDEA: review this?
-  OBJECT: string;
+  OBJECT: unknown;
 }[T];
 
 export type SqlObjectType<T extends Record<string, SingleSettingDefinition>> = {

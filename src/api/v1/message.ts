@@ -1,6 +1,13 @@
 import { getSetting, getSettingDef } from "database/settings";
 import { type SettingSettableValue, isSettingValueValid } from "types";
-import { AttachmentBuilder, codeBlock, type MessageCreateOptions } from "discord.js";
+import {
+  AttachmentBuilder,
+  codeBlock,
+  type TextChannel,
+  type MessageCreateOptions,
+  type Client,
+  type User,
+} from "discord.js";
 import { kominator } from "utils/kominator";
 import { mention, unmention } from "utils/mention";
 import type { Mention, SafeMessage } from "types";
@@ -28,7 +35,27 @@ import {
   type interkora,
   isOrderAllowed,
   isParsedModder,
+  type ParsedModder,
 } from ".";
+import { safeChannel, safeGuild, safeMember, safeUser } from "utils/safeThings";
+import type { ModType } from "database/moderation";
+import ms from "enhanced-ms";
+
+const isModAction = (s: string): s is ModType => {
+  const array: ModType[] = [
+    "BAN",
+    "CLEAR",
+    "KICK",
+    "LOCK",
+    "MUTE",
+    "SLOWDOWN",
+    "UNBAN",
+    "UNLOCK",
+    "UNMUTE",
+    "WARN",
+  ];
+  return array.includes(s as ModType);
+};
 
 function switchInnerTypes(value: string): SettingSettableValue {
   if (value.startsWith('"') && value.endsWith('"')) return value.slice(1, -1);
@@ -87,11 +114,17 @@ function parseSokoraML(rows: string[]): unknown {
   return isArray ? result : held;
 }
 
-function loop(
+async function loop(
+  client: Client,
+  guildId: string,
+  author: User,
   content: string,
-): Omit<ParsedGetter | ParsedSetter | ParsedQueryOperand, "gid" | "entity"> {
+): Promise<
+  Omit<ParsedGetter | ParsedSetter | ParsedQueryOperand | ParsedModder, "gid" | "entity">
+> {
   const [firstLine, ...restOfLines] = content.split("\n");
-  const [order, key, subKey, preValue] = firstLine.trim().replaceAll(/\s+/g, " ").split(" ", 4);
+  const cleanLine = firstLine.trim().replaceAll(/\s+/g, " ");
+  const [order, key, subKey, preValue] = cleanLine.split(" ", 4);
 
   assertOrder(order);
 
@@ -146,6 +179,59 @@ function loop(
         key,
         specifier: subKey,
         operand: preValue as "u" | "h",
+      },
+    };
+  }
+
+  if (order === "mod") {
+    // TODO: code quality here is awful, i know, my bad
+    // i already feel something's wrong; REVIEW once test suite
+    // for this is added and issues almost surely flourish
+    const [, _modAction, _userOrChannel] = cleanLine.split(" ", 3);
+    const modAction = _modAction.toUpperCase();
+
+    if (!modAction) throw new InterkoraError("No mod action specified.");
+    if (!isModAction(modAction)) throw new InterkoraError("Invalid mod action.");
+    const userOrChannel = unmention(_userOrChannel);
+    if (!userOrChannel || userOrChannel.type === "ROLE" || userOrChannel.type === "TIMESTAMP")
+      throw new InterkoraError("Invalid user/channel provided.");
+
+    const _format = /f=\w+/.exec(cleanLine)?.[0];
+    const preFormat = _format ? _format.replace("f=", "") : null;
+    const format =
+      preFormat && ["json", "yaml"].includes(preFormat) ? (preFormat as "json") : "json";
+    const _silent = /s=\w+/.exec(cleanLine)?.[0];
+    const preSilent = _silent ? _silent.replace("s=", "") : null;
+    const isSilentSuggested = preSilent && preSilent == "true" ? true : false;
+    const time = /\(.+\)/.exec(cleanLine)?.[0];
+    const timeMillisec = time ? ms(time) : undefined;
+    if (timeMillisec == null && modAction === "SLOWDOWN")
+      throw new InterkoraError("Invalid duration.");
+
+    const reason = /".+"/.exec(cleanLine)?.[0];
+
+    if (userOrChannel.type === "CHANNEL")
+      return {
+        action: {
+          order: "mod",
+          format,
+          operand: (await safeChannel(client, userOrChannel.res)) as TextChannel,
+          reason: reason ?? "",
+          timeMillisec: timeMillisec ?? undefined,
+          specifier: modAction as "LOCK",
+          onBehalfOf: await safeMember(await safeGuild(client, guildId), author.id),
+        },
+      };
+
+    return {
+      action: {
+        order: "mod",
+        format,
+        operand: await safeUser(client, userOrChannel.res),
+        isSilentSuggested,
+        reason: reason ?? "",
+        specifier: modAction as "WARN",
+        onBehalfOf: await safeMember(await safeGuild(client, guildId), author.id),
       },
     };
   }
@@ -381,7 +467,7 @@ export async function buildPayloadFromMessage(
       if (gidParameter) queryGuildId = gidParameter;
       const c = gidParameter ? _c.replaceAll(gidRegex, "") : _c;
 
-      const out = loop(c);
+      const out = await loop(message.client, queryGuildId, message.author, c);
 
       effectiveStack.push(`@Order#${index}:${out.action.order}`);
 
@@ -453,15 +539,17 @@ export async function buildPayloadFromMessage(
           gid: queryGuildId,
         });
     } catch (error) {
-      if (error instanceof InterkoraError)
+      if (error instanceof InterkoraError) {
+        effectiveStack.push(`@Order#${index}:ERR:${error.effectiveName}`);
         return {
           error: true,
           effectiveName: error.effectiveName,
           effectiveStack: effectiveStack.join("\n"),
           gid: queryGuildId,
           entity,
-          errorMessage: `Interkora error\nSeq ${index}\nErr [${error.cause}]: ${error.message}.`,
+          errorMessage: `Interkora error\nSeq ${index}\nErr [${error.effectiveName}]: ${error.message}.`,
         };
+      }
 
       throw error; // unhandled, something broke
     }
@@ -488,7 +576,6 @@ export function buildMessageFromPayload(
   const files = payload.getterOutput.map((s, index) =>
     new AttachmentBuilder(Buffer.from(s[1])).setName(`${index}.${s[0]}`),
   );
-  // TODO(v0.4): check how this even looks
   const content = payload.setterOutput.join("\n");
 
   return {
@@ -502,13 +589,17 @@ export function buildMessageFromPayloadIssue(payload: InterkoraPayloadIssue): Me
     new AttachmentBuilder(Buffer.from(payload.effectiveStack)).setName("stacktrace.log"),
     new AttachmentBuilder(
       Buffer.from(
-        JSON.stringify({
-          gid: payload.gid,
-          resolvedEntity: payload.entity,
-          member: payload.member,
-        }),
+        Bun.YAML.stringify(
+          {
+            gid: payload.gid,
+            resolvedEntity: payload.entity,
+            member: payload.member,
+          },
+          null,
+          2,
+        ),
       ),
-    ),
+    ).setName("entity.yaml"),
   ];
 
   return {

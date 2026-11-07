@@ -8,7 +8,7 @@ import type {
   User,
   VoiceChannel,
 } from "discord.js";
-import { getModError } from "utils/modError";
+import { errorCheck } from "utils/errorCheck";
 import type { FeatureOutput, ModActionResult } from "types";
 import { errorToFeature } from "utils/errorType";
 import { feature, type MethodParameters } from "utils/feature";
@@ -16,7 +16,7 @@ import { mention } from "utils/mention";
 import { pluralOrNot } from "utils/pluralOrNot";
 
 interface P {
-  channel:
+  target:
     | NewsChannel
     | StageChannel
     | TextChannel
@@ -33,11 +33,11 @@ async function method(
   ...parameters: MethodParameters<P, ModActionResult>
 ): Promise<FeatureOutput<ModActionResult>> {
   const [ok, fail, options] = parameters;
-  const { channel, amount, targetUser, reason, moderator } = options;
+  const { target, amount, targetUser, reason, moderator } = options;
 
-  const error = await getModError(["ManageMessages"], {
-    channel,
-    guild: channel.guild,
+  const error = await errorCheck(["ManageMessages"], {
+    channel: target,
+    guild: target.guild,
     moderator,
     action: "CLEAR",
     errorOptions: { allErrors: false, botError: true, channelError: true },
@@ -52,7 +52,7 @@ async function method(
 
   if (amount < 1) return fail({ title: "You must clear at least 1 message." });
 
-  if (!channel.isTextBased() || channel.isDMBased())
+  if (!target.isTextBased() || target.isDMBased())
     return fail({
       title: "You have provided a channel that can’t have messages to clear.",
     });
@@ -60,7 +60,7 @@ async function method(
   let deletedAmount = 0;
 
   if (targetUser) {
-    const userMessages = (await channel.messages.fetch({ limit: 100 }))
+    const userMessages = (await target.messages.fetch({ limit: 100 }))
       .filter(m => m.author.id == targetUser.id && !m.partial)
       .first(amount);
 
@@ -70,10 +70,10 @@ async function method(
         reason: "No messages from this user were found in the recent history.",
       });
 
-    await channel.bulkDelete(userMessages, true);
+    await target.bulkDelete(userMessages, true);
     deletedAmount = userMessages.length;
   } else {
-    await channel.bulkDelete(amount, true).then(messages => (deletedAmount = messages.size));
+    await target.bulkDelete(amount, true).then(messages => (deletedAmount = messages.size));
 
     if (deletedAmount == 0)
       return fail({
@@ -82,13 +82,13 @@ async function method(
       });
   }
 
-  const caseId = await createCase(channel.guild, channel, "CLEAR", moderator, reason);
+  const caseId = await createCase(target.guild, target, "CLEAR", moderator, reason);
 
   return ok({
     error: null,
-    guild: channel.guild,
+    guild: target.guild,
     action: "CLEAR",
-    channel,
+    channel: target,
     caseId,
     moderator,
     title: `Cleared ${deletedAmount} ${pluralOrNot("message", deletedAmount)}${targetUser ? ` from ${mention(targetUser.id, "USER")}` : ""}`,

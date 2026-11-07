@@ -1,7 +1,7 @@
 import { client } from "botfile";
 import { createCase } from "database/moderation";
 import type { Guild, User } from "discord.js";
-import { getModError } from "utils/modError";
+import { errorCheck } from "utils/errorCheck";
 import type { FeatureOutput, ModActionResult } from "types";
 import { errorToFeature } from "utils/errorType";
 import { feature, type MethodParameters } from "utils/feature";
@@ -32,7 +32,7 @@ async function method(
 
   const isMember = (await safeMembers(guild)).has(target.id);
 
-  const error = await getModError(["BanMembers"], {
+  const error = await errorCheck(["BanMembers"], {
     target,
     guild,
     moderator,

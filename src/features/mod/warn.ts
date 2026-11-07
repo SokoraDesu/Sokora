@@ -1,6 +1,6 @@
 import { createCase } from "database/moderation";
 import type { Guild, User } from "discord.js";
-import { getModError } from "utils/modError";
+import { errorCheck } from "utils/errorCheck";
 import type { FeatureOutput, ModActionResult } from "types";
 import { errorToFeature } from "utils/errorType";
 import { feature, type MethodParameters } from "utils/feature";
@@ -19,7 +19,7 @@ async function method(
   const [ok, fail, options] = parameters;
   const { reason, moderator, target, guild, isSilent } = options;
 
-  const error = await getModError(["ModerateMembers"], {
+  const error = await errorCheck(["ModerateMembers"], {
     target,
     action: "WARN",
     guild,

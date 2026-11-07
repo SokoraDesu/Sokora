@@ -24,8 +24,8 @@ CREATE TABLE IF NOT EXISTS moderation (
   moderator_id TEXT,
   reason TEXT,
   id INTEGER NOT NULL,
-  timestamp TIMESTAMPZ,
-  expires_at TIMESTAMPZ
+  timestamp TIMESTAMPTZ,
+  expires_at TIMESTAMPTZ
 );
 
 CREATE TABLE IF NOT EXISTS news (
@@ -33,8 +33,8 @@ CREATE TABLE IF NOT EXISTS news (
   title TEXT,
   body TEXT,
   author_id TEXT,
-  created_at TIMESTAMPZ,
-  updated_at TIMESTAMPZ,
+  created_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ,
   message_id TEXT,
   image_url TEXT,
   id INTEGER,
@@ -48,23 +48,32 @@ CREATE TABLE IF NOT EXISTS starboard (
   author_id TEXT,
   star_message_id TEXT,
   stars INTEGER,
-  timestamp TIMESTAMPZ
+  timestamp TIMESTAMPTZ
 );
 
 CREATE TABLE IF NOT EXISTS itk_requestors (
   guild_id TEXT NOT NULL,
   entity_id TEXT NOT NULL,
   entity_type TEXT NOT NULL,
-  timestamp TIMESTAMPZ DEFAULT CURRENT_TIMESTAMP
+  timestamp TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS itk_held_moderation (
+    guild_id TEXT NOT NULL,
+    entity_id TEXT NOT NULL,
+    timestamp TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    mod_payload JSONB NOT NULL,
+    guid TEXT NOT NULL,
+    action TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS itk_registrations (
     entity_id TEXT NOT NULL,
     payload JSONB NOT NULL,
-    created_at TIMESTAMPZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at TIMESTAMPZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     token_hash TEXT NOT NULL,
-    token_date TIMESTAMPZ DEFAULT CURRENT_TIMESTAMP NOT NULL
+    token_date TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
 DO $$

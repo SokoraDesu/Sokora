@@ -43,12 +43,12 @@ export async function run(interaction: ChatInputCommandInteraction): Promise<voi
 
   const reason = interaction.options.getString("reason");
   const channelOption = interaction.options.getChannel("channel");
-  let channel = await safeChannel(interaction.guild, interaction.channel.id);
-  if (channelOption) channel = await safeChannel(interaction.guild, channelOption.id);
+  let target = await safeChannel(interaction.guild, interaction.channel.id);
+  if (channelOption) target = await safeChannel(interaction.guild, channelOption.id);
   const amount = interaction.options.getNumber("amount", true);
 
   const targetUser = interaction.options.getUser("user") ?? undefined;
-  if (!channel.isTextBased() || channel.isDMBased())
+  if (!target.isTextBased() || target.isDMBased())
     return await errorEmbed(false, {
       interaction,
       title: "You have provided a channel that can’t have messages to clear.",
@@ -58,7 +58,7 @@ export async function run(interaction: ChatInputCommandInteraction): Promise<voi
     targetUser,
     amount,
     reason,
-    channel,
+    target,
     moderator: interaction.user,
   });
 

@@ -11,7 +11,7 @@ import { safeMember } from "./safeThings";
  * @param options - Error options.
  * @returns `true` if something goes wrong. `false` otherwise.
  */
-export async function getModError(
+export async function errorCheck(
   desiredPermissionArray: (keyof typeof PermissionFlagsBits)[],
   options: ModErrorOptions & { guild: Guild; moderator: User; action: ModType },
 ): Promise<ModActionError | undefined> {
