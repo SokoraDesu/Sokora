@@ -29,6 +29,10 @@ async function makeMessage<Correct extends boolean>(
 
 describe("interkora settings module", () => {
   test("interkora getters work", async () => {
+    const { client, guild } = state;
+
+    if (!client?.user) throw new Error("state.client not initialized");
+
     const messages1 = await Promise.all([
       makeMessage<true>("soko$get settings leveling.enabled"),
       makeMessage<true>("soko$get settings interkora"),
@@ -37,7 +41,7 @@ describe("interkora settings module", () => {
       ),
       makeMessage<true>("soko$get settings leveling.enabled yaml"),
     ]);
-    const out1 = await Promise.all(messages1.map(async m => interkora(m, state.client)));
+    const out1 = await Promise.all(messages1.map(async m => interkora(m, client)));
 
     expect(out1).toEqual([
       {
@@ -90,12 +94,13 @@ describe("interkora settings module", () => {
         hasAdminPermission: true,
         permissionOrigin: PermissionOrigins.Admin,
         permissions: PermissionGrants.Everything,
-        userId: state.client?.user?.id,
+        userId: client?.user?.id,
         whitelist: [],
+        isWhitelisted: false,
         whitelistName: "whitelist",
       },
-      effectiveStack: [`@msg#${state.client?.user?.id}`, "@Disabled"].join("\n"),
-      gid: state.guild.id,
+      effectiveStack: [`@msg#${client?.user?.id}`, "@Disabled"].join("\n"),
+      gid: guild.id,
     });
   });
 });

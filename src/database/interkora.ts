@@ -16,7 +16,7 @@ type RequestorsDef = Satisfies<
   }
 >;
 
-type R = Omit<TypeOfDefinition<RequestorsDef>, "guildId" | "entityType">;
+type R = Omit<TypeOfDefinition<RequestorsDef>, "guild_id" | "entity_type">;
 
 type RegistrationsDef = Satisfies<
   TableDefinition,
@@ -110,7 +110,7 @@ export async function remWhitelist(
 export async function getRequestors(guild_id: string, entity_type: "u" | "h"): Promise<R[]> {
   const res = await db<
     R[]
-  >`SELECT "entity_id", "request_date" FROM itk_requestors WHERE "guildId" = ${guild_id} AND "entity_type" = ${entity_type};`;
+  >`SELECT "entity_id", "timestamp" FROM itk_requestors WHERE "guild_id" = ${guild_id} AND "entity_type" = ${entity_type};`;
   return res;
 }
 

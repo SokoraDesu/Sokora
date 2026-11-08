@@ -7,6 +7,7 @@ import {
   type MessageCreateOptions,
   type Client,
   type User,
+  EmbedBuilder,
 } from "discord.js";
 import { kominator } from "utils/kominator";
 import { mention, unmention } from "utils/mention";
@@ -577,34 +578,36 @@ export function buildMessageFromPayload(
     new AttachmentBuilder(Buffer.from(s[1])).setName(`${index}.${s[0]}`),
   );
   const content = payload.setterOutput.join("\n");
+  const embeds: EmbedBuilder[] = payload.queryOutput.map((s, index) =>
+    new EmbedBuilder().setDescription(codeBlock("json", s) + `\n-# Query#${index}`),
+  );
 
   return {
     content,
+    embeds,
     files,
   };
 }
 
 export function buildMessageFromPayloadIssue(payload: InterkoraPayloadIssue): MessageCreateOptions {
-  const files = [
-    new AttachmentBuilder(Buffer.from(payload.effectiveStack)).setName("stacktrace.log"),
-    new AttachmentBuilder(
-      Buffer.from(
-        Bun.YAML.stringify(
-          {
-            gid: payload.gid,
-            resolvedEntity: payload.entity,
-            member: payload.member,
-          },
-          null,
-          2,
-        ),
-      ),
-    ).setName("entity.yaml"),
-  ];
-
   return {
     content: `${payload.effectiveName}:\n${payload.errorMessage ?? "(No message)"}`,
-    files,
+    files: [
+      new AttachmentBuilder(Buffer.from(payload.effectiveStack)).setName("stacktrace.log"),
+      new AttachmentBuilder(
+        Buffer.from(
+          Bun.YAML.stringify(
+            {
+              gid: payload.gid,
+              resolvedEntity: payload.entity,
+              member: payload.member,
+            },
+            null,
+            2,
+          ),
+        ),
+      ).setName("entity.yaml"),
+    ],
   };
 }
 
