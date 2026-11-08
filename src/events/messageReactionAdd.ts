@@ -1,4 +1,4 @@
-import { getSetting } from "database/settings";
+import { getSetting, setSetting } from "database/settings";
 import { getStarred, setStarred } from "database/starboard";
 import {
   ContainerBuilder,
@@ -19,21 +19,19 @@ import ms from "enhanced-ms";
 
 export default (async function run(reaction, user) {
   const client = user.client;
-  const guildID = reaction.message.guildId;
+  const guild = reaction.message.guild;
+  if (!guild || !(await getSetting(guild.id, "starboard", "enabled"))) return;
   const channelID = reaction.message.channelId;
   const errorExtras = {
-    guildId: guildID,
-    channelId: channelID,
-    messageId: reaction.message.id,
-    userId: user.id,
+    guild_id: guild.id,
+    channel: channelID,
+    message: reaction.message.id,
+    user: user.id,
   };
-
-  if (!guildID || !reaction.message.guild || !(await getSetting(guildID, "starboard", "enabled")))
-    return;
 
   if (!hasChannelPerms(reaction.message.channel, "ReadMessageHistory"))
     return logEmbed(
-      reaction.message.guild,
+      guild,
       "Sokora is missing permissions",
       `The channel <#${channelID}> does not allow Sokora to \`Read message history\`, starboard will not work in this channel until fixed`,
     );
@@ -64,21 +62,23 @@ export default (async function run(reaction, user) {
       });
     }
 
-  try {
-    await reaction.message.fetch();
-  } catch (error) {
-    return await errorEmbed(true, {
-      client,
-      error,
-      title: "Error fetching message.",
-      fileName: "messageReactionAdd",
-      extras: errorExtras,
-    });
-  }
+  if (reaction.message.partial)
+    try {
+      await reaction.message.fetch();
+    } catch (error) {
+      return await errorEmbed(true, {
+        client,
+        error,
+        title: "Error fetching message.",
+        fileName: "messageReactionAdd",
+        extras: errorExtras,
+      });
+    }
 
   const message = reaction.message as Message;
-  const { guild, author, content, createdAt, url, id, attachments } = message;
-  if (!guild) return;
+  const { author, content, createdAt, url, id, attachments } = message;
+
+  if (!content && attachments.size === 0) return;
 
   if (reaction.emoji.name == "🥔") {
     const state = PotatoState.get(guild.id);
@@ -105,10 +105,8 @@ export default (async function run(reaction, user) {
     return;
   }
 
-  if (!(await getSetting(guild.id, "starboard", "enabled"))) return;
   const starEmoji = await getSetting(guild.id, "starboard", "emoji");
   if (reaction.emoji.name != starEmoji) return;
-  if (!content && attachments.size === 0) return;
 
   const starboardChannelId = await getSetting(guild.id, "starboard", "channel");
   if (!starboardChannelId) return;
@@ -123,8 +121,15 @@ export default (async function run(reaction, user) {
       setting: { category: "starboard", setting: "channel" },
     })) ||
     starboardChannel.isDMBased()
-  )
+  ) {
+    await setSetting(guild.id, "starboard", "channel", undefined);
+    await logEmbed(
+      guild,
+      "A channel is misconfigured in your server!",
+      `Starboard is enabled in this server, however **the starboard channel was somehow set to a channel that is either not text-based, DM-based or that disallows Sokora from sending messages**, which stops the starboard from working. **This setting has been reset to default.**`,
+    );
     return;
+  }
 
   let starCount = reaction.count ?? 0;
   const threshold = await getSetting(guild.id, "starboard", "threshold");

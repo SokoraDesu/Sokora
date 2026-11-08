@@ -1,4 +1,4 @@
-import { getSetting } from "database/settings";
+import { getSetting, setSetting } from "database/settings";
 import { deleteStarred, getStarred, setStarred } from "database/starboard";
 import {
   ContainerBuilder,
@@ -15,13 +15,15 @@ import type { Event } from "types";
 import { logEmbed } from "embeds/logEmbed";
 import { errorEmbed } from "embeds/errorEmbed";
 
+// TODO: dedupe code with messageReactionAdd
+
 export default (async function run(reaction, user) {
   const client = user.client;
-  const reactionGuild = reaction.message.guild;
-  if (!reactionGuild || !(await getSetting(reactionGuild.id, "starboard", "enabled"))) return;
+  const guild = reaction.message.guild;
+  if (!guild || !(await getSetting(guild.id, "starboard", "enabled"))) return;
   const channelID = reaction.message.channelId;
   const errorExtras = {
-    guild_id: reactionGuild.id,
+    guild_id: guild.id,
     channel: channelID,
     message: reaction.message.id,
     user: user.id,
@@ -29,7 +31,7 @@ export default (async function run(reaction, user) {
 
   if (!hasChannelPerms(reaction.message.channel, "ReadMessageHistory"))
     return logEmbed(
-      reactionGuild,
+      guild,
       "Sokora is missing permissions",
       `The channel <#${channelID}> does not allow Sokora to \`Read message history\`, starboard will not work in this channel until fixed`,
     );
@@ -60,28 +62,26 @@ export default (async function run(reaction, user) {
       });
     }
 
-  try {
-    await reaction.message.fetch();
-  } catch (error) {
-    await errorEmbed(true, {
-      client,
-      error,
-      title: "Error fetching message.",
-      fileName: "messageReactionRemove",
-      extras: errorExtras,
-    });
-  }
+  if (reaction.message.partial)
+    try {
+      await reaction.message.fetch();
+    } catch (error) {
+      await errorEmbed(true, {
+        client,
+        error,
+        title: "Error fetching message.",
+        fileName: "messageReactionRemove",
+        extras: errorExtras,
+      });
+    }
 
   const message = reaction.message as Message;
-  // TODO(v0.4): (and considering reactionGuild), review this code a little more
-  const { guild, author, content, createdAt, url, id, attachments } = message;
-  if (!guild) return;
-
-  const starEmoji = await getSetting(guild.id, "starboard", "emoji");
-  if (!(await getSetting(guild.id, "starboard", "enabled")) || reaction.emoji.name != starEmoji)
-    return;
+  const { author, content, createdAt, url, id, attachments } = message;
 
   if (!content && attachments.size === 0) return;
+
+  const starEmoji = await getSetting(guild.id, "starboard", "emoji");
+  if (reaction.emoji.name != starEmoji) return;
 
   const starboardChannelId = await getSetting(guild.id, "starboard", "channel");
   if (!starboardChannelId) return;
@@ -96,13 +96,21 @@ export default (async function run(reaction, user) {
       setting: { category: "starboard", setting: "channel" },
     })) ||
     starboardChannel.isDMBased()
-  )
+  ) {
+    await setSetting(guild.id, "starboard", "channel", undefined);
+    await logEmbed(
+      guild,
+      "A channel is misconfigured in your server!",
+      `Starboard is enabled in this server, however **the starboard channel was somehow set to a channel that is either not text-based, DM-based or that disallows Sokora from sending messages**, which stops the starboard from working. **This setting has been reset to default.**`,
+    );
     return;
+  }
 
   let starCount = reaction.count ?? 0;
   if (reaction.users.valueOf().has(user.id)) starCount--;
 
   const existingStarred = await getStarred(guild.id, message.id);
+  if (!existingStarred) return;
   const container = new ContainerBuilder()
     .addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
@@ -141,8 +149,6 @@ export default (async function run(reaction, user) {
     );
 
   try {
-    if (!existingStarred) return;
-
     const starMessage = await starboardChannel.messages.fetch(existingStarred.star_message_id);
     if (starMessage.partial) await starMessage.fetch();
     if (starCount == 0) {

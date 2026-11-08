@@ -56,7 +56,7 @@ export async function run(interaction: ChatInputCommandInteraction): Promise<voi
       new TextDisplayBuilder().setContent("## 🛜 • Dynamic mentioning"),
       new TextDisplayBuilder().setContent(
         [
-          `You can use a similar syntax to mention specific users, roles, channels, or timestamps, since Discord disallows this natively:\n\`${examples[3]}\`\nwill result in:`,
+          `You can also use Dynamic variables to mention specific users, roles, channels, or timestamps, since Discord disallows this natively in certain input fields (like the one from modal dialogs)):\n\`${examples[3]}\`\nwill result in:`,
           `> ${await replaceVariables(examples[2], guild, user)}`,
         ].join("\n"),
       ),

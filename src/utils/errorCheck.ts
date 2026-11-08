@@ -114,11 +114,6 @@ export async function errorCheck(
 
   const targetMember = await safeMember(guild, target.id);
 
-  if (!targetMember.moderatable)
-    return r({
-      code: ModErrorCode.NotApiModeratable,
-    });
-
   const highestModPos = member.roles.highest.position;
   const highestTargetPos = targetMember.roles.highest.position;
 
@@ -130,6 +125,11 @@ export async function errorCheck(
       });
     }
   }
+
+  if (!targetMember.moderatable)
+    return r({
+      code: ModErrorCode.NotApiModeratable,
+    });
 
   return;
 }

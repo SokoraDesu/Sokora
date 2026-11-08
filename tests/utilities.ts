@@ -110,3 +110,23 @@ export const expectSuccess = (o: FeatureOutput<unknown>): void => {
   if (!o.success) console.error(o.out, o.reason);
   return expect(o.success).toBe(true);
 };
+
+export const expectFailure = (o: FeatureOutput<unknown>): void => {
+  if (o.success) console.error(o.out);
+  return expect(o.success).toBe(false);
+};
+
+export const expectFailureReason = (
+  o: FeatureOutput<unknown>,
+): {
+  toBeBlamedOn: (s: "user" | "exception") => void;
+  toBeTitled: (s: string) => void;
+  toBeJustified: (s: string) => void;
+} => {
+  if (o.success) throw new Error("should never get here during testing");
+  return {
+    toBeBlamedOn: (s: "user" | "exception") => expect(o.reason).toEqual(s),
+    toBeTitled: (s: string) => expect(o.out.title).toEqual(s),
+    toBeJustified: (s: string) => expect(o.out.reason).toEqual(s),
+  };
+};

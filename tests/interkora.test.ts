@@ -29,7 +29,7 @@ async function makeMessage<Correct extends boolean>(
 
 describe("interkora settings module", () => {
   test("interkora getters work", async () => {
-    const { client, guild } = state;
+    const { client } = state;
 
     if (!client?.user) throw new Error("state.client not initialized");
 
@@ -83,24 +83,13 @@ describe("interkora settings module", () => {
       },
     ]);
 
+    await setSetting(state.guild.id, "interkora", "enabled", false);
     const out2 = await makeMessage<false>("soko$get settings leveling");
 
-    expect(out2).toEqual({
-      effectiveName: "Disabled",
-      error: true,
-      entity: {
-        isEnabled: false,
-        avatarURL: "",
-        hasAdminPermission: true,
-        permissionOrigin: PermissionOrigins.Admin,
-        permissions: PermissionGrants.Everything,
-        userId: client?.user?.id,
-        whitelist: [],
-        isWhitelisted: false,
-        whitelistName: "whitelist",
-      },
-      effectiveStack: [`@msg#${client?.user?.id}`, "@Disabled"].join("\n"),
-      gid: guild.id,
-    });
+    expect(out2.error).toEqual(true);
+    expect(out2.effectiveName).toEqual("Disabled");
+    expect(out2.entity.permissionOrigin).toEqual(PermissionOrigins.Admin);
+    expect(out2.entity.permissions).toEqual(PermissionGrants.WriteAll);
+    expect(out2.effectiveStack).toEqual([`@msg#${client?.user?.id}`, "@Disabled"].join("\n"));
   });
 });

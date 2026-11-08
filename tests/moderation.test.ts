@@ -5,9 +5,11 @@ import { getCase } from "database/moderation";
 import { mute } from "features/mod/mute";
 import { unmute } from "features/mod/unmute";
 import { db } from "database/index";
-import { expectSuccess, setup, state } from "./utilities";
+import { expectFailure, expectFailureReason, expectSuccess, setup, state } from "./utilities";
 import { slowdown } from "features/mod/slowdown";
-import { safeChannel } from "utils/safeThings";
+import { safeChannel, safeMember, safeUser } from "utils/safeThings";
+import { ban } from "features/mod/ban";
+import { unban } from "features/mod/unban";
 
 beforeAll(async () => {
   await setup();
@@ -35,6 +37,94 @@ describe("moderation features", () => {
     expect(cases[0].target_id).toBe(target.id);
     expect(cases[0].moderator_id).toBe(moderator.id);
     expect(cases[0].type).toBe("WARN");
+
+    const owner = await safeMember(guild, guild.ownerId);
+
+    const failureOne = await warn({
+      guild,
+      moderator,
+      target: owner.user,
+      reason: "Coup d’état!",
+      isSilent: false,
+    });
+
+    expectFailure(failureOne);
+    expectFailureReason(failureOne).toBeBlamedOn("user");
+    expectFailureReason(failureOne).toBeTitled(`You can’t warn ${owner.user.displayName}.`);
+    expectFailureReason(failureOne).toBeJustified(
+      "The member has a higher role position than you.",
+    );
+  });
+
+  test("ban/unban feature works", async () => {
+    const { guild, moderator } = state;
+    const target = await safeUser(guild.client, "159985870458322944");
+
+    try {
+      await guild.members.unban(target.id, undefined);
+    } catch {
+      // heh
+    }
+
+    const result = await ban({
+      guild,
+      moderator,
+      target,
+      reason: "You deserve this from every server.",
+      isSilent: false,
+      durationMillisec: undefined,
+      delMessageSeconds: undefined,
+    });
+
+    expectSuccess(result);
+
+    // TODO: this kinda exposes how bad our DB code is…
+    const cases = (await getCase(guild.id)).filter(c => c.type === "BAN");
+
+    expect(cases.length).toBeGreaterThan(0);
+    expect(cases[0].target_id).toBe(target.id);
+    expect(cases[0].moderator_id).toBe(moderator.id);
+
+    const bans = await guild.bans.fetch();
+    expect(bans.get(target.id)).toBeTruthy();
+
+    const owner = await safeMember(guild, guild.ownerId);
+
+    const failureOne = await ban({
+      guild,
+      moderator,
+      target: owner.user,
+      reason: "Coup d’état!",
+      isSilent: false,
+      durationMillisec: undefined,
+      delMessageSeconds: undefined,
+    });
+
+    expectFailure(failureOne);
+    expectFailureReason(failureOne).toBeBlamedOn("user");
+    expectFailureReason(failureOne).toBeTitled(`You can’t ban ${owner.user.displayName}.`);
+    expectFailureReason(failureOne).toBeJustified(
+      "The member has a higher role position than you.",
+    );
+
+    const unbanResult = await unban({
+      guild,
+      target,
+      moderator,
+      reason: "Sigh.",
+      isSilent: false,
+    });
+
+    expectSuccess(unbanResult);
+
+    const bansAgain = await guild.bans.fetch();
+    expect(bansAgain.get(target.id)).toBeUndefined();
+  });
+
+  test.todo("kick feature works", async () => {
+    // kick cannot be tested so far as, well, you can’t kick target because you need it elsewhere
+    // TODO: figure out a way to test this, including error states
+    // for now we can rely on human testers
   });
 
   test("mute/unmute feature works", async () => {
