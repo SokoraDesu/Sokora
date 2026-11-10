@@ -1,14 +1,6 @@
 import { getSetting, getSettingDef } from "database/settings";
 import { type SettingSettableValue, isSettingValueValid } from "types";
-import {
-  AttachmentBuilder,
-  codeBlock,
-  type TextChannel,
-  type MessageCreateOptions,
-  type Client,
-  type User,
-  EmbedBuilder,
-} from "discord.js";
+import { AttachmentBuilder, codeBlock, type MessageCreateOptions, EmbedBuilder } from "discord.js";
 import { kominator } from "utils/kominator";
 import { mention, unmention } from "utils/mention";
 import type { Mention, SafeMessage } from "types";
@@ -35,28 +27,7 @@ import {
   isParsedSetter,
   type interkora,
   isOrderAllowed,
-  isParsedModder,
-  type ParsedModder,
 } from ".";
-import { safeChannel, safeGuild, safeMember, safeUser } from "utils/safeThings";
-import type { ModType } from "database/moderation";
-import ms from "enhanced-ms";
-
-const isModAction = (s: string): s is ModType => {
-  const array: ModType[] = [
-    "BAN",
-    "CLEAR",
-    "KICK",
-    "LOCK",
-    "MUTE",
-    "SLOWDOWN",
-    "UNBAN",
-    "UNLOCK",
-    "UNMUTE",
-    "WARN",
-  ];
-  return array.includes(s as ModType);
-};
 
 function switchInnerTypes(value: string): SettingSettableValue {
   if (value.startsWith('"') && value.endsWith('"')) return value.slice(1, -1);
@@ -115,14 +86,12 @@ function parseSokoraML(rows: string[]): unknown {
   return isArray ? result : held;
 }
 
+// TODO(v0.4.1): code quality here is awful, i know, my bad
+// so is the syntax
+// i have to remake this from scratch after 0.4
 async function loop(
-  client: Client,
-  guildId: string,
-  author: User,
   content: string,
-): Promise<
-  Omit<ParsedGetter | ParsedSetter | ParsedQueryOperand | ParsedModder, "gid" | "entity">
-> {
+): Promise<Omit<ParsedGetter | ParsedSetter | ParsedQueryOperand, "gid" | "entity">> {
   const [firstLine, ...restOfLines] = content.split("\n");
   const cleanLine = firstLine.trim().replaceAll(/\s+/g, " ");
   const [order, key, subKey, preValue] = cleanLine.split(" ", 4);
@@ -180,59 +149,6 @@ async function loop(
         key,
         specifier: subKey,
         operand: preValue as "u" | "h",
-      },
-    };
-  }
-
-  if (order === "mod") {
-    // TODO: code quality here is awful, i know, my bad
-    // i already feel something's wrong; REVIEW once test suite
-    // for this is added and issues almost surely flourish
-    const [, _modAction, _userOrChannel] = cleanLine.split(" ", 3);
-    const modAction = _modAction.toUpperCase();
-
-    if (!modAction) throw new InterkoraError("No mod action specified.");
-    if (!isModAction(modAction)) throw new InterkoraError("Invalid mod action.");
-    const userOrChannel = unmention(_userOrChannel);
-    if (!userOrChannel || userOrChannel.type === "ROLE" || userOrChannel.type === "TIMESTAMP")
-      throw new InterkoraError("Invalid user/channel provided.");
-
-    const _format = /f=\w+/.exec(cleanLine)?.[0];
-    const preFormat = _format ? _format.replace("f=", "") : null;
-    const format =
-      preFormat && ["json", "yaml"].includes(preFormat) ? (preFormat as "json") : "json";
-    const _silent = /s=\w+/.exec(cleanLine)?.[0];
-    const preSilent = _silent ? _silent.replace("s=", "") : null;
-    const isSilentSuggested = preSilent && preSilent == "true" ? true : false;
-    const time = /\(.+\)/.exec(cleanLine)?.[0];
-    const timeMillisec = time ? ms(time) : undefined;
-    if (timeMillisec == null && modAction === "SLOWDOWN")
-      throw new InterkoraError("Invalid duration.");
-
-    const reason = /".+"/.exec(cleanLine)?.[0];
-
-    if (userOrChannel.type === "CHANNEL")
-      return {
-        action: {
-          order: "mod",
-          format,
-          operand: (await safeChannel(client, userOrChannel.res)) as TextChannel,
-          reason: reason ?? "",
-          timeMillisec: timeMillisec ?? undefined,
-          specifier: modAction as "LOCK",
-          onBehalfOf: await safeMember(await safeGuild(client, guildId), author.id),
-        },
-      };
-
-    return {
-      action: {
-        order: "mod",
-        format,
-        operand: await safeUser(client, userOrChannel.res),
-        isSilentSuggested,
-        reason: reason ?? "",
-        specifier: modAction as "WARN",
-        onBehalfOf: await safeMember(await safeGuild(client, guildId), author.id),
       },
     };
   }
@@ -454,7 +370,6 @@ export async function buildPayloadFromMessage(
       getters: [],
       setters: [],
       queries: [],
-      modders: [],
     },
   };
 
@@ -468,7 +383,7 @@ export async function buildPayloadFromMessage(
       if (gidParameter) queryGuildId = gidParameter;
       const c = gidParameter ? _c.replaceAll(gidRegex, "") : _c;
 
-      const out = await loop(message.client, queryGuildId, message.author, c);
+      const out = await loop(c);
 
       effectiveStack.push(`@Order#${index}:${out.action.order}`);
 
@@ -531,11 +446,6 @@ export async function buildPayloadFromMessage(
         });
       else if (isParsedSetter(out))
         payload.actualPayload.setters.push({
-          ...out,
-          gid: queryGuildId,
-        });
-      else if (isParsedModder(out))
-        payload.actualPayload.modders.push({
           ...out,
           gid: queryGuildId,
         });

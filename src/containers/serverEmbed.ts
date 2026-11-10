@@ -101,14 +101,14 @@ export async function serverEmbed(options: ServerboardOptions): Promise<Containe
   if (inviteChannel == 1) {
     await resetSetting(guild.id, "serverboard", "server_invite");
     await resetSetting(guild.id, "serverboard", "invite_channel");
-    await logEmbed(
+    await logEmbed({
       guild,
-      "Serverboard is misconfigured in your server!",
-      [
+      title: "Serverboard is misconfigured in your server!",
+      text: [
         "Sokora does not have the **`Create Invite`** and **`Manage Server`** permissions to create an invitation, but `serverboard.server_invite` is enabled.",
         "Please give Sokora the needed permissions and enable the settings again in **`/settings serverboard`**.",
       ].join("\n"),
-    );
+    });
 
     return container;
   }

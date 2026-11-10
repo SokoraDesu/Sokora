@@ -120,11 +120,11 @@ export default (async function run(_message) {
           }
         }
       else
-        await logEmbed(
+        await logEmbed({
           guild,
-          "Sokora is missing permissions",
-          `Easter eggs are enabled in <#${message.channel.id}> but Sokora is missing the \`Send messages\` or \`Read message history\` permissions.\nPlease fix it or remove this channel from the easter egg’s allowed channels`,
-        );
+          title: "Sokora is missing permissions",
+          text: `Easter eggs are enabled in <#${message.channel.id}> but Sokora is missing the \`Send messages\` or \`Read message history\` permissions.\nPlease fix it or remove this channel from the easter egg’s allowed channels`,
+        });
   }
 
   if (!(await getSetting(guild.id, "leveling", "enabled"))) return;

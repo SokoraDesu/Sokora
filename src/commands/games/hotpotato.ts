@@ -13,7 +13,10 @@ import { checkForS } from "utils/checkForS";
 import { colorize, Sokolors } from "utils/colorize";
 import { mention } from "utils/mention";
 import { assertInteraction, type SafeChatInteraction } from "types";
-import { userLogEmbed } from "embeds/logEmbed";
+
+// TODO:
+// recreate this but make it opt-in, as per the feedback here:
+// https://github.com/SokoraDesu/Sokora/pull/109#discussion_r4471441447
 
 export const data = new SlashCommandSubcommandBuilder()
   .setName("hotpotato")
@@ -40,12 +43,12 @@ async function burnThePotato(
     });
   else isSuccess = false;
 
-  await userLogEmbed(
+  /* await userLogEmbed(
     holdingUser.user,
     holdingUser.guild,
     `Hey, you’ve been muted in ${interaction.guild.name} (not for anything bad though)`,
     `You’ve been muted for ${muteDurationMs} because of a hot potato game you lost.\n\nIf you weren’t even playing and this annoys you, ask people at the server to lift your mute and to not play with you. Note it’s the server staff that chooses to enable the game, and it can’t be disabled per user.`,
-  );
+  ); */
   PotatoState.delete(interaction.guildId);
   if (!interaction.channel.isSendable()) return;
   await interaction.channel.send({

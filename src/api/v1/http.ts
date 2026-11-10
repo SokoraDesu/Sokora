@@ -1,21 +1,10 @@
 import type { Client } from "discord.js";
-import { resolveEntity, type ERROR_CODE } from ".";
+import { resolveEntity /* type ERROR_CODE  */ } from ".";
 import { getIdByToken } from "database/interkora";
+import { getSetting } from "database/settings";
 
-/**
- * TypeScript monster that turns PascalCase into kebab-case literal types. Not mine :pray:.
- */
-type Hell<S extends string, First extends boolean = true> = S extends `${infer C}${infer Rest}`
-  ? `${C extends Uppercase<C>
-      ? C extends Lowercase<C>
-        ? C
-        : `${First extends true ? "" : "-"}${Lowercase<C>}`
-      : C}${Hell<Rest, false>}`
-  : S;
-
-type HTTPAPI_ERROR_CODE = Hell<
-  ERROR_CODE | "NotFound" | "NoAuth" | "NoValidAuth" | "NoResolvedEntity"
->;
+type HTTPAPI_ERROR_CODE = string;
+// | ERROR_CODE | "NotFound" | "NoAuth" | "NoValidAuth" | "NoResolvedEntity"
 
 type Config = {
   status: number;
@@ -127,6 +116,17 @@ export const server = (client: Client): ReturnType<typeof Bun.serve> => {
             detail: `Entity ID "${id}" failed to resolve, despite the token existing. Report this please.`,
           });
 
+        const isEnabled = await getSetting(guild.id, "interkora", "enabled");
+
+        if (!isEnabled)
+          return respond({
+            error: true,
+            request,
+            status: 501,
+            title: "disabled",
+            detail: `Interkora is disabled for guild ${guild.id}.`,
+          });
+
         return respond({
           error: false,
           request,
@@ -134,7 +134,6 @@ export const server = (client: Client): ReturnType<typeof Bun.serve> => {
           json: {
             id: guild.id,
             name: guild.name,
-            isUsable: true, // TODO(v0.4.1): make false if interkora is disabled AND not add the thing below
             _links: {
               self: {
                 href: path(request),

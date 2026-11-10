@@ -30,11 +30,11 @@ export default (async function run(reaction, user) {
   };
 
   if (!hasChannelPerms(reaction.message.channel, "ReadMessageHistory"))
-    return logEmbed(
+    return logEmbed({
       guild,
-      "Sokora is missing permissions",
-      `The channel <#${channelID}> does not allow Sokora to \`Read message history\`, starboard will not work in this channel until fixed`,
-    );
+      title: "Sokora is missing permissions",
+      text: `The channel <#${channelID}> does not allow Sokora to \`Read message history\`, starboard will not work in this channel until fixed`,
+    });
 
   if (reaction.partial)
     try {
@@ -98,11 +98,11 @@ export default (async function run(reaction, user) {
     starboardChannel.isDMBased()
   ) {
     await setSetting(guild.id, "starboard", "channel", undefined);
-    await logEmbed(
+    await logEmbed({
       guild,
-      "A channel is misconfigured in your server!",
-      `Starboard is enabled in this server, however **the starboard channel was somehow set to a channel that is either not text-based, DM-based or that disallows Sokora from sending messages**, which stops the starboard from working. **This setting has been reset to default.**`,
-    );
+      title: "A channel is misconfigured in your server!",
+      text: `Starboard is enabled in this server, however **the starboard channel was somehow set to a channel that is either not text-based, DM-based or that disallows Sokora from sending messages**, which stops the starboard from working. **This setting has been reset to default.**`,
+    });
     return;
   }
 

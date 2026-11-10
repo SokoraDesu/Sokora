@@ -22,7 +22,6 @@ import { mention } from "utils/mention";
 import { safeAlertChannel, safeUser } from "utils/safeThings";
 import type { GHCommit } from "types";
 import { rescheduleUnbans } from "utils/unbanScheduler";
-import { server } from "api/v1/http";
 
 export let client: Client<true>;
 
@@ -244,7 +243,7 @@ if (import.meta.main) {
 
   await client.login(TOKEN);
 
-  const runningServer = server(client);
+  /* const runningServer = server(client);
 
-  console.log(runningServer.url.href);
+  console.log(runningServer.url.href); */
 }

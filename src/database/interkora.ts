@@ -1,5 +1,5 @@
 import { getSetting, setSetting } from "database/settings";
-import { db, values } from "database/index";
+import { db } from "database/index";
 import type { TableDefinition, TypeOfDefinition, Satisfies, PermissionTable } from "types";
 import { insertObject } from "utils/insObject";
 
@@ -125,44 +125,4 @@ export async function addRequestor(
 export async function getIdByToken(token: string): Promise<string | undefined> {
   const found = await db<string>`SELECT entity_id FROM itk_registrations WHERE token = ${token};`;
   return found ?? undefined;
-}
-
-type HeldModerationDef = Satisfies<
-  TableDefinition,
-  {
-    name: "itk_held_moderation";
-    definition: {
-      guild_id: "TEXT";
-      entity_id: "TEXT";
-      guid: "TEXT";
-      action: "TEXT";
-      timestamp: "TIMESTAMP";
-      mod_payload: "OBJECT";
-    };
-  }
->;
-
-export async function getHeldModeration(o: { guild_id: string; entity_id: string }): Promise<
-  {
-    timestamp: Temporal.Instant;
-    mod_payload: unknown;
-    guid: string;
-  }[]
-> {
-  const found = values<{
-    timestamp: Temporal.Instant;
-    mod_payload: unknown;
-    guid: string;
-  }>(
-    await db`SELECT timestamp, mod_payload, guid FROM itk_held_moderation WHERE guild_id = ${o.guild_id} AND entity_id = ${o.entity_id};`,
-  );
-  return found ?? [];
-}
-
-export async function addHeldModeration(o: TypeOfDefinition<HeldModerationDef>): Promise<void> {
-  await insertObject("itk_held_moderation", o);
-}
-
-export async function delHeldModeration(guid: string): Promise<void> {
-  await db`DELETE FROM itk_held_moderation WHERE guid = ${guid}`;
 }

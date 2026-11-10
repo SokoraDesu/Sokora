@@ -38,15 +38,15 @@ export async function channelCheck<K extends keyof TS>(options: {
 
   async function reset(): Promise<false> {
     await resetSetting(guild.id, setting.category, setting.setting);
-    await logEmbed(
+    await logEmbed({
       guild,
-      "A channel is misconfigured in your server!",
-      channel
+      title: "A channel is misconfigured in your server!",
+      text: channel
         ? (isValid(channel)
           ? `Sokora needs ${permType == "View" ? "**View Channel**" : "both **View Channel** and **Send Messages**"} permission in ${mention(channel.id, "CHANNEL")}, requested by setting \`${setting.category}.${setting.setting}\`, but it doesn’t have it anymore. **This setting has been reset to default.**`
           : `Sokora’s \`${setting.category}.${setting.setting}\` setting was configured to send messages to a channel that is neither a text nor an announcements channel! We cannot send messages to ${mention(channel.id, "CHANNEL")}. **This setting has been reset to default.**`)
         : `Sokora’s \`${setting.category}.${setting.setting}\` setting was configured to send messages to a channel that no longer exists! **This setting has been reset to default.**`,
-    );
+    });
     return false;
   }
 
