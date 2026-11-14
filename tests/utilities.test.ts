@@ -2,7 +2,7 @@ import { describe, test, expect, afterEach, mock, spyOn } from "bun:test";
 import { mockGuild, mockUser } from "./utilities";
 
 import { replace, replaceVariables } from "utils/replace";
-import { mention } from "utils/mention";
+import { mention, unmention } from "utils/mention";
 import { pluralOrNot } from "utils/pluralOrNot";
 import { capitalize } from "utils/capitalize";
 import { getChangelog } from "utils/changelog";
@@ -87,8 +87,38 @@ describe("mention.ts works", () => {
     expect(mention(now, "DETAILED_TIMESTAMP")).toEqual(`<t:${result}>`);
   });
 
-  test.todo("unmention() works", () => {
-    return;
+  test("unmention() works", () => {
+    const now = Date.now();
+    const result = Math.floor(now / 1000);
+
+    expect(unmention("<@123>")).toEqual({
+      type: "USER",
+      res: "123",
+    });
+    expect(unmention("<@&123>")).toEqual({
+      type: "ROLE",
+      res: "123",
+    });
+    expect(unmention("<#123>")).toEqual({
+      type: "CHANNEL",
+      res: "123",
+    });
+
+    expect(unmention(`<t:${result}:D>`)).toEqual({
+      type: "TIMESTAMP",
+      res: result.toString(),
+    });
+    expect(unmention(`<t:${result}:d>`)).toEqual({
+      type: "TIMESTAMP",
+      res: result.toString(),
+    });
+    expect(unmention(`<t:${result}>`)).toEqual({
+      type: "TIMESTAMP",
+      res: result.toString(),
+    });
+
+    expect(unmention("<@>")).toBeUndefined();
+    expect(unmention("<t:>")).toBeUndefined();
   });
 });
 

@@ -492,7 +492,7 @@ export const serverSettingsKeys = [
   "serverboard",
   "starboard",
   "welcome",
-  "games",
+  // "games",
   "interkora",
   "notifications",
 ] as (keyof TS)[];

@@ -78,9 +78,7 @@ export default (async function run(reaction, user) {
 
   if (!content && attachments.size === 0) return;
 
-  if (reaction.emoji.name == "🥔") 
-    return;
-  
+  if (reaction.emoji.name == "🥔") return;
 
   const starEmoji = await getSetting(guild.id, "starboard", "emoji");
   if (reaction.emoji.name != starEmoji) return;

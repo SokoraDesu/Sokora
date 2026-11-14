@@ -1,4 +1,5 @@
 import {
+  codeBlock,
   EmbedBuilder,
   InteractionContextType,
   SlashCommandBuilder,
@@ -18,13 +19,16 @@ export async function run(interaction: ChatInputCommandInteraction): Promise<voi
   await interaction.deferReply();
 
   const output = (await Bun.$`bun test --timeout 15000`.nothrow()).stderr.toString();
+  const delim = "-------------------------------|---------|---------|-------------------";
+
+  const res = output.split(delim, 4)[3].trim();
 
   await interaction.editReply({
     embeds: [
       new EmbedBuilder()
         .setTitle("IRL test suite")
         .setDescription(
-          `# test suite executed\ncheck attachment for full output\n## overall result\n\`\`\`${output.split("-------------------------------|---------|---------|-------------------", 4)[3].trim()}\`\`\`\n-# running on \`bun:test\` ${Bun.version_with_sha}`,
+          `# test suite executed\ncheck attachment for full output\n## overall result\n${codeBlock("typescript", res)}\n-# running on \`bun:test\` ${Bun.version_with_sha}`,
         )
         .setColor((await colorize({ hue: Sokolors.Yellow })) ?? null),
     ],

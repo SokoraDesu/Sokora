@@ -65,7 +65,7 @@ const isUser = (thing: object): thing is User => Object.hasOwn(thing, "displayAv
  * @param reason - Reason for the moderation action.
  * @returns A container with action info (or an errorEmbed if something goes wrong).
  */
-async function buildModEmbed(modAction: ModEmbedOptions): Promise<ContainerBuilder> {
+export async function buildModEmbed(modAction: ModEmbedOptions): Promise<ContainerBuilder> {
   const { guild, target, previousCaseId, caseId, action, customText } = modAction;
   const verb = produceVerb(
     action,
