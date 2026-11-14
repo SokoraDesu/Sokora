@@ -687,13 +687,86 @@ async function toggleHandler<K extends keyof TS, S extends SettingKeyFor<K>>(
   const { def, key } = ctl;
   const uID = interaction.user.id;
   const cID = interaction.customId as SettingKeyFor<K>;
-  console.debug("std tglHndl w/", def, key, "on interaction", interaction.customId);
   const setting: SingleSettingDefinition = methods
     ? (def as SettingDefinitionRecord).settings[cID]
     : def.properties[cID];
 
   let value: ObjectState<K, S>["settingState"] = methods ? {} : { ...OSMGet(uID)?.settingState };
   const previousValue = methods ? await methods.getSettingPlease(key, cID) : value[cID];
+
+  console.debug(
+    "std tglHndl w/",
+    def,
+    "& key:",
+    key,
+    "& interaction",
+    interaction.customId,
+    "& setting",
+    setting,
+  );
+
+  if (key === "interkora" && setting.type === "BOOL" && previousValue === false) {
+    const confirmModal = new ModalBuilder()
+      .setCustomId(safeCustomId(cID))
+      .setTitle("•  Are you sure?")
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+          "Interkora is a system we’re building to make Sokora hackable, programmable and extensible. The idea is cool, but it’s very unfinished so it’s not stable nor expected to function properly. You can find more info at https://docs.sokora.org.",
+        ),
+      )
+      .addLabelComponents(
+        new LabelBuilder()
+          .setLabel("Please type ‘yes’ to enable it")
+          .setTextInputComponent(
+            new TextInputBuilder()
+              .setCustomId("cf")
+              .setPlaceholder("Type in ‘yes’ to confirm; otherwise close")
+              .setMaxLength(MAX_INPUT_CHARS)
+              .setStyle(TextInputStyle.Paragraph)
+              .setRequired(true)
+              .setValue(""),
+          ),
+      );
+
+    const confirmModalInteraction = await modalSubmit(
+      interaction as ButtonInteraction,
+      confirmModal,
+      "settingsEmbed",
+    );
+    if (!confirmModalInteraction) return;
+
+    const confirmModalValue = confirmModalInteraction.fields.getTextInputValue("cf");
+    if (confirmModalValue != "yes") {
+      await safeReply({
+        interaction: confirmModalInteraction,
+        replyOptions: {
+          components: [
+            await constructModalContainer(
+              `**${dotCheck({ string: methods ? setting.emoji : "☑️", twoSides: true, includeString: true })}Didn’t enable it**`,
+              "Interkora was not enabled. If you’re curious about what this is, you can check https://docs.sokora.org/interkora.\n\nWe’ll make an announcement when Interkora reaches a stable version ;)\n\n**If you want to test it early without having issues with Sokora, get Sokora Canary instead, a bot version made specifically for testing unstable stuff** which you can learn more about here: https://docs.sokora.org/canary",
+              Sokolors.Green,
+            ),
+          ],
+          flags: ["Ephemeral", "IsComponentsV2"],
+        },
+      });
+      return;
+    }
+
+    await safeReply({
+      interaction: confirmModalInteraction,
+      replyOptions: {
+        components: [
+          await constructModalContainer(
+            `**${dotCheck({ string: methods ? setting.emoji : "✅", twoSides: true, includeString: true })}Enabled Interkora**`,
+            "You can start using Interkora commands right away. Keep in mind that, again, they’re not stable; we might break them with no prior notice. It’s more recommended to try unstable features with Sokora Canary instead, which you can find here: https://docs.sokora.org/interkora.\n\nLearn more about what we’re building with Interkora and why here: https://docs.sokora.org/interkora.\n\n**Report to us any issue you find with it, and have fun!**",
+            Sokolors.Green,
+          ),
+        ],
+        flags: ["Ephemeral", "IsComponentsV2"],
+      },
+    });
+  }
 
   switch (setting.type) {
     case "BOOL": {

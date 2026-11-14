@@ -368,7 +368,7 @@ export const defEaster = {
 export const defInterkora = {
   enabled: {
     type: "BOOL",
-    desc: "Enable/disable Interkora.",
+    desc: "Enable/disable Interkora, **an experiment not expected yet to work properly.**",
     val: false,
     emoji: "✅",
   },
@@ -469,7 +469,7 @@ export const settingsDefinition = {
     settings: defEaster,
   },
   interkora: {
-    description: "Enable/disable the Interkora system.",
+    description: "Enable/disable the Interkora system. (Work in progress, use only for testing).",
     settings: defInterkora,
   },
   notifications: {
