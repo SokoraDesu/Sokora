@@ -759,7 +759,7 @@ async function toggleHandler<K extends keyof TS, S extends SettingKeyFor<K>>(
         components: [
           await constructModalContainer(
             `**${dotCheck({ string: methods ? setting.emoji : "✅", twoSides: true, includeString: true })}Enabled Interkora**`,
-            "You can start using Interkora commands right away. Keep in mind that, again, they’re not stable; we might break them with no prior notice. It’s more recommended to try unstable features with Sokora Canary instead, which you can find here: https://docs.sokora.org/interkora.\n\nLearn more about what we’re building with Interkora and why here: https://docs.sokora.org/interkora.\n\n**Report to us any issue you find with it, and have fun!**",
+            "You can start using Interkora commands right away. Keep in mind that, again, they’re not stable; we might break them with no prior notice. It’s more recommended to try unstable features with Sokora Canary instead, which you can find here: https://docs.sokora.org/canary.\n\nLearn more about what we’re building with Interkora and why here: https://docs.sokora.org/interkora.\n\n**Report to us any issue you find with it, and have fun!**",
             Sokolors.Green,
           ),
         ],
