@@ -29,7 +29,6 @@
 - Functional `/changelog` command (view all version logs directly from the bot).
 - Logging for changed settings, enable it from `/settings moderation`.
 - Two new easter eggs, `slash` and `test`.
-- One new game, `hotpotato`.
 - “Interkora”, a command-based interface for Sokora that lets you interact with it from webhooks, other bots or with bulk commands. See docsite.
 - We added a docsite with tutorials, information on the bot and a manual for Interkora, live at https://docs.sokora.org.
 

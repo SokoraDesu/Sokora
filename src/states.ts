@@ -2,7 +2,7 @@
  * Store here state machines shared across several files.
  */
 
-import { StateTracker } from "utils/stateMachine";
+/*import { StateTracker } from "utils/stateMachine";
 
 export interface PotatoStateEntry {
   started: number;
@@ -11,4 +11,4 @@ export interface PotatoStateEntry {
   lastPass: number;
   passes: number;
 }
-export const PotatoState = new StateTracker<PotatoStateEntry>();
+export const PotatoState = new StateTracker<PotatoStateEntry>();*/

@@ -51,35 +51,6 @@ const invitePrecondition: SettingPrecondition<SqlType<"BOOL" | "CHANNEL">> = asy
     return `The **Create Invite** and the **Manage Server** permissions are required for this setting to work.`;
 };
 
-export const defGames = {
-  hot_potato: {
-    type: "OBJECT",
-    iterable: false,
-    desc: "Settings for the hot potato game.",
-    properties: {
-      enabled: {
-        type: "BOOL",
-        desc: "Whether to enable the hot potato game. While fun, **it may annoy some users**.",
-      },
-      burn_timeout: {
-        type: "INTEGER",
-        desc: "Time before the potato burns the user, in seconds.",
-        val: 60,
-      },
-      pass_timeout: {
-        type: "INTEGER",
-        desc: "Minimum time between two potato passes. Min is three, numbers lower than that will be ignored.",
-        val: 3,
-      },
-      mute_duration: {
-        type: "INTEGER",
-        desc: "Time the looser will be muted, in seconds.",
-        val: 60,
-      },
-    },
-  },
-} satisfies SettingDefinitionRecord["settings"];
-
 export const defLeveling = {
   enabled: {
     type: "BOOL",
@@ -505,10 +476,10 @@ export const settingsDefinition = {
     description: "Change how Sokora warns you about server issues",
     settings: defNotifications,
   },
-  games: {
+  /* games: {
     description: "Enable/disable certain games and manage settings for them.",
     settings: defGames,
-  },
+  }, */
   topgg: { description: "Change settings about Top.gg.", settings: defTopgg },
 } as const;
 

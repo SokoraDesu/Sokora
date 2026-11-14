@@ -24,8 +24,7 @@ function produceGeneralValues(modAction: ModEmbedOptions): string[] {
 
 function produceVerb(action: ModType, hasRemovedSlowdown: boolean, isPast: boolean): string {
   if (hasRemovedSlowdown && action == "SLOWDOWN")
-      return isPast ? "slowdown (setting it to zero)" : "Removed slowdown from";
-    
+    return isPast ? "slowdown (setting it to zero)" : "Removed slowdown from";
 
   const dict = {
     MUTE: "Muted",

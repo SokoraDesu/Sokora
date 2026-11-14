@@ -1,0 +1,14 @@
+{
+  "name": "Sokora",
+  "files": [
+    {
+      "directory": ".",
+      "recursive": 1
+    }
+  ],
+  "exclude_patterns": [
+    "^build/.*",
+    "^node_modules/.*",
+    "^\\.git/.*"
+  ]
+}

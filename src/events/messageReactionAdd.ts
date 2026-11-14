@@ -14,8 +14,6 @@ import { colorize, Sokolors } from "utils/colorize";
 import { mention } from "utils/mention";
 import { safeChannel, safeUser } from "utils/safeThings";
 import type { Event } from "types";
-import { PotatoState } from "states";
-import ms from "enhanced-ms";
 
 export default (async function run(reaction, user) {
   const client = user.client;
@@ -80,30 +78,9 @@ export default (async function run(reaction, user) {
 
   if (!content && attachments.size === 0) return;
 
-  if (reaction.emoji.name == "🥔") {
-    const state = PotatoState.get(guild.id);
-    if (!state || author.id === state.heldBy || author.bot || message.webhookId) return;
-    const passTimeout = (Date.now() - state.lastPass) * 1000;
-    const setting = await getSetting(guild.id, "games", "hot_potato");
-    if (!setting || passTimeout < setting.pass_timeout) return;
-
-    const newState = PotatoState.update(guild.id, previous => {
-      return previous
-        ? {
-            ...previous,
-            passes: previous.passes + 1,
-            heldBy: author.id,
-            lastPass: Date.now(),
-          }
-        : previous;
-    });
-    if (!newState) return;
-    const remainingTime = ms(setting.burn_timeout * 1000 - (Date.now() - newState.started));
-    await message.reply(
-      `The hot potato **${newState.heldBy === state.startedBy ? "returns" : "now goes"} to ${mention(author.id, "USER")}**! **You have ${remainingTime} left to pass it to someone else** by reacting them with a 🥔!`,
-    );
+  if (reaction.emoji.name == "🥔") 
     return;
-  }
+  
 
   const starEmoji = await getSetting(guild.id, "starboard", "emoji");
   if (reaction.emoji.name != starEmoji) return;
