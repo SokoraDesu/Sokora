@@ -13,7 +13,7 @@ const changelog = await Bun.file("./CHANGELOG.md").text();
 
 /**
  * Gets the changelog of a specified Sokora version (directly from CHANGELOG.md).
- * @param ver Version to get changelog for.
+ * @param ver - Version to get changelog for.
  * @returns An object with changelog data.
  */
 export function getChangelog(version: string): TParsedChangelog {
@@ -46,8 +46,9 @@ export function getChangelog(version: string): TParsedChangelog {
 function parseVersion(string_: string): TParsedVersion {
   const [version, codename, date] = string_.replace("## ", "").split(" - ", 3);
   const isMinor = version.endsWith(".0");
-  if (!date) return { ver: version, date: codename as TDate, isMinor, codename: null };
-  return { ver: version, date: date as TDate, codename, isMinor };
+  return date
+    ? { ver: version, date: date as TDate, codename, isMinor }
+    : { ver: version, date: codename as TDate, isMinor, codename: null };
 }
 
 /**

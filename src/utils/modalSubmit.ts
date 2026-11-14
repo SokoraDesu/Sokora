@@ -1,4 +1,4 @@
-// [TODO] figure out if there's a way to make content persist across modals
+// TODO(@MrSerge01): figure out if there's a way to make content persist across modals
 
 import type {
   AnySelectMenuInteraction,
@@ -12,9 +12,9 @@ import { errorEmbed } from "embeds/errorEmbed";
 
 /**
  * Collects a modal submit interaction.
- * @param interaction Either a command, a button or a select menu that triggered the modal.
- * @param modal The modal data.
- * @param fileName The file name to use in case the modal errors while trying to appear.
+ * @param interaction - Either a command, a button or a select menu that triggered the modal.
+ * @param modal - The modal data.
+ * @param fileName - The file name to use in case the modal errors while trying to appear.
  * @returns The modal.
  */
 export async function modalSubmit(
@@ -25,7 +25,7 @@ export async function modalSubmit(
   try {
     await (interaction as ButtonInteraction).showModal(modal);
   } catch (error) {
-    if (fileName) await errorEmbed({ interaction, error, log: true, forward: true, fileName });
+    if (fileName) await errorEmbed(true, { interaction, error, fileName });
     else console.error(error);
   }
 
@@ -35,6 +35,8 @@ export async function modalSubmit(
       filter: m => m.user.id === interaction.user.id && m.customId === modal.data.custom_id,
     });
   } catch {
-    /* In case of timeout */
+    /*
+    In case of timeout
+    */
   }
 }

@@ -1,9 +1,9 @@
-import type { Client, InteractionResponse, Message } from "discord.js";
+import type { Client, Message } from "discord.js";
 import { errorEmbed } from "embeds/errorEmbed";
 import { readdirSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { client } from "src/bot";
+import { client } from "botfile";
 
 interface Event {
   name: string;
@@ -42,12 +42,10 @@ async function handler(
     await function_(...arguments_);
   } catch (error) {
     try {
-      await errorEmbed({
+      return await errorEmbed(true, {
         client,
         title: "Error while executing event",
         error,
-        log: true,
-        forward: true,
         fileName,
       });
     } catch (error_) {
@@ -64,7 +62,7 @@ interface EasterEgg {
 
 export const easterEggs: EasterEgg[] = [];
 export const easterEggNames: string[] = [];
-export async function loadEasterEggs(): Promise<Message | InteractionResponse | undefined> {
+export async function loadEasterEggs(): Promise<void> {
   const eventsPath = path.join(process.cwd(), "src", "events", "easterEggs");
   for (const easterEggFile of readdirSync(eventsPath)) {
     if (!easterEggFile.endsWith(".ts")) continue;
@@ -81,15 +79,12 @@ export async function loadEasterEggs(): Promise<Message | InteractionResponse | 
 
         easterEggs.push(easterEgg);
         easterEggNames.push(easterEggName);
-        console.log("Loaded egg:", easterEggName);
       }
     } catch (error) {
-      return await errorEmbed({
+      return await errorEmbed(true, {
         client,
         error,
         title: `Error loading easter egg ${easterEggFile}.`,
-        log: true,
-        forward: true,
         fileName: "events",
       });
     }

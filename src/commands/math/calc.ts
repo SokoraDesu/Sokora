@@ -3,47 +3,35 @@ import {
   SlashCommandSubcommandBuilder,
   TextDisplayBuilder,
   type ChatInputCommandInteraction,
-  type InteractionResponse,
-  type Message,
 } from "discord.js";
 import { errorEmbed } from "embeds/errorEmbed";
-import * as math from "mathjs";
+import { calc } from "features/math/calc";
 import { colorize, Sokolors } from "utils/colorize";
 
 export const data = new SlashCommandSubcommandBuilder()
   .setName("calc")
   .setDescription("Calculate the result of a mathematical expression.")
-  .addStringOption(option =>
-    option
+  .addStringOption(option => {
+    return option
       .setName("expression")
       .setDescription("The mathematical expression to calculate (e.g., ’sin(pi/4)’, ’10*2+(6/3)’)")
-      .setRequired(true),
-  );
+      .setRequired(true);
+  });
 
-export async function run(
-  interaction: ChatInputCommandInteraction,
-): Promise<Message | InteractionResponse | undefined> {
+export async function run(interaction: ChatInputCommandInteraction): Promise<void> {
   const expression = interaction.options.getString("expression", true);
-  let result: unknown;
+  const result = await calc({ expression });
 
-  try {
-    result = math.evaluate(expression);
-    if (typeof result != "number" || Number.isNaN(result) || !Number.isFinite(result))
-      throw new Error("Invalid result");
-  } catch (error) {
-    return await errorEmbed({
+  if (!result.success)
+    return await errorEmbed(false, {
       interaction,
-      title: "Invalid expression.",
-      reason: String(error).includes("Invalid result")
-        ? `Preferably, provide expressions with a result a computer can manage (expr. \`${expression}\` gave a result above compute limit).`
-        : "Please provide a valid mathematical expression. Examples: ’sin(pi/4)’, ’10*2+(6/3)’, ’sqrt(25)’",
+      ...result.out,
     });
-  }
 
   const container = new ContainerBuilder()
     .addTextDisplayComponents(
       new TextDisplayBuilder().setContent("## Calculation result"),
-      new TextDisplayBuilder().setContent(`\`${expression}\` = **${result}**`),
+      new TextDisplayBuilder().setContent(`\`${expression}\` = **${result.out}**`),
     )
     .setAccentColor(await colorize({ hue: Sokolors.Blue }));
 

@@ -12,31 +12,32 @@
     "setup": "bun i && bun run cli/setup.ts",
     "dev": "bun --watch ./src/bot.ts",
     "start": "bun ./src/index.ts",
-    "ql": "prettier --w .; tsc --noEmit; eslint . --fix --no-warn-ignored"
+    "start:docker": "sudo docker compose down && sudo docker compose up --build --watch --remove-orphans",
+    "ql": "bun fmt; bun check; eslint . --fix --no-warn-ignored"
   },
   "dependencies": {
-    "@hokkiai/djs-level-importer": "^1.2.0",
-    "@top-gg/sdk": "^3.1.6",
-    "chart.js": "^4.5.1",
+    "@subetedesu/honlvlimport": "npm:@jsr/subetedesu__honlvlimport@^2.0.0",
+    "@top-gg/sdk": "^4.0.0",
+    "chart.js": "^4.6.1",
     "chartjs-node-canvas": "^5.0.0",
     "colorthief": "^3.5.0",
-    "discord.js": "^14.27.0",
+    "discord.js": "^14.28.1",
     "enhanced-ms": "^5.0.0",
     "git-diff": "^2.0.7",
     "mathjs": "^15.2.0",
-    "p-limit": "^7.3.2",
-    "sharp": "^0.35.4"
+    "p-limit": "^7.3.3",
+    "sharp": "^0.35.5"
   },
   "devDependencies": {
-    "@types/git-diff": "^2.0.7",
     "@eslint/js": "^10.0.1",
-    "@typescript-eslint/eslint-plugin": "^8.70.0",
-    "@typescript-eslint/parser": "^8.70.0",
-    "bun-types": "^1.4.2",
-    "eslint": "^10.10.0",
-    "eslint-plugin-unicorn": "^72.0.0",
-    "prettier": "^3.9.6",
+    "@types/git-diff": "^2.0.7",
+    "@typescript-eslint/eslint-plugin": "^8.72.2",
+    "@typescript-eslint/parser": "^8.72.2",
+    "bun-types": "^1.4.4",
+    "eslint": "^10.14.0",
+    "eslint-plugin-tsdoc": "^0.5.4",
+    "eslint-plugin-unicorn": "^79.0.0",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.70.0"
+    "typescript-eslint": "^8.72.2"
   }
 }

@@ -8,6 +8,8 @@ services:
       - ./.env:/app/.env
     env_file:
       - .env
+    ports:
+      - "3067:3067"
     develop:
       watch:
         - action: sync
@@ -34,7 +36,6 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      # ./pgdata:/var/lib/postgresql if you're using PgSQL18 and want to get a mansion
       - pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U sokora -d sokora-db"]

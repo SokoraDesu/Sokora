@@ -7,17 +7,30 @@
 
 ### Added
 
-- Revamped the settings system's internals, added object-type settings and updated the settings pane (and gave it a proper name, "Peak Settings Editor"). See `/help settings` for info.
-- Importing levelling data from MEE6, Tatsu, and Lurkr. See `/help import` for info.
+**Particularly; additions regarding safety, correctness and bug hunting**
+
+- A public testing build (Sokora Canary). Allows users to early-test our work.
+- New `/permcheck` command, checks for Sokora’s permission in your server to see if it’s missing something.
+  - Give it a channel and it’ll verify said channel’s permission overrides aren’t messing with it.
+  - Give it a user and it’ll check if it can moderate it.
+- Error reporting. Error embeds now have a Report button that triggers an in-app form to report bugs very easily. **Please** use it if anything breaks.
+
+> We’ve made an effort to restructure many of the bot’s internals, aiming at stability and bug fixes (so many than we couldn’t record all of them). Do note that Sokora now runs on a lot of new code that may bug in new ways when tested by users. Report to us anything that goes wrong, we’ll fix it all ASAP. Thank you!
+
+**Other additions**
+
+- Added object-type settings (see `/help settings`) and in general rebuilt our settings system’s internals.
 - Level rewards, you can grant roles and/or channels as a reward for reaching a certain XP level.
-- Error reporting. Error embeds now have a Report button that triggers an in-app form to report bugs very easily.
-- Upload one image to your news. (Cannot edit or remove images, nor add images from the edit modal.)
-- Pinging users and roles, linking channels and adding custom timestamps to news. Discord doesn’t allow this from the modal editor, so it uses a Dynamic Variables-ish syntax (Dynamic Mentions). See `/help variables` for info.
+- Level multipliers; channels and roles that multiply the amount of XP granted.
+- Importing leveling data from MEE6, Tatsu, Amari and Lurkr. See `/help import`.
+- Upload images to your news. (Cannot edit or remove images, nor add images from the edit modal, we may add this in future releases.)
+- Ping users or roles, link channels or add custom timestamps to news. Discord doesn’t allow this from modal input, so it uses Dynamic (Variables). See `/help variables`.
 - Removing a user’s messages when banning them. Use `/moderation ban user:@USER del:true` for this.
 - Functional `/changelog` command (view all version logs directly from the bot).
-- Settings changes logging.
-- Added two new easter eggs, `slash` and `test`.
-- Added a public testing build (Sokora Canary).
+- Logging for changed settings, enable it from `/settings moderation`.
+- Two new easter eggs, `slash` and `test`.
+- “Interkora”, a command-based interface for Sokora that lets you interact with it from webhooks, other bots or with bulk commands. See docsite.
+- We added a docsite with tutorials, information on the bot and a manual for Interkora, live at https://docs.sokora.org.
 
 ### Changed
 
@@ -31,15 +44,20 @@
 
 ### Fixed
 
-- Fixed `/moderation ban` not working on members not in the guild.
-- Fixed `/moderation lock` allowing to lock non-text channels (like a voice chat).
+- `/moderation ban` not working on members not in the guild.
+- `/moderation lock` allowing to lock non-text channels (like a voice chat).
 - Fixed the way `/ping` calculates latency.
-- Fixed some minor issues with timestamps.
+- Some minor issues with timestamps.
 - The "made with ❤️ by the Sokora team" footer in many embeds was supposed to randomize the emoji but it never did; fixed that too.
 - `/moderation cases` now requires only the case ID or only the user ID to output a result.
 - Reset button in `/settings` now appears when you change a text/integer setting.
 - "News" are now "News posts", and instead of "adding" news you now "post" news.
 - Colors from the profile picture not working reliably (especially when the picture’s dominant color is grayscale.)
+- Issues with rendering custom emojis (like arrows in some buttons).
+- “Humanized” settings not always being actually humanized.
+- Wrong pluralization of negative numbers (-1 car instead of -1 cars, e.g.).
+- RPS using wrong name when playing with a bot
+- Removed duplicate (sometimes triplicate) database calls from starboard and news modules.
 
 ## 0.3.3 - 07/07/2026
 

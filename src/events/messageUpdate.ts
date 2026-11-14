@@ -7,12 +7,12 @@ import {
   MediaGalleryItemBuilder,
   TextDisplayBuilder,
 } from "discord.js";
-import { errorEmbed } from "embeds/errorEmbed";
 import { colorize, Sokolors } from "utils/colorize";
 import { logChannel } from "utils/logChannel";
 import { fetchMedia } from "utils/media";
 import { mention } from "utils/mention";
-import type { Event } from "utils/types";
+import type { Event } from "types";
+import { errorEmbed } from "embeds/errorEmbed";
 
 export default (async function run(oldMessage, newMessage) {
   try {
@@ -38,11 +38,10 @@ export default (async function run(oldMessage, newMessage) {
     try {
       media = await fetchMedia(newMessage);
     } catch (error) {
-      return await errorEmbed({
+      return await errorEmbed(true, {
         client,
         error,
         title: "Error fetching meta image.",
-        forward: true,
         fileName: "messageUpdate",
       });
     }
@@ -104,11 +103,9 @@ export default (async function run(oldMessage, newMessage) {
 
     return await logChannel(guild, { components: [container], files, flags: "IsComponentsV2" });
   } catch (error) {
-    return await errorEmbed({
+    return await errorEmbed(true, {
       client: oldMessage.client,
       error,
-      log: true,
-      forward: true,
       fileName: "messageUpdate",
     });
   }

@@ -10,7 +10,7 @@ import { channelCheck } from "utils/channelCheck";
 import { colorize, Sokolors } from "utils/colorize";
 import { replaceVariables } from "utils/replace";
 import { safeChannel } from "utils/safeThings";
-import type { Event } from "utils/types";
+import type { Event } from "types";
 
 export default (async function run(member) {
   const guild = member.guild;

@@ -1,89 +1,156 @@
 CREATE TABLE IF NOT EXISTS settings (
-  "guildID" TEXT,
-  "key" TEXT,
-  "value" TEXT
+  guild_id TEXT,
+  key TEXT,
+  value TEXT,
+  parameters JSONB
 );
 
 CREATE TABLE IF NOT EXISTS user_settings (
-  "userID" TEXT,
-  "key" TEXT,
-  "value" TEXT
+  user_id TEXT,
+  key TEXT,
+  value TEXT
 );
 
 CREATE TABLE IF NOT EXISTS leveling (
-  "guild" TEXT,
-  "userID" TEXT,
-  "xp" INTEGER
+  guild_id TEXT,
+  user_id TEXT,
+  xp INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS moderation (
-  "guild" TEXT,
-  "userID" TEXT,
-  "type" TEXT,
-  "moderator" TEXT,
-  "reason" TEXT,
-  "id" INTEGER,
-  "timestamp" TIMESTAMP,
-  "expiresAt" TIMESTAMP
+  guild_id TEXT NOT NULL,
+  target_id TEXT,
+  type TEXT NOT NULL,
+  moderator_id TEXT,
+  reason TEXT,
+  id INTEGER NOT NULL,
+  timestamp TIMESTAMPTZ,
+  expires_at TIMESTAMPTZ
 );
 
 CREATE TABLE IF NOT EXISTS news (
-  "guildID" TEXT,
-  "title" TEXT,
-  "body" TEXT,
-  "author" TEXT,
-  "authorPFP" TEXT,
-  "createdAt" TIMESTAMP,
-  "updatedAt" TIMESTAMP,
-  "messageID" TEXT,
-  "imageURL" TEXT,
-  "id" INTEGER
+  guild_id TEXT,
+  title TEXT,
+  body TEXT,
+  author_id TEXT,
+  created_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ,
+  message_id TEXT,
+  image_url TEXT,
+  id INTEGER,
+  category_id TEXT
 );
 
 CREATE TABLE IF NOT EXISTS starboard (
-  "guild" TEXT,
-  "message" TEXT,
-  "channel" TEXT,
-  "author" TEXT,
-  "star_message" TEXT,
-  "stars" INTEGER,
-  "content" TEXT,
-  "timestamp" TIMESTAMP
+  guild_id TEXT,
+  message_id TEXT,
+  channel_id TEXT,
+  author_id TEXT,
+  star_message_id TEXT,
+  stars INTEGER,
+  timestamp TIMESTAMPTZ
+);
+
+CREATE TABLE IF NOT EXISTS itk_requestors (
+  guild_id TEXT NOT NULL,
+  entity_id TEXT NOT NULL,
+  entity_type TEXT NOT NULL,
+  timestamp TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS itk_held_moderation (
+    guild_id TEXT NOT NULL,
+    entity_id TEXT NOT NULL,
+    timestamp TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    mod_payload JSONB NOT NULL,
+    guid TEXT NOT NULL,
+    action TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS itk_registrations (
+    entity_id TEXT NOT NULL,
+    payload JSONB NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    token_hash TEXT NOT NULL,
+    token_date TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
 DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'settings_pk') THEN
-        ALTER TABLE settings ADD CONSTRAINT settings_pk PRIMARY KEY ("guildID", "key");
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'itk_requestors_pk') THEN
+        ALTER TABLE itk_requestors ADD CONSTRAINT itk_requestors_pk PRIMARY KEY (guild_id, entity_id);
     END IF;
 END $$;
+
 DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'user_settings_pk') THEN
-        ALTER TABLE user_settings ADD CONSTRAINT user_settings_pk PRIMARY KEY ("userID", "key");
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'settings_pk'
+    ) THEN
+        ALTER TABLE settings
+        ADD CONSTRAINT settings_pk PRIMARY KEY (guild_id, key);
     END IF;
 END $$;
+
 DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'leveling_pk') THEN
-        ALTER TABLE leveling ADD CONSTRAINT leveling_pk PRIMARY KEY ("guild", "userID");
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'user_settings_pk'
+    ) THEN
+        ALTER TABLE user_settings
+        ADD CONSTRAINT user_settings_pk PRIMARY KEY (user_id, key);
     END IF;
 END $$;
+
 DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'moderation_pk') THEN
-        ALTER TABLE moderation ADD CONSTRAINT moderation_pk PRIMARY KEY ("guild", "id");
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'leveling_pk'
+    ) THEN
+        ALTER TABLE leveling
+        ADD CONSTRAINT leveling_pk PRIMARY KEY (guild_id, user_id);
     END IF;
 END $$;
+
 DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'news_pk') THEN
-        ALTER TABLE news ADD CONSTRAINT news_pk PRIMARY KEY ("guildID", "id");
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'moderation_pk'
+    ) THEN
+        ALTER TABLE moderation
+        ADD CONSTRAINT moderation_pk PRIMARY KEY (guild_id, id);
     END IF;
 END $$;
+
 DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'starboard_pk') THEN
-        ALTER TABLE starboard ADD CONSTRAINT starboard_pk PRIMARY KEY ("guild", "message");
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'news_pk'
+    ) THEN
+        ALTER TABLE news
+        ADD CONSTRAINT news_pk PRIMARY KEY (guild_id, id);
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'starboard_pk'
+    ) THEN
+        ALTER TABLE starboard
+        ADD CONSTRAINT starboard_pk PRIMARY KEY (guild_id, message_id);
     END IF;
 END $$;

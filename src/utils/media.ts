@@ -1,4 +1,5 @@
 import type { Message } from "discord.js";
+import { ENABLE_MEDIA_FETCHING } from "const";
 
 /**
  * BEWARE.
@@ -7,6 +8,7 @@ import type { Message } from "discord.js";
  *
  * Requires the ENABLE_MEDIA_FETCHING environment variable to be on.
  *
+ * @remarks
  * This code fetches certain meta tags, as well as other content (e.g, images, videos), from external URLs sent by users.
  * This is a MAJOR security risk, as it can lead to skids being able to retrieve the bot's IP address by sending a link to a webserver that they control, possibly leading to DDoS attacks.
  * If you are self hosting this, it's highly recommended to disable this feature within your .env configuration to prevent this from happening.
@@ -14,8 +16,8 @@ import type { Message } from "discord.js";
  *
  * WITH GREAT POWER COMES GREAT RESPONSIBILITY (or smth).
  *
- * @param message Message to fetch media from.
- * @returns Message's media: an image, video (or a gif) or a thumbnail
+ * @param message - Message to fetch media from.
+ * @returns Message's media: an image, video (or a GIF) or a thumbnail
  */
 export async function fetchMedia(
   message: Message,
@@ -27,7 +29,7 @@ export async function fetchMedia(
   let image = null;
   let video = null;
 
-  if (!url || !message.content || process.env.ENABLE_MEDIA_FETCHING != "true")
+  if (!url || !message.content || ENABLE_MEDIA_FETCHING != "true")
     return { image, video, thumbnail };
 
   const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(url);

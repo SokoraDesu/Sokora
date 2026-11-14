@@ -3,81 +3,79 @@ import {
   type Client,
   ContainerBuilder,
   type Guild,
-  type InteractionResponse,
-  type Message,
   TextDisplayBuilder,
+  type User,
 } from "discord.js";
 import { errorEmbed } from "embeds/errorEmbed";
 import { colorize, Sokolors } from "./colorize";
 import { logChannel } from "./logChannel";
 import { safeGuild } from "./safeThings";
 import { mention } from "./mention";
+import { MILLISEC_1H } from "./constants";
+import { client } from "botfile";
 
 const scheduledUnbans = new Map<string, Timer>();
 
 async function unbanUser(
-  client: Client,
   guild: Guild,
-  userID: string,
-  modID: string,
+  target_id: string,
+  moderator_id: string,
   caseId?: number,
-): Promise<Message | InteractionResponse | undefined> {
-  const guildID = guild.id;
-
-  let user;
+): Promise<void> {
+  let target: User;
   try {
-    user = (await guild.bans.fetch(userID)).user;
+    target = (await guild.bans.fetch(target_id)).user;
   } catch {
-    return await errorEmbed({
+    return await errorEmbed(false, {
       client,
-      title: `Failed to unban user ${userID} in guild ${guildID}.`,
+      title: `Failed to unban user ${target_id} in guild ${guild.id}.`,
       reason: "User not found in the guild’s ban list.",
-      log: true,
-      forward: true,
       fileName: "unbanScheduler",
     });
   }
 
-  caseId ??= (await getPendingBans(Date.now() - 3_600_000)).find(ban => ban.userID == userID)?.id;
-  const unbanReason = `Temporary ban by <@${modID}> has expired (cf. case ${caseId})`;
-  await createCase(guildID, userID, "UNBAN", client.user?.id ?? modID, unbanReason); // idk how can client.user be null but ok
-  
-  await guild.members.unban(userID, unbanReason);
+  caseId ??= (await getPendingBans(Date.now() - MILLISEC_1H)).find(
+    ban => ban.target_id == target.id,
+  )?.id;
+  const unbanReason = `Temporary ban by <@${moderator_id}> has expired (cf. case ${caseId})`;
+  // idk how can client.user be null but ok - @Golem642
+  // client can be accessed before running Client#login(), in which case user IS null
+  // anyways this was never the case so i fixed the type - @zakahacecosas
+  await createCase(guild, target, "UNBAN", client.user, unbanReason);
+
+  await guild.members.unban(target.id, unbanReason);
   const container = new ContainerBuilder()
     .addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(`## Unbanned ${mention(user.id, "USER")}`),
+      new TextDisplayBuilder().setContent(`## Unbanned ${mention(target.id, "USER")}`),
       new TextDisplayBuilder().setContent(unbanReason),
-      new TextDisplayBuilder().setContent(`-# User ID: ${user.id}`),
+      new TextDisplayBuilder().setContent(`-# User ID: ${target.id}`),
     )
     .setAccentColor(await colorize({ hue: Sokolors.Green }));
 
   await logChannel(guild, { components: [container], flags: "IsComponentsV2" });
 }
 
-// eslint-disable-next-line @typescript-eslint/require-await
-export async function scheduleUnban(
+export function scheduleUnban(
   client: Client,
   guild: Guild,
-  userID: string,
-  modID: string,
+  user_id: string,
+  moderator_id: string,
   delay: number,
   caseId?: number,
-): Promise<Map<string, Timer>> {
-  const guildID = guild.id;
-  const key = `${guildID}-${userID}`;
+): Map<string, Timer> {
+  const key = `${guild.id}-${user_id}`;
   if (scheduledUnbans.has(key)) clearTimeout(scheduledUnbans.get(key));
 
   const timeout = setTimeout(
     async () => {
       try {
-        await unbanUser(client, guild, userID, modID, caseId);
+        await unbanUser(guild, user_id, moderator_id, caseId);
       } catch (error) {
-        await errorEmbed({
+        await errorEmbed(true, {
           client,
           error,
-          title: `Failed to unban user ${userID} in guild ${guildID}.`,
-          log: true,
-          forward: true,
+          title: `Failed to unban user ${user_id} in guild ${guild.id}.`,
+
           fileName: "unbanScheduler",
         });
       }
@@ -92,37 +90,36 @@ export async function scheduleUnban(
 }
 
 export async function rescheduleUnbans(client: Client): Promise<void> {
-  const now = Date.now() - 3_600_000; // hopefully a bot restart is faster than an hour lol, otherwise it might miss scheduled unbans
+  // hopefully a bot restart is faster than an hour lol, otherwise it might miss scheduled unbans
+  const now = Date.now() - MILLISEC_1H;
   const bans = await getPendingBans(now);
   for (const ban of bans) {
-    if (!ban.expiresAt) continue;
-    if (typeof ban.expiresAt != "number" || Number.isNaN(ban.expiresAt)) {
-      await errorEmbed({
+    if (!ban.expires_at) continue;
+    if (typeof ban.expires_at != "number" || Number.isNaN(ban.expires_at)) {
+      await errorEmbed(true, {
         client,
-        title: `Invalid expiresAt value for ban: ${ban.expiresAt}.`,
-        log: true,
-        forward: true,
+        title: `Invalid expires_at value for ban: ${ban.expires_at}.`,
+
         fileName: "unbanScheduler",
       });
       continue;
     }
 
     try {
-      const guildBan = await (await safeGuild(client, ban.guild)).bans.fetch(ban.userID);
+      const guildBan = await (await safeGuild(client, ban.guild_id)).bans.fetch(ban.target_id);
       console.log("Rescheduling", ban.id);
-      const delay = ban.expiresAt - now;
+      const delay = ban.expires_at - now;
       if (delay > 0)
-        await scheduleUnban(client, guildBan.guild, ban.userID, ban.moderator, delay, ban.id);
+        scheduleUnban(client, guildBan.guild, ban.target_id, ban.moderator_id, delay, ban.id);
       else
         try {
-          await unbanUser(client, guildBan.guild, ban.userID, ban.moderator, ban.id);
+          await unbanUser(guildBan.guild, ban.target_id, ban.moderator_id, ban.id);
         } catch (error) {
-          await errorEmbed({
+          await errorEmbed(true, {
             client,
             error,
-            title: `Failed to unban user ${ban.userID} in guild ${ban.guild}.`,
-            log: true,
-            forward: true,
+            title: `Failed to unban user ${ban.target_id} in guild ${ban.guild_id}.`,
+
             fileName: "unbanScheduler",
           });
         }

@@ -1,4 +1,4 @@
-import { getSetting } from "database/settings";
+import { getSetting, setSetting } from "database/settings";
 import { getStarred, setStarred } from "database/starboard";
 import {
   ContainerBuilder,
@@ -13,39 +13,35 @@ import { channelCheck, hasChannelPerms } from "utils/channelCheck";
 import { colorize, Sokolors } from "utils/colorize";
 import { mention } from "utils/mention";
 import { safeChannel, safeUser } from "utils/safeThings";
-import type { Event } from "utils/types";
+import type { Event } from "types";
 
 export default (async function run(reaction, user) {
   const client = user.client;
-  const guildID = reaction.message.guildId;
+  const guild = reaction.message.guild;
+  if (!guild || !(await getSetting(guild.id, "starboard", "enabled"))) return;
   const channelID = reaction.message.channelId;
   const errorExtras = {
-    guild: guildID,
+    guild_id: guild.id,
     channel: channelID,
     message: reaction.message.id,
     user: user.id,
   };
 
-  if (!guildID || !(await getSetting(guildID, "starboard", "enabled"))) return;
-
   if (!hasChannelPerms(reaction.message.channel, "ReadMessageHistory"))
     return logEmbed({
-      client,
-      guildID,
+      guild,
       title: "Sokora is missing permissions",
-      description: `The channel <#${channelID}> does not allow Sokora to \`Read message history\`, starboard will not work in this channel until fixed`,
+      text: `The channel <#${channelID}> does not allow Sokora to \`Read message history\`, starboard will not work in this channel until fixed`,
     });
 
   if (reaction.partial)
     try {
       await reaction.fetch();
     } catch (error) {
-      return await errorEmbed({
+      return await errorEmbed(true, {
         client,
         error,
         title: "Error fetching reaction.",
-        log: true,
-        forward: true,
         fileName: "messageReactionAdd",
         extras: errorExtras,
       });
@@ -55,38 +51,37 @@ export default (async function run(reaction, user) {
     try {
       await safeUser(client, user.id);
     } catch (error) {
-      await errorEmbed({
+      return await errorEmbed(true, {
         client,
         error,
         title: "Error fetching user.",
-        log: true,
-        forward: true,
         fileName: "messageReactionAdd",
         extras: errorExtras,
       });
     }
 
-  try {
-    await reaction.message.fetch();
-  } catch (error) {
-    await errorEmbed({
-      client,
-      error,
-      title: "Error fetching message.",
-      log: true,
-      forward: true,
-      fileName: "messageReactionAdd",
-      extras: errorExtras,
-    });
-  }
+  if (reaction.message.partial)
+    try {
+      await reaction.message.fetch();
+    } catch (error) {
+      return await errorEmbed(true, {
+        client,
+        error,
+        title: "Error fetching message.",
+        fileName: "messageReactionAdd",
+        extras: errorExtras,
+      });
+    }
 
   const message = reaction.message as Message;
-  const { guild, author, content, createdAt, url, id, attachments } = message;
-  if (!guild) return;
+  const { author, content, createdAt, url, id, attachments } = message;
+
+  if (!content && attachments.size === 0) return;
+
+  if (reaction.emoji.name == "🥔") return;
 
   const starEmoji = await getSetting(guild.id, "starboard", "emoji");
   if (reaction.emoji.name != starEmoji) return;
-  if (!content && attachments.size === 0) return;
 
   const starboardChannelId = await getSetting(guild.id, "starboard", "channel");
   if (!starboardChannelId) return;
@@ -101,8 +96,15 @@ export default (async function run(reaction, user) {
       setting: { category: "starboard", setting: "channel" },
     })) ||
     starboardChannel.isDMBased()
-  )
+  ) {
+    await setSetting(guild.id, "starboard", "channel", undefined);
+    await logEmbed({
+      guild,
+      title: "A channel is misconfigured in your server!",
+      text: `Starboard is enabled in this server, however **the starboard channel was somehow set to a channel that is either not text-based, DM-based or that disallows Sokora from sending messages**, which stops the starboard from working. **This setting has been reset to default.**`,
+    });
     return;
+  }
 
   let starCount = reaction.count ?? 0;
   const threshold = await getSetting(guild.id, "starboard", "threshold");
@@ -149,37 +151,37 @@ export default (async function run(reaction, user) {
 
   try {
     if (!existingStarred) {
-      await setStarred(
-        guild.id,
-        id,
-        message.channel.id,
-        author.id,
-        (await starboardChannel.send({ components: containers, flags: "IsComponentsV2" })).id,
-        starCount,
-        new Date(message.createdTimestamp),
-      );
+      await setStarred({
+        guild_id: guild.id,
+        star_message_id: id,
+        channel_id: message.channel.id,
+        author_id: author.id,
+        message_id: (
+          await starboardChannel.send({ components: containers, flags: "IsComponentsV2" })
+        ).id,
+        stars: starCount,
+        timestamp: Temporal.Instant.fromEpochMilliseconds(message.createdTimestamp),
+      });
       return;
     }
 
-    const starMessage = await starboardChannel.messages.fetch(existingStarred.star_message);
+    const starMessage = await starboardChannel.messages.fetch(existingStarred.star_message_id);
     if (starMessage.partial) await starMessage.fetch();
     await starMessage.edit({ components: containers, flags: "IsComponentsV2" });
-    await setStarred(
-      guild.id,
-      id,
-      existingStarred.channel,
-      author.id,
-      existingStarred.message,
-      starCount,
-      new Date(message.createdTimestamp),
-    );
+    await setStarred({
+      guild_id: guild.id,
+      star_message_id: id,
+      channel_id: existingStarred.channel_id,
+      author_id: author.id,
+      message_id: existingStarred.message_id,
+      stars: starCount,
+      timestamp: Temporal.Instant.fromEpochMilliseconds(message.createdTimestamp),
+    });
   } catch (error) {
-    await errorEmbed({
+    return await errorEmbed(true, {
       client,
       error,
       title: "Error handling starboard message.",
-      log: true,
-      forward: true,
       fileName: "messageReactionAdd",
       extras: errorExtras,
     });

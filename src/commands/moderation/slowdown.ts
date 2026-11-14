@@ -2,31 +2,30 @@ import {
   ChannelType,
   SlashCommandSubcommandBuilder,
   type ChatInputCommandInteraction,
-  type InteractionResponse,
-  type Message,
 } from "discord.js";
 import { errorEmbed } from "embeds/errorEmbed";
-import { errorCheck, modEmbed } from "embeds/modEmbed";
+import { modEmbed } from "embeds/modEmbed";
 import ms from "enhanced-ms";
-import { MILLISEC_6H } from "utils/constants";
+import { slowdown } from "features/mod/slowdown";
+import { assertInteraction } from "types";
 import { safeChannel } from "utils/safeThings";
 
 export const data = new SlashCommandSubcommandBuilder()
   .setName("slowdown")
   .setDescription("Slows a channel down.")
-  .addStringOption(string =>
-    string
+  .addStringOption(string => {
+    return string
       .setName("time")
       .setDescription(
         "Time to slow the channel down to (e.g 30m, 2h, max - 6h). 0 for no slowdown.",
       )
-      .setRequired(true),
-  )
+      .setRequired(true);
+  })
   .addStringOption(string =>
     string.setName("reason").setDescription("The reason for the slowdown."),
   )
-  .addChannelOption(channel =>
-    channel
+  .addChannelOption(channel => {
+    return channel
       .setName("channel")
       .setDescription("The channel that you want to slowdown.")
       .addChannelTypes(
@@ -36,63 +35,37 @@ export const data = new SlashCommandSubcommandBuilder()
         ChannelType.PrivateThread,
         ChannelType.GuildVoice,
         ChannelType.GuildStageVoice,
-      ),
-  );
+      );
+  })
+  .addBooleanOption(bool => {
+    return bool
+      .setName("silent")
+      .setDescription(
+        "If true, the user won’t be notified about this action (overrides the server setting).",
+      );
+  });
 
-export async function run(
-  interaction: ChatInputCommandInteraction,
-): Promise<Message | InteractionResponse | undefined> {
-  const guild = interaction.guild;
-  if (!guild || !interaction.channel) return;
+export async function run(interaction: ChatInputCommandInteraction): Promise<void> {
+  assertInteraction(interaction);
+
   const channelOption = interaction.options.getChannel("channel");
-  let channel = await safeChannel(guild, interaction.channel.id);
-  if (channelOption) channel = await safeChannel(guild, channelOption.id);
+  let channel = await safeChannel(interaction.guild, interaction.channel.id);
+  if (channelOption) channel = await safeChannel(interaction.guild, channelOption.id);
 
-  if (
-    await errorCheck("Manage Channels", {
-      interaction,
-      channel: channel.id,
-      errorOptions: { allErrors: false, botError: true, channelError: true },
-    })
-  )
-    return;
+  const time = interaction.options.getString("time", true);
 
-  const time = interaction.options.getString("time");
-  if (!time)
-    return await errorEmbed({
-      interaction,
-      title: "No time provided.",
-      reason:
-        "You somehow ran the command without a time value being provided. That is an error. You might want to report this, as it is not supposed to ever happen.",
-    });
-
-  const timeMs = ms(time) ?? 0;
+  const timeMillisec = ms(time) ?? 0;
   const reason = interaction.options.getString("reason");
-  const title = timeMs
-    ? `Set the slowdown to ${ms(timeMs, "fullPrecision")}`
-    : "Removed the slowdown";
 
-  if (timeMs > MILLISEC_6H)
-    return await errorEmbed({
-      interaction,
-      title: "You have provided a duration longer than 6 hours.",
-    });
+  const result = await slowdown({
+    timeMillisec,
+    reason,
+    channel,
+    moderator: interaction.user,
+    guild: interaction.guild,
+  });
 
-  if (!channel.isTextBased() || channel.isDMBased())
-    return await errorEmbed({
-      interaction,
-      title: "You have provided a channel that can’t be slowed down.",
-    });
-
-  await Promise.all([
-    channel.setRateLimitPerUser(timeMs / 1000, reason ?? undefined),
-    modEmbed(
-      {
-        interaction,
-        channel: channel.id,
-        customText: { logTitle: title },
-      },
-      reason,
-    ),
-  ]);
+  return result.success
+    ? await modEmbed({ ...result.out, interaction })
+    : await errorEmbed(result.reason === "exception", { interaction, ...result.out });
 }

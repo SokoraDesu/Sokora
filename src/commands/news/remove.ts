@@ -1,62 +1,50 @@
-import { deleteNews, getNews } from "database/news";
-import { getSetting } from "database/settings";
 import {
   ContainerBuilder,
   SlashCommandSubcommandBuilder,
   TextDisplayBuilder,
   type ChatInputCommandInteraction,
-  type InteractionResponse,
-  type Message,
-  type TextChannel,
 } from "discord.js";
 import { errorEmbed } from "embeds/errorEmbed";
 import { colorize, Sokolors } from "utils/colorize";
-import { safeChannel, safeMember } from "utils/safeThings";
-import { isInteractionSafe } from "utils/types";
+import { safeMember } from "utils/safeThings";
+import { assertInteraction } from "types";
+import { remove } from "features/news/remove";
 
 export const data = new SlashCommandSubcommandBuilder()
   .setName("remove")
   .setDescription("Removes a news post.")
-  .addNumberOption(number =>
-    number
+  .addNumberOption(number => {
+    return number
       .setName("id")
       .setDescription("The ID of the news post. (found in the footer)")
-      .setRequired(true),
-  );
+      .setRequired(true);
+  });
 
-export async function run(
-  interaction: ChatInputCommandInteraction,
-): Promise<Message | InteractionResponse | undefined> {
+export async function run(interaction: ChatInputCommandInteraction): Promise<void> {
+  assertInteraction(interaction);
+  const id = interaction.options.getNumber("id", true);
+
   if (
-    !isInteractionSafe(interaction) ||
-    !(await safeMember(interaction.guild, interaction.user.id)).permissions.has("ManageGuild")
+    // IDEA: maybe move to assertInteraction
+    // and maybe split that into other fns + rename it as it's growing in scope
+    !interaction.member ||
+    !interaction.channel.isTextBased() ||
+    interaction.channel.isVoiceBased() ||
+    interaction.channel.isDMBased() ||
+    interaction.channel.isThread()
   )
-    return await errorEmbed({
-      interaction,
-      title: "You can’t execute this command.",
-      reason: "You need the **Manage Server** permission.",
-    });
+    return;
 
-  const id = interaction.options.getNumber("id");
-  if (!id)
-    return await errorEmbed({
-      interaction,
-      title: "No ID provided.",
-      reason:
-        "You somehow ran the command without an ID being provided. That is an error. You might want to report this, as it is not supposed to ever happen.",
-    });
+  const result = await remove({
+    id,
+    userMember: await safeMember(interaction.guild, interaction.user.id),
+    guild: interaction.guild,
+    fallbackChannel: interaction.channel,
+  });
 
-  const news = await getNews(interaction.guild.id, id);
-  if (!news)
-    return await errorEmbed({ interaction, title: "The specified news post doesn’t exist." });
+  if (!result.success)
+    return errorEmbed(result.reason === "exception", { interaction, ...result.out });
 
-  const newsChannel = (await safeChannel(
-    interaction.guild,
-    (await getSetting(interaction.guild.id, "news", "channel")) ?? interaction.channel.id,
-  )) as TextChannel;
-
-  if (newsChannel && news.messageID) await newsChannel.messages.delete(news.messageID);
-  await deleteNews(interaction.guild.id, id);
   await interaction.reply({
     components: [
       new ContainerBuilder()

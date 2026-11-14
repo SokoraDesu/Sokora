@@ -1,4 +1,5 @@
 import {
+  InteractionContextType,
   SlashCommandBuilder,
   SlashCommandSubcommandBuilder,
   SlashCommandSubcommandGroupBuilder,
@@ -8,6 +9,7 @@ import {
 import { readdirSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { DEV_IRL_TESTING_ENABLED } from "const";
 
 type RunFunction = (interaction: ChatInputCommandInteraction) => Promise<unknown>;
 interface Command {
@@ -60,17 +62,17 @@ async function createSubCommand(name: string): Promise<Command> {
   const command = new SlashCommandBuilder()
     .setName(name.toLowerCase())
     .setDescription("This command has no description.")
-    .setContexts(0);
+    .setContexts(InteractionContextType.Guild);
 
   const subNames: string[] = [];
   // Base executable subcommands first, then subcommands groups
   const sortedSubFiles = readdirSync(path.join(commandsPath, name), {
     withFileTypes: true,
-  }).toSorted((a, b) =>
-    a.isDirectory() == b.isDirectory()
+  }).toSorted((a, b) => {
+    return a.isDirectory() == b.isDirectory()
       ? a.name.localeCompare(b.name)
-      : +a.isDirectory() - +b.isDirectory(),
-  );
+      : +a.isDirectory() - +b.isDirectory();
+  });
 
   for (const subCommandFile of sortedSubFiles) {
     const subName = subCommandFile.name;
@@ -103,15 +105,15 @@ async function createSubCommand(name: string): Promise<Command> {
 
 async function loadCommands(): Promise<Command[]> {
   // Base executable commands first, then commands groups
-  const sortedFiles = readdirSync(commandsPath, { withFileTypes: true }).toSorted((a, b) =>
-    a.isDirectory() == b.isDirectory()
+  const sortedFiles = readdirSync(commandsPath, { withFileTypes: true }).toSorted((a, b) => {
+    return a.isDirectory() == b.isDirectory()
       ? a.name.localeCompare(b.name)
-      : +a.isDirectory() - +b.isDirectory(),
-  );
+      : +a.isDirectory() - +b.isDirectory();
+  });
 
   for (const commandFile of sortedFiles) {
     const name = commandFile.name;
-    if (name === "test.ts" && !process.env.ENABLE_IRL_TEST_SUITE) {
+    if (name === "test.ts" && !DEV_IRL_TESTING_ENABLED) {
       console.debug("Skipping IRL test suite.");
       continue;
     }
@@ -128,7 +130,7 @@ async function loadCommands(): Promise<Command[]> {
       );
     else pushCommand(commands, await createSubCommand(name));
   }
-
+  console.debug("Pre-loaded commands");
   return commands;
 }
 
@@ -145,10 +147,10 @@ export async function registerGuildCommands(client: Client): Promise<void> {
   await loadCommands();
   const guilds = client.guilds.cache;
 
-  for (const guildID of guilds.keys()) {
-    console.log("GUILD LOAD", guildID);
+  for (const guildID of guilds.keys())
     await guilds.get(guildID)?.commands.set(commands.map(command => command.data));
-  }
+
+  console.log("Loaded", guilds.size, "guilds");
 
   console.log("Loaded guild commands");
 }

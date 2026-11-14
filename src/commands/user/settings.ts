@@ -11,7 +11,7 @@ import {
   type ChatInputCommandInteraction,
 } from "discord.js";
 import { settingsEmbed } from "embeds/settingsEmbed";
-import { isInteractionSafe } from "utils/types";
+import { assertInteraction } from "types";
 
 export const data = new SlashCommandSubcommandGroupBuilder()
   .setName("settings")
@@ -25,8 +25,7 @@ for (const key of userSettingsKeys)
   );
 
 export async function run(interaction: ChatInputCommandInteraction): Promise<void> {
-  if (!isInteractionSafe(interaction))
-    throw new Error("Why is user null if you are setting a user-table setting?");
+  assertInteraction(interaction);
 
   const key = interaction.options.getSubcommand() as keyof TS;
   await settingsEmbed(interaction, key, {

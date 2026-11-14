@@ -1,9 +1,9 @@
-import type { SingleSettingDefinition } from "database/types";
+import type { SingleSettingDefinition } from "types";
 import { capitalize } from "./capitalize";
 
 /**
  * Outputs the given settings_string with formatting applied.
- * @param {string} string Settings string, either a key or a value.
+ * @param string - Settings string, either a key or a value.
  */
 export function humanizeSettings(string: string): string {
   const humanized = string
@@ -27,7 +27,7 @@ export function humanizeSettings(string: string): string {
 
 /**
  * Outputs the given setting's type with human formatting applied.
- * @param {SingleSettingDefinition} def Setting definition.
+ * @param def - Setting definition.
  */
 export function humanizeSettingType(def: SingleSettingDefinition): string {
   const { type } = def;

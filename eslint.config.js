@@ -3,6 +3,7 @@ import unicorn from "eslint-plugin-unicorn";
 import { defineConfig, globalIgnores } from "eslint/config";
 import tseslint from "typescript-eslint";
 import { bracketlessNewline } from "./ql/bracketless-newline.ts";
+import tsdocPlugin from "eslint-plugin-tsdoc";
 
 export default defineConfig(
   globalIgnores(["eslint.config.js"]),
@@ -12,6 +13,7 @@ export default defineConfig(
   unicorn.configs.recommended,
   {
     plugins: {
+      tsdoc: tsdocPlugin,
       local: {
         rules: {
           "no-bracketless-if-without-blank-line": bracketlessNewline,
@@ -26,6 +28,7 @@ export default defineConfig(
     },
     rules: {
       curly: ["warn", "multi"],
+      "tsdoc/syntax": "warn",
       "local/no-bracketless-if-without-blank-line": "warn",
       "@typescript-eslint/no-floating-promises": "error",
       "unicorn/string-content": [
@@ -44,6 +47,7 @@ export default defineConfig(
       "@typescript-eslint/await-thenable": "error",
       "@typescript-eslint/explicit-function-return-type": "warn",
       "@typescript-eslint/no-explicit-any": "error",
+      "unicorn/consistent-arrow-return-style": "error",
       "@typescript-eslint/consistent-type-imports": [
         "error",
         {
@@ -51,12 +55,29 @@ export default defineConfig(
         },
       ],
       "unicorn/no-null": "off",
+      "unicorn/prefer-combined-guards": "error",
+      "unicorn/no-unused-builtin-method-return": "error",
+      "unicorn/prefer-iterator-zip": "error",
       "@typescript-eslint/no-unnecessary-condition": "off",
       "unicorn/no-process-exit": "warn",
       "unicorn/filename-case": "off",
+      "unicorn/no-array-front-mutation": "warn",
+      "unicorn/no-barrel-files": "warn",
+      "unicorn/prefer-temporal": "warn",
+      "unicorn/no-missing-local-resource": "error",
+      "unicorn/no-repeated-call-wrappers": "warn",
+      "unicorn/no-unnecessary-default-arguments": "warn",
+      "unicorn/no-unreadable-new-expression": "off",
+      "unicorn/no-unused-properties": "warn",
       "unicorn/no-await-expression-member": "off",
       "@typescript-eslint/restrict-template-expressions": "off",
       "unicorn/prefer-module": "error",
+      "unicorn/prefer-dispose": "warn",
+      "unicorn/prefer-error-is-error": "warn",
+      "unicorn/prefer-import-meta-properties": "warn",
+      "unicorn/prefer-iterator-concat": "warn",
+      "unicorn/prefer-regexp-escape": "warn",
+      "unicorn/prefer-short-arrow-method": "warn",
       "no-eval": "error",
       "no-new-func": "error",
       "no-implied-eval": "error",
@@ -88,15 +109,37 @@ export default defineConfig(
       "no-promise-executor-return": "error",
       "no-self-compare": "error",
       "no-unmodified-loop-condition": "error",
+      "unicorn/class-reference-in-static-methods": "error",
+      "unicorn/comment-content": "warn",
+      "unicorn/consistent-class-member-order": "warn",
+      "unicorn/catch-error-name": "warn",
+      "unicorn/consistent-conditional-object-spread": "warn",
+      "unicorn/consistent-date-clone": "warn",
+      "unicorn/consistent-destructuring": "warn",
+      "unicorn/consistent-empty-array-spread": "warn",
+      "unicorn/consistent-existence-index-check": "warn",
+      "unicorn/consistent-function-scoping": "warn",
+      "unicorn/consistent-optional-chaining": "warn",
+      "unicorn/consistent-template-literal-escape": "warn",
+      "unicorn/custom-error-definition": "warn",
+      "unicorn/consistent-compound-words": "warn",
       "no-unreachable-loop": "error",
+      "unicorn/error-message": "error",
+      "unicorn/expiring-todo-comments": "error", // IDEA: check this out
+      "unicorn/explicit-length-check": "warn",
+      "@typescript-eslint/no-confusing-void-expression": "off",
+      "unicorn/single-line-block-comment-style": "off",
+      "unicorn/iteration-fallback-style": ["error", "guard"],
+      "unicorn/consistent-arrow-return-style": "error",
       "@typescript-eslint/no-loop-func": "error",
       "@typescript-eslint/no-this-alias": "error",
       "@typescript-eslint/no-import-type-side-effects": "error",
       "unicorn/no-useless-undefined": "error",
       "unicorn/max-nested-calls": "off",
+      "unicorn/no-nested-ternary": "warn",
       "unicorn/no-unsafe-string-replacement": "off",
       "unicorn/no-top-level-side-effects": "off",
-      "unicorn/prefer-await": "off", // i actually want to enable this, but requires refactors i'm lazy for
+      "unicorn/prefer-await": "off",
       "unicorn/name-replacements": [
         "error",
         {
@@ -110,6 +153,24 @@ export default defineConfig(
         },
       ],
       "unicorn/import-style": "error",
+      "unicorn/no-invalid-response-options": "error",
+      "unicorn/no-prevent-default-in-passive-listener": "error",
+      "unicorn/no-url-in-search-params": "error",
+      "unicorn/no-invalid-temporal-arithmetic": "error",
+      "unicorn/no-invalid-intl-options": "error",
+      "unicorn/no-unsafe-json-serialization": "error",
+      "unicorn/no-leading-empty-lines": "error",
+      "unicorn/no-unnecessary-parameters": "error",
+      "unicorn/prefer-promise-static-methods": "error",
+      "unicorn/no-incomplete-accessor-override": "error",
+      "unicorn/no-asterisk-prefix-in-documentation-comments": "off",
+      "unicorn/prefer-escaped-irregular-whitespace": "error",
+      "unicorn/prefer-literal-ascii": "error",
+      "unicorn/prefer-short-escape-sequences": "error",
+      "unicorn/prefer-default-parameters": "warn",
+      "unicorn/no-await-in-promise-methods": "warn",
+      // warn instead of erroring because some features are forced into being async
+      "@typescript-eslint/require-await": "warn",
     },
   },
 );

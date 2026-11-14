@@ -6,13 +6,14 @@ import {
   setSetting,
   settingsDefinition,
 } from "database/settings";
-import type { SettingKeyFor, SettingReturnType } from "database/types";
+import type { SettingKeyFor, SettingReturnType } from "types";
 import {
   type ChatInputCommandInteraction,
   type Guild,
   type User,
   codeBlock,
   ContainerBuilder,
+  InteractionContextType,
   PermissionsBitField,
   SlashCommandBuilder,
   SlashCommandSubcommandBuilder,
@@ -24,13 +25,13 @@ import { colorize, Sokolors } from "utils/colorize";
 import { logChannel } from "utils/logChannel";
 import { mention } from "utils/mention";
 import { safeMember } from "utils/safeThings";
-import { isInteractionSafe } from "utils/types";
+import { assertInteraction } from "types";
 
 export const data = new SlashCommandBuilder()
   .setName("settings")
   .setDescription("Configure Sokora to your liking.")
   .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator)
-  .setContexts(0);
+  .setContexts(InteractionContextType.Guild);
 
 for (const key of serverSettingsKeys)
   data.addSubcommand(
@@ -49,8 +50,8 @@ async function setSettingPlease<K extends keyof TS, S extends SettingKeyFor<K>>(
     const member = await safeMember(interaction.guild, interaction.user.id);
     const previousValue = await getSetting(interaction.guild.id, key, setting);
     const def = getSettingDef(key, setting);
-    const fmt = (value_: unknown): string =>
-      def.type === "OBJECT" && def.iterable
+    const fmt = (value_: unknown): string => {
+      return def.type === "OBJECT" && def.iterable
         ? Bun.YAML.stringify(
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             (value_ as { $: string }[]).map(({ $, ...rest }) => rest),
@@ -58,6 +59,7 @@ async function setSettingPlease<K extends keyof TS, S extends SettingKeyFor<K>>(
             2,
           )
         : Bun.YAML.stringify(value_, null, 2);
+    };
 
     const oldString =
       previousValue === undefined || previousValue === null
@@ -118,16 +120,13 @@ async function setSettingPlease<K extends keyof TS, S extends SettingKeyFor<K>>(
 }
 
 export async function run(interaction: ChatInputCommandInteraction): Promise<void> {
-  if (!isInteractionSafe(interaction))
-    throw new Error("Why is guild null if you are setting a server-table setting?");
+  assertInteraction(interaction);
 
   const key = interaction.options.getSubcommand() as keyof TS;
   await settingsEmbed(interaction, key, {
     setSettingPlease: async (key, setting, value) => {
       await setSettingPlease(interaction, key, setting, value);
     },
-    getSettingPlease: async (key, setting) => {
-      return await getSetting(interaction.guild.id, key, setting);
-    },
+    getSettingPlease: async (key, setting) => await getSetting(interaction.guild.id, key, setting),
   });
 }

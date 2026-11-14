@@ -16,8 +16,8 @@ import { safeChannel } from "./safeThings";
 
 /**
  * Sends a modal that lets you write/edit a news post.
- * @param newsPost Already existing news post. If provided, the modal will be editing said post.
- * @param guild The guild where the command is ran. If provided, the modal will show news categories.
+ * @param newsPost - Already existing news post. If provided, the modal will be editing said post.
+ * @param guild - The guild where the command is ran. If provided, the modal will show news categories.
  * @returns News modal.
  */
 export async function newsModal(

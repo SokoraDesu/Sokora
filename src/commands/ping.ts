@@ -1,5 +1,6 @@
 import {
   ContainerBuilder,
+  InteractionContextType,
   SlashCommandBuilder,
   TextDisplayBuilder,
   type ChatInputCommandInteraction,
@@ -11,7 +12,7 @@ import { replace } from "utils/replace";
 export const data = new SlashCommandBuilder()
   .setName("ping")
   .setDescription("Shows the current ping and uptime of Sokora.")
-  .setContexts(0);
+  .setContexts(InteractionContextType.Guild);
 
 export async function run(interaction: ChatInputCommandInteraction): Promise<void> {
   const sent = await interaction.reply({ content: "a", withResponse: true });

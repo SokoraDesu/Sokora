@@ -3,8 +3,6 @@ import type {
   Channel,
   DMChannel,
   Guild,
-  InteractionResponse,
-  Message,
   MessageCreateOptions,
   MessagePayload,
   TextChannel,
@@ -16,15 +14,12 @@ import { safeChannel, safeMember } from "./safeThings";
 
 /**
  * Sends a message in the log channel. (if there is one set)
- * @param guild The guild where the log channel is located.
- * @param options Reply options of the log.
- * @param dm Whether or not should the bot send a DM to the user.
- * @param {{
-   isSilent: boolean;
-   user: User;
-   options: string | MessagePayload | MessageCreateOptions;
- }} dmOptions Options for sending a DM to the user.
+ * @param guild - The guild where the log channel is located.
+ * @param options - Reply options of the log.
+ * @param dm - Whether or not should the bot send a DM to the user.
+ * @param dmOptions - Options for sending a DM to the user.
  * @returns Log message.
+ * TODO(v0.4.1): improve the shape of this a little, and review where i'm using this
  */
 export async function logChannel(
   guild: Guild,
@@ -35,17 +30,14 @@ export async function logChannel(
     user: User;
     options: string | MessagePayload | MessageCreateOptions;
   },
-  logType?: "moderation" | "notifications",
-): Promise<undefined | Message | InteractionResponse> {
+  logType: "moderation" | "notifications" = "moderation",
+): Promise<void> {
   let channel: TextChannel | DMChannel | null;
-  const logChannel = await getSetting(guild.id, logType ?? "moderation", "channel");
+  const logChannel = await getSetting(guild.id, logType, "channel");
 
   if (logChannel) {
     channel = await safeChannel(guild, logChannel)
-      .then((channel: Channel | null) => {
-        if (!channel?.isTextBased()) return null;
-        return channel as TextChannel;
-      })
+      .then((channel: Channel | null) => (channel?.isTextBased() ? (channel as TextChannel) : null))
       .catch(() => null);
 
     if (
@@ -69,8 +61,9 @@ export async function logChannel(
 
       channel = await dmOptions.user.createDM().catch(() => null);
       if (!channel || !(await safeMember(guild, dmOptions.user.id)) || dmOptions.user.bot) return;
-      return await channel.send(dmOptions.options);
+      await channel.send(dmOptions.options);
+      return;
     } catch (error) {
-      return await errorEmbed({ client: guild.client, error, log: true });
+      return await errorEmbed(false, { client: guild.client, error });
     }
 }

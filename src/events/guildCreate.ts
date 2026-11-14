@@ -5,13 +5,13 @@ import {
   SeparatorBuilder,
   TextDisplayBuilder,
 } from "discord.js";
-import { errorEmbed } from "embeds/errorEmbed";
 import { commands } from "handlers/commands";
-import { IS_CANARY } from "src/canary";
+import { IS_CANARY } from "const";
 import { colorize, Sokolors } from "utils/colorize";
 import { replace } from "utils/replace";
 import { safeAlertChannel } from "utils/safeThings";
-import type { Event } from "utils/types";
+import type { Event } from "types";
+import { errorEmbed } from "embeds/errorEmbed";
 
 export default (async function run(guild) {
   const client = guild.client;
@@ -68,6 +68,6 @@ export default (async function run(guild) {
     if (!welcomeChannel.permissionsFor(guild.client.user)?.has("SendMessages")) return;
     await welcomeChannel.send({ components: [container], flags: "IsComponentsV2" });
   } catch (error) {
-    return await errorEmbed({ client, error, log: true, forward: true, fileName: "guildCreate" });
+    return await errorEmbed(true, { client, error, fileName: "guildCreate" });
   }
 } as Event<"guildCreate">);

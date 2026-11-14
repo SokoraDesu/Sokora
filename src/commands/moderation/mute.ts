@@ -1,15 +1,10 @@
-import { getSetting } from "database/settings";
-import {
-  SlashCommandSubcommandBuilder,
-  type ChatInputCommandInteraction,
-  type InteractionResponse,
-  type Message,
-} from "discord.js";
+import { SlashCommandSubcommandBuilder, type ChatInputCommandInteraction } from "discord.js";
 import { errorEmbed } from "embeds/errorEmbed";
-import { errorCheck, modEmbed } from "embeds/modEmbed";
+import { modEmbed } from "embeds/modEmbed";
 import ms from "enhanced-ms";
-import { MILLISEC_28D } from "utils/constants";
-import { safeMember } from "utils/safeThings";
+import { mute } from "features/mod/mute";
+import { assertInteraction } from "types";
+import { shouldModerateSilently } from "utils/silent";
 
 export const data = new SlashCommandSubcommandBuilder()
   .setName("mute")
@@ -17,90 +12,49 @@ export const data = new SlashCommandSubcommandBuilder()
   .addUserOption(user =>
     user.setName("user").setDescription("The user that you want to mute.").setRequired(true),
   )
-  .addStringOption(string =>
-    string
+  .addStringOption(string => {
+    return string
       .setName("duration")
       .setDescription("The duration of the mute (e.g 30m, 1d, 2h).")
-      .setRequired(true),
-  )
+      .setRequired(true);
+  })
   .addStringOption(string => string.setName("reason").setDescription("The reason for the mute."))
-  .addBooleanOption(bool =>
-    bool
+  .addBooleanOption(bool => {
+    return bool
       .setName("silent")
       .setDescription(
         "If true, the user won’t be notified about this action (overrides the server setting).",
-      ),
-  );
+      );
+  });
 
-export async function run(
-  interaction: ChatInputCommandInteraction,
-): Promise<undefined | Message | InteractionResponse> {
-  const guild = interaction.guild;
-  if (!guild) return;
+export async function run(interaction: ChatInputCommandInteraction): Promise<void> {
+  assertInteraction(interaction);
 
-  const user = interaction.options.getUser("user");
-  const duration = interaction.options.getString("duration");
-  if (!user)
-    return await errorEmbed({
-      interaction,
-      title: "No user provided.",
-      reason:
-        "You somehow ran the command without a user being provided. That is an error. You might want to report this, as it is not supposed to ever happen.",
-    });
-
+  const target = interaction.options.getUser("user", true);
+  const duration = interaction.options.getString("duration", true);
   const reason = interaction.options.getString("reason");
 
-  if (
-    await errorCheck("Moderate Members", {
-      interaction,
-      user,
-      action: "Mute",
-      errorOptions: { allErrors: true, botError: true, outsideError: true },
-    })
-  )
-    return;
+  const durationMillisec = ms(duration);
 
-  const durationMs = duration ? ms(duration) : null;
-
-  if (!duration || !durationMs || durationMs > MILLISEC_28D || durationMs <= 0)
-    return await errorEmbed({
+  if (!durationMillisec)
+    return await errorEmbed(false, {
       interaction,
-      title: `You can’t mute ${user.username}.`,
-      reason: "The duration is invalid or is above the 28 day limit.",
+      title: `You can’t mute ${target.username}.`,
+      reason: "The duration is invalid.",
     });
 
-  if ((await safeMember(guild, user.id)).isCommunicationDisabled())
-    return await errorEmbed({
-      interaction,
-      title: `You can’t mute ${user.username}.`,
-      reason: "The user is already muted.",
-    });
+  const isSilent = await shouldModerateSilently(interaction);
 
-  const time = new Date(
-    Date.parse(new Date().toISOString()) + Date.parse(new Date(durationMs).toISOString()),
-  ).toISOString();
-  const isSilent =
-    interaction.options.getBoolean("silent") ??
-    (await getSetting(guild.id, "moderation", "silent"));
+  const result = await mute({
+    target,
+    durationMillisec,
+    reason,
+    moderator: interaction.user,
+    guild: interaction.guild,
+    isSilent,
+  });
 
-  try {
-    await modEmbed(
-      {
-        interaction,
-        user,
-        action: "Muted",
-        duration: durationMs,
-        shouldDm: true,
-        dbAction: "MUTE",
-        expiresAt: new Date(durationMs),
-        isSilent,
-      },
-      reason,
-    );
-    await (
-      await safeMember(guild, user.id)
-    )?.edit({ communicationDisabledUntil: time, reason: reason ?? undefined });
-  } catch (error) {
-    await errorEmbed({ interaction, error, forward: true, fileName: "mute" });
-  }
+  return result.success
+    ? await modEmbed({ ...result.out, interaction })
+    : await errorEmbed(result.reason === "exception", { interaction, ...result.out });
 }

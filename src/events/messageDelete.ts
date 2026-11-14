@@ -8,20 +8,20 @@ import {
   TextDisplayBuilder,
 } from "discord.js";
 import { errorEmbed } from "embeds/errorEmbed";
-import { client } from "src/bot";
+import { client } from "botfile";
 import { checkForS } from "utils/checkForS";
 import { colorize, Sokolors } from "utils/colorize";
 import { logChannel } from "utils/logChannel";
 import { fetchMedia } from "utils/media";
 import { mention } from "utils/mention";
-import type { Event } from "utils/types";
+import type { Event } from "types";
 
 export default (async function run(message) {
   try {
     if (message.partial) return;
     const author = message.author;
     if (!author)
-      return await errorEmbed({
+      return await errorEmbed(true, {
         client,
         title: "Cannot log deleted message.",
         reason: `Message ${message} lacks an author.`,
@@ -30,7 +30,7 @@ export default (async function run(message) {
     if (author.bot) return;
     const guild = message.guild;
     if (!guild)
-      return await errorEmbed({
+      return await errorEmbed(true, {
         client,
         title: "Cannot log deleted message.",
         reason: `Message ${message} lacks the guild.`,
@@ -42,11 +42,10 @@ export default (async function run(message) {
     try {
       media = await fetchMedia(message);
     } catch (error) {
-      return await errorEmbed({
+      return await errorEmbed(true, {
         client,
         error,
         title: "Error fetching meta image.",
-        forward: true,
         fileName: "messageDelete",
       });
     }
@@ -97,6 +96,6 @@ export default (async function run(message) {
       flags: "IsComponentsV2",
     });
   } catch (error) {
-    return await errorEmbed({ client, error, log: true, forward: true, fileName: "messageDelete" });
+    return await errorEmbed(true, { client, error, fileName: "messageDelete" });
   }
 } as Event<"messageDelete">);

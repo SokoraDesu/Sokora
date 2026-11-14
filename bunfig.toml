@@ -1,5 +1,9 @@
 telemetry = false
 
+[test]
+coverage = true
+coverageThreshold = 0.75
+
 [console]
 depth = 7
 

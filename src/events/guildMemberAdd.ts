@@ -14,7 +14,7 @@ import { channelCheck } from "utils/channelCheck";
 import { colorize, Sokolors } from "utils/colorize";
 import { replaceVariables } from "utils/replace";
 import { safeChannel } from "utils/safeThings";
-import type { Event } from "utils/types";
+import type { Event } from "types";
 
 export default (async function run(member) {
   const guild = member.guild;
@@ -80,11 +80,9 @@ export default (async function run(member) {
   try {
     await dmChannel.send({ components: [await welcomeContainer(true)], flags: "IsComponentsV2" });
   } catch (error) {
-    return await errorEmbed({
+    return await errorEmbed(false, {
       client: member.client,
       error,
-      log: true,
-      forward: true,
       fileName: "guildMemberAdd",
     });
   }

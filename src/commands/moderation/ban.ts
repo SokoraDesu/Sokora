@@ -1,25 +1,21 @@
-import { getSetting } from "database/settings";
-import {
-  SlashCommandSubcommandBuilder,
-  type ChatInputCommandInteraction,
-  type InteractionResponse,
-  type Message,
-} from "discord.js";
+import { SlashCommandSubcommandBuilder, type ChatInputCommandInteraction } from "discord.js";
 import { errorEmbed } from "embeds/errorEmbed";
-import { errorCheck, modEmbed } from "embeds/modEmbed";
+import { modEmbed } from "embeds/modEmbed";
 import ms from "enhanced-ms";
-import { safeMembers } from "utils/safeThings";
-import { scheduleUnban } from "utils/unbanScheduler";
+import { ban } from "features/mod/ban";
+import { assertInteraction } from "types";
+import { SECONDS_7D } from "utils/constants";
+import { shouldModerateSilently } from "utils/silent";
 
 export const data = new SlashCommandSubcommandBuilder()
   .setName("ban")
   .setDescription("Bans a user.")
-  .addUserOption(user =>
-    user
+  .addUserOption(user => {
+    return user
       .setName("user")
       .setDescription("The user that you want to ban. (you can provide a user ID)")
-      .setRequired(true),
-  )
+      .setRequired(true);
+  })
   .addStringOption(string => string.setName("reason").setDescription("The reason for the ban."))
   .addStringOption(string =>
     string.setName("duration").setDescription("The duration of the ban (e.g 2mo, 1y)."),
@@ -27,111 +23,66 @@ export const data = new SlashCommandSubcommandBuilder()
   .addStringOption(string =>
     string.setName("del").setDescription("Time of messages to delete (e.g 6h, 30m, max - 7d)."),
   )
-  .addBooleanOption(bool =>
-    bool
+  .addBooleanOption(bool => {
+    return bool
       .setName("silent")
       .setDescription(
         "If true, the user won’t be notified about this action (overrides the server setting).",
-      ),
-  );
+      );
+  });
 
-export async function run(
-  interaction: ChatInputCommandInteraction,
-): Promise<Message | InteractionResponse | undefined> {
-  const guild = interaction.guild;
-  if (!guild || !interaction.member) return;
+export async function run(interaction: ChatInputCommandInteraction): Promise<void> {
+  assertInteraction(interaction);
 
-  const user = interaction.options.getUser("user");
-  if (!user)
-    return await errorEmbed({
-      interaction,
-      title: "No user provided.",
-      reason:
-        "You somehow ran the command without a user being provided. That is an error. You might want to report this, as it is not supposed to ever happen.",
-    });
-
-  const isUserOrMember = (await safeMembers(guild)).has(user.id);
+  const target = interaction.options.getUser("user", true);
   const duration = interaction.options.getString("duration");
   const reason = interaction.options.getString("reason");
   const del = interaction.options.getString("del");
-  if (
-    await errorCheck("Ban Members", {
-      interaction,
-      user,
-      action: "Ban",
-      errorOptions: {
-        allErrors: isUserOrMember,
-        banCheckError: true,
-        botError: true,
-      },
-    })
-  )
-    return;
 
-  let delSec;
-  let durationMs = null;
+  let durationMillisec: number | undefined;
+  let delMessageSeconds: number | undefined;
 
   if (duration) {
-    durationMs = ms(duration);
-    if (!durationMs || durationMs <= 0)
-      return await errorEmbed({
+    durationMillisec = ms(duration) ?? undefined;
+    if (!durationMillisec || durationMillisec <= 0)
+      return await errorEmbed(false, {
         interaction,
-        title: `You can’t ban ${user.username} temporarily.`,
+        title: `You can’t ban ${target.username} temporarily.`,
         reason: "The duration is invalid.",
       });
   }
 
-  const isSilent =
-    interaction.options.getBoolean("silent") ??
-    (await getSetting(guild.id, "moderation", "silent"));
-
   if (del) {
     // this has to be in seconds, thanks to whoever made the change
-    delSec = (ms(del) ?? 0) / 1000;
-    if (!delSec || delSec <= 0)
-      return await errorEmbed({
+    delMessageSeconds = (ms(del) ?? 0) / 1000;
+    if (!delMessageSeconds || delMessageSeconds <= 0)
+      return await errorEmbed(false, {
         interaction,
-        title: `The bot can’t remove messages of ${user.username} while banning.`,
+        title: `The bot can’t remove messages of ${target.username} while banning.`,
         reason: "The duration is invalid.",
       });
 
-    if (delSec > 604_800)
-      return await errorEmbed({
+    if (delMessageSeconds > SECONDS_7D)
+      return await errorEmbed(false, {
         interaction,
-        title: `The bot can’t remove messages of ${user.username} while banning.`,
+        title: `The bot can’t remove messages of ${target.username} while banning.`,
         reason: "The duration is longer than 7 days.",
       });
   }
 
-  try {
-    const caseId = await modEmbed(
-      {
-        interaction,
-        user,
-        action: "Banned",
-        duration: durationMs ?? undefined,
-        shouldDm: isUserOrMember,
-        dbAction: "BAN",
-        expiresAt: durationMs ? new Date(durationMs) : undefined,
-        isSilent,
-      },
-      reason,
-    );
-    if (duration && durationMs)
-      await scheduleUnban(
-        interaction.client,
-        guild,
-        user.id,
-        interaction.member.user.id,
-        durationMs,
-        typeof caseId == "number" ? caseId : undefined,
-      );
+  const isSilent = await shouldModerateSilently(interaction);
 
-    await guild.members.ban(user.id, {
-      reason: reason ?? undefined,
-      deleteMessageSeconds: delSec ?? undefined,
-    });
-  } catch (error) {
-    return await errorEmbed({ interaction, error, forward: true, fileName: "ban" });
-  }
+  const result = await ban({
+    delMessageSeconds,
+    target,
+    reason,
+    guild: interaction.guild,
+    moderator: interaction.user,
+    durationMillisec,
+    isSilent,
+  });
+
+  return result.success
+    ? await modEmbed({ ...result.out, interaction })
+    : await errorEmbed(result.reason === "exception", { interaction, ...result.out });
 }

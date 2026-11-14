@@ -2,8 +2,8 @@
   "include": ["**/*", "package.json"],
   "compilerOptions": {
     "target": "esnext",
-    "lib": ["ESNext"],
-    "module": "Preserve",
+    "lib": ["ESNext", "DOM"],
+    "module": "preserve",
     "moduleResolution": "bundler",
     "moduleDetection": "force",
     "resolveJsonModule": true,
@@ -12,15 +12,21 @@
     "forceConsistentCasingInFileNames": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "types": ["bun-types"],
+    "strict": true,
+    "types": ["bun-types", "@types/node"],
     "paths": {
-      "database/*": ["./src/utils/database/*"],
-      "embeds/*": ["./src/utils/embeds/*"],
+      "database/*": ["./src/database/*"],
+      "embeds/*": ["./src/containers/*"],
       "events/*": ["./src/events/*"],
       "handlers/*": ["./src/handlers/*"],
+      "features/*": ["./src/features/*"],
       "utils/*": ["./src/utils/*"],
-      "src/*": ["./src/*"],
-      "package": ["./package.json"]
+      "types": ["./src/types/index.ts"],
+      "states": ["./src/states.ts"],
+      "botfile": ["./src/bot.ts"],
+      "shardfile": ["./src/index.ts"],
+      "api/*": ["./src/api/*"],
+      "const": ["./src/utils/constants.ts"]
     }
   }
 }

@@ -67,33 +67,15 @@ If you prefer to run the Docker container, run `docker compose up --build --watc
 
 ## Contribution guide
 
-A few, simple guidelines onto how to contribute to Sokora.
+A few, simple guidelines onto how to contribute to Sokora. These guides, together with a few other `README.md` files you’ll find in some places, are more than enough if you’re aiming at a single pull request helping with something specific. However, more determined developers will want the much more complete [developer docsite instead](https://docs.sokora.org/dev).
 
-Some things you should keep in mind at all times.
+### Some things you should keep in mind at all times
 
 - Ensure to run the static formatter and analyzer (via `bun run ql`) before committing. It's relatively strict, fix any issues it reports and resort to ignore comments only if absolutely necessary.
 - Remember to commit changes to `bun.lock` file.
 - Do not repeat yourself, at all. Code duplication creates problems. Extract.
-- Document via JSDoc anything that isn’t _actually_ self-explanatory and other developers will have to touch often (like utility functions or important parts of important files).
-- Use the functions from `safeThings` instead of using `discord.js` provided methods for the following actions:
-  - Reply to an interaction (`safeReply`)
-  - Edit a message (`safeEdit`)
-  - Get members (`safeMembers`)
-  - Get a channel (`safeChannel`)
-  - Get a role (`safeRole`)
-  - Get an individual member (`safeMember`)
-  - Get a user (`safeUser`)
-  - Get a guild (`safeGuild`)
-  - Get a channel to send important bot messages to (`safeAlertChannel`)
-
-Below, other things you should keep in mind when you’re carrying specific tasks.
-
-- _I’m interacting with a setting that is specifically an ITERABLE OBJECT one._
-  - If you’re defining it for the first time, add the property `$: { type: "TEXT", desc: "", val: "" }`.
-  - If you need to delete/reference a specific value, filter by `$`. It’s a GUID.
-- _I’m finding a way for all of settingsEmbed.ts to be PROPERLY typed._
-  - Choose a mansion you’d like us to buy for you.
-  - For reference, due to the guy building our type system assuming TypeScript is a better language than it actually is (see PR #91), we’ve hit some TypeScript limitations that make it very hard to convey what we’re doing to the compiler without it erroring out. This section of CONTRIBUTING.md was created because we were actually going to tolerate getting `settingsEmbed.ts` (one of the most important files of the bot!) to production with a truckload of TypeErrors. By now this has been resolved, but using bad practices and type casts everywhere. Anyone who achieves proper typing for this is an absolute hero and will probably be rewarded in some sort of way.
+- Document via TSDoc anything that isn’t _actually_ self-explanatory and other developers will have to touch often (like utility functions or important parts of important files).
+- Use the functions from `safeThings` instead of using `discord.js` provided methods whenever there’s one available.
 
 ### Coding guidelines
 
@@ -118,10 +100,14 @@ extended description]
 [tags]
 ```
 
-Please refer to [the Subete commit guidelines](./docs/subecommits.md).
+Please refer to [the Subete commit guidelines](https://docs.sokora.org/dev/subecommits).
 
----
+### Change merging guildelines
 
-Be sure to open a pull request when you’re ready to push your changes. Be descriptive of the changes you’ve made.
+Be sure to open a pull request when you’re ready to push your changes. If you happen to have write access to our repo, remember to:
 
 ![PLEASE SUBMIT A PR, NO DIRECT COMMITS](https://user-images.githubusercontent.com/51555391/176925763-cdfd57ba-ae1e-4bf3-85e9-b3ebd30b1d59.png)
+
+Keep the description as short as you can, but not shorter. Pull requests should explain in detail WHAT they do and WHY. The “how” is usually irrelevant, your code should be self-explanatory (if it’s not, then it’s likely wrong).
+
+If a pull request is large in scope OR if it contains “redundant” commits (such as to fix linter issues with the PR), it should be squashed into a single commit upon merge.

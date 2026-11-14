@@ -60,13 +60,13 @@ export async function run(interaction: ChatInputCommandInteraction): Promise<voi
       );
 
     if ((await getSetting(guild.id, "leveling", "enabled")) && !user.bot) {
-      const leaderboard = (await getGuildLeaderboard(guild.id)).toSorted((a, b) => {
-        return b.level == a.level ? b.xp - a.xp : b.level - a.level;
-      });
+      const leaderboard = (await getGuildLeaderboard(guild.id)).toSorted((a, b) =>
+        b.level == a.level ? b.xp - a.xp : b.level - a.level,
+      );
       serverInfo.push(
         `Level **${level}** • ${xp && xp > 0 ? `**${xp.toLocaleString("en-US")}**/*${nextLevelXp.toLocaleString("en-US")} (level ${level + 1})* XP` : "**No** XP!"} ${
-          leaderboard.some(entry => entry.userID == user.id)
-            ? `• #**${leaderboard.findIndex(entry => entry.userID == user.id) + 1}** on the leaderboard`
+          leaderboard.some(entry => entry.user_id == user.id)
+            ? `• #**${leaderboard.findIndex(entry => entry.user_id == user.id) + 1}** on the leaderboard`
             : ""
         }`,
       );
@@ -93,8 +93,7 @@ export async function run(interaction: ChatInputCommandInteraction): Promise<voi
       new MediaGalleryBuilder().addItems(new MediaGalleryItemBuilder().setURL(banner)),
     );
 
-  const discordEmoji = replace("(discord)");
-  const createdText = `${process.env.DISCORD ? `<:discord:${discordEmoji}>` : discordEmoji} **${mention(user.createdAt.valueOf(), "DEFAULT_TIMESTAMP")}**${
+  const createdText = `${replace("(discord)")} **${mention(user.createdAt.valueOf(), "DEFAULT_TIMESTAMP")}**${
     (await safeMembers(guild)).has(user.id)
       ? ` • **${mention((await safeMember(guild, user.id)).joinedAt?.valueOf() ?? 0, "DEFAULT_TIMESTAMP")}**`
       : ""

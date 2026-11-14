@@ -7,7 +7,7 @@ import {
   setUserXp,
 } from "database/leveling";
 import { getSetting } from "database/settings";
-import type { SettingReturnType } from "database/types";
+import type { SettingReturnType } from "types";
 import {
   ContainerBuilder,
   type Guild,
@@ -19,15 +19,20 @@ import {
   ThumbnailBuilder,
   type User,
 } from "discord.js";
-import { errorEmbed } from "embeds/errorEmbed";
-import { logEmbed } from "embeds/logEmbed";
 import { easterEggs } from "handlers/events";
 import { channelCheck, hasChannelPerms } from "utils/channelCheck";
 import { colorize, Sokolors } from "utils/colorize";
-import { interkora } from "utils/interkora";
 import { mention } from "utils/mention";
-import { safeChannel, safeMember, safeRole } from "utils/safeThings";
-import type { Event } from "utils/types";
+import { safeChannel, safeMember, safeMessage, safeRole } from "utils/safeThings";
+import { interkora } from "api/v1";
+import { assertMessage, type Event } from "types";
+import {
+  buildMessageFromPayload,
+  buildMessageFromPayloadIssue,
+  buildPayloadFromMessage,
+} from "api/v1/message";
+import { errorEmbed } from "embeds/errorEmbed";
+import { logEmbed } from "embeds/logEmbed";
 
 const cooldowns = new Map<string, number>();
 
@@ -71,11 +76,19 @@ async function grantRewards(
     }
 }
 
-export default (async function run(message) {
+export default (async function run(_message) {
+  const message = await safeMessage(_message, false);
   const author = message.author;
+  const content = message.content;
 
-  if (message.content.startsWith("s!")) {
-    await interkora(message);
+  if (content.startsWith("soko$")) {
+    assertMessage(message);
+    const payload = await buildPayloadFromMessage(message);
+    if (payload.error) await message.reply(buildMessageFromPayloadIssue(payload));
+    else {
+      const response = await interkora(payload, message.client);
+      await message.reply(buildMessageFromPayload(response));
+    }
     return;
   }
 
@@ -88,31 +101,29 @@ export default (async function run(message) {
   if (await getSetting(guild.id, "easter", "enabled")) {
     const enabledEggs = await getSetting(guild.id, "easter", "enabled_eggs");
     const allowedChannels = await getSetting(guild.id, "easter", "allowed_channels");
+    const chances = (await getSetting(guild.id, "easter", "chances")) / 100;
 
     if (!allowedChannels || allowedChannels.includes(message.channel.id))
       if (hasChannelPerms(message.channel, ["SendMessages", "ReadMessageHistory"]))
         for (const easterEgg of easterEggs) {
           if (enabledEggs && !enabledEggs.includes(easterEgg.name)) continue;
           try {
-            if (typeof easterEgg.run == "function" && Math.random() <= 0.15)
+            if (typeof easterEgg.run == "function" && Math.random() <= chances)
               await easterEgg.run(message);
           } catch (error) {
-            return await errorEmbed({
+            return await errorEmbed(true, {
               client,
               error,
               title: `Error running easter egg ${easterEgg.name}.`,
-              log: true,
-              forward: true,
               fileName: "messageCreate",
             });
           }
         }
       else
         await logEmbed({
-          client,
-          guildID: guild.id,
+          guild,
           title: "Sokora is missing permissions",
-          description: `Easter eggs are enabled in <#${message.channel.id}> but Sokora is missing the \`Send messages\` or \`Read message history\` permissions.\nPlease fix it or remove this channel from the easter egg’s allowed channels`,
+          text: `Easter eggs are enabled in <#${message.channel.id}> but Sokora is missing the \`Send messages\` or \`Read message history\` permissions.\nPlease fix it or remove this channel from the easter egg’s allowed channels`,
         });
   }
 
@@ -137,7 +148,7 @@ export default (async function run(message) {
   const multiplier = await getSetting(guild.id, "leveling", "global_multiplier");
 
   /*
-  [TODO] redo to be more better.
+  TODO(v0.4)(@MrSerge01): redo to be more better.
   WHAT HAS TO BE DONE HERE:
   - find the highest role that the user has that a multiplier also has, then use that.
   - if same channel/role has multiple multipliers, it should apply the highest one.
@@ -150,7 +161,7 @@ export default (async function run(message) {
 
   const newXp = multiplier * xpGain + xp;
   const newLevel = calculateLevel({ xp: newXp, difficulty });
-  await setUserXp(guild.id, author.id, newXp);
+  await setUserXp({ guild_id: guild.id, user_id: author.id, xp: newXp });
   if (newLevel <= calculateLevel({ xp, difficulty })) return;
   const avatar = author.displayAvatarURL();
   const rewards = (await getLevelRewards(guild.id))?.filter(r => r.level <= newLevel);
@@ -163,7 +174,7 @@ export default (async function run(message) {
     for (const reward of rewards) {
       if (reward.roles && reward.roles.length > 0 && !clientMember.permissions.has("ManageRoles")) {
         await removeLevelRewards(guild.id, [reward]);
-        return await errorEmbed({
+        return await errorEmbed(false, {
           client,
           title: "A level reward has been removed.",
           reason: `The bot is missing the **Manage Roles** permission.\n**Removed level reward**: ${reward.roles.map(id => id && mention(id, "ROLE")).join(", ")} at level ${reward.level}`,
@@ -177,7 +188,7 @@ export default (async function run(message) {
         !clientMember.permissions.has("ManageChannels")
       ) {
         await removeLevelRewards(guild.id, [reward]);
-        return await errorEmbed({
+        return await errorEmbed(false, {
           client,
           title: "A level reward has been removed.",
           reason: `The bot is missing the **Manage Channels** permission.\n**Removed level reward**: ${reward.channels.map(id => id && mention(id, "CHANNEL")).join(", ")} at level ${reward.level}`,
@@ -196,32 +207,32 @@ export default (async function run(message) {
       );
     }
 
-  if (levelChannelId) {
-    const container = new ContainerBuilder()
-      .addSectionComponents(
-        new SectionBuilder()
-          .addTextDisplayComponents(
-            new TextDisplayBuilder().setContent(`## ${mention(author.id, "USER")} has leveled up!`),
-            new TextDisplayBuilder().setContent(
-              [
-                ...messageContent,
-                `You need **${(await getXpForNextLevel(guild.id, author.id)).toLocaleString("en-US")}** XP to level up again.`,
-              ].join("\n"),
-            ),
-          )
-          .setThumbnailAccessory(new ThumbnailBuilder().setURL(avatar)),
-      )
-      .setAccentColor(await colorize({ user: author, avatar, hue: Sokolors.Green }));
+  if (!levelChannelId) return;
 
-    const channel = (await safeChannel(guild, levelChannelId)) as TextChannel;
-    if (
-      await channelCheck({
-        channel,
-        guild,
-        permType: "Send",
-        setting: { category: "leveling", setting: "channel" },
-      })
+  const container = new ContainerBuilder()
+    .addSectionComponents(
+      new SectionBuilder()
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(`## ${mention(author.id, "USER")} has leveled up!`),
+          new TextDisplayBuilder().setContent(
+            [
+              ...messageContent,
+              `You need **${(await getXpForNextLevel(guild.id, author.id)).toLocaleString("en-US")}** XP to level up again.`,
+            ].join("\n"),
+          ),
+        )
+        .setThumbnailAccessory(new ThumbnailBuilder().setURL(avatar)),
     )
-      await channel.send({ components: [container], flags: "IsComponentsV2" });
-  }
+    .setAccentColor(await colorize({ user: author, avatar, hue: Sokolors.Green }));
+
+  const channel = (await safeChannel(guild, levelChannelId)) as TextChannel;
+  if (
+    await channelCheck({
+      channel,
+      guild,
+      permType: "Send",
+      setting: { category: "leveling", setting: "channel" },
+    })
+  )
+    await channel.send({ components: [container], flags: "IsComponentsV2" });
 } as Event<"messageCreate">);

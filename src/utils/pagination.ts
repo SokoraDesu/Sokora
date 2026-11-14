@@ -28,39 +28,42 @@ interface HandlePagesOptions {
 /**
  * Pagination buttons.
  * Includes: button to go left, button to jump to a page (modal!), button to go right.
- * @param pages Total amount of pages.
- * @param argumentPage Page to skip to.
- * @param isDisabled Disables the buttons if true.
+ * @param pages - Total amount of pages.
+ * @param argumentPage - Page to skip to.
+ * @param isDisabled - Disables the buttons if true.
  * @returns Action row containing the pagination buttons.
  */
 export function pagedButtons(
   pages: number,
   argumentPage?: number,
-  isDisabled?: boolean,
+  isDisabled = false,
 ): ActionRowBuilder<ButtonBuilder> {
   return new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
       .setCustomId("left")
       .setEmoji(replace("(leftArrow)"))
       .setStyle(ButtonStyle.Primary)
-      .setDisabled(isDisabled ?? false),
+      .setDisabled(isDisabled),
     new ButtonBuilder()
       .setCustomId("pagecount")
       .setLabel(`${argumentPage ? argumentPage + 1 : 1} of ${pages}`)
       .setStyle(ButtonStyle.Secondary)
-      .setDisabled(isDisabled ?? false),
+      .setDisabled(isDisabled),
     new ButtonBuilder()
       .setCustomId("right")
       .setEmoji(replace("(rightArrow)"))
       .setStyle(ButtonStyle.Primary)
-      .setDisabled(isDisabled ?? false),
+      .setDisabled(isDisabled),
   );
 }
 
 /**
  * Function that handles page switching.
- * Notes: requires a collector. Pages start from 0.
- * @param options Options.
+ *
+ * @remarks
+ * Requires a collector. Pages start from 0.
+ *
+ * @param options - Options.
  * @returns The resulting page.
  */
 export async function handlePages(options: HandlePagesOptions): Promise<number> {

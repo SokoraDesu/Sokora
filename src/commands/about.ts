@@ -3,23 +3,23 @@ import {
   ButtonBuilder,
   ButtonStyle,
   ContainerBuilder,
+  InteractionContextType,
   MediaGalleryBuilder,
   MediaGalleryItemBuilder,
   SlashCommandBuilder,
   TextDisplayBuilder,
   type ChatInputCommandInteraction,
 } from "discord.js";
-import { version } from "package";
-import { IS_CANARY } from "src/canary";
+import { IS_CANARY, BOT_VERSION } from "const";
 import { colorize, Sokolors } from "utils/colorize";
 import { pluralOrNot } from "utils/pluralOrNot";
 import { replace } from "utils/replace";
-import type { GHCommit } from "utils/types";
+import type { GHCommit } from "types";
 
 export const data = new SlashCommandBuilder()
   .setName("about")
   .setDescription("Shows information about Sokora.")
-  .setContexts(0);
+  .setContexts(InteractionContextType.Guild);
 
 export async function run(interaction: ChatInputCommandInteraction): Promise<void> {
   const client = interaction.client;
@@ -59,7 +59,7 @@ export async function run(interaction: ChatInputCommandInteraction): Promise<voi
       new TextDisplayBuilder().setContent(
         [
           "**📃 • General**",
-          `Version **${version}${commit ? `+[\`${commit.sha.slice(0, 8)}\`](${commit.html_url})` : ""}** • *Heijun*`,
+          `Version **${BOT_VERSION}${commit ? `+[\`${commit.sha.slice(0, 8)}\`](${commit.html_url})` : ""}** • *Heijun*`,
           `**${members.toLocaleString("en-US")}** ${pluralOrNot("member", members)} • **${guilds.size.toLocaleString("en-US")}** ${pluralOrNot(
             "guild",
             guilds.size,

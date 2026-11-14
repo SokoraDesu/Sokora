@@ -2,6 +2,7 @@ import {
   ActionRowBuilder,
   type AnySelectMenuInteraction,
   ButtonBuilder,
+  type ButtonInteraction,
   ButtonStyle,
   type ChatInputCommandInteraction,
   ContainerBuilder,
@@ -18,8 +19,9 @@ import {
   TextInputBuilder,
   TextInputStyle,
 } from "discord.js";
+import { collect } from "utils/collector";
 import { colorize, Sokolors } from "utils/colorize";
-import { COLLECTOR_DURATION, MAX_INPUT_CHARS } from "utils/constants";
+import { MAX_INPUT_CHARS } from "utils/constants";
 import { modalSubmit } from "utils/modalSubmit";
 import { safeCustomId, safeEdit, safeReply } from "utils/safeThings";
 
@@ -69,12 +71,12 @@ async function getContainers(
           .setCustomId("preview_select")
           .setMaxValues(3)
           .setOptions(
-            ["Open me…", "Look at me!", "Cool select, right?"].map((option: string) =>
-              new StringSelectMenuOptionBuilder()
+            ["Open me…", "Look at me!", "Cool select, right?"].map((option: string) => {
+              return new StringSelectMenuOptionBuilder()
                 .setLabel(option)
                 .setValue(option)
-                .setDefault(previewArraySelected.includes(option)),
-            ),
+                .setDefault(previewArraySelected.includes(option));
+            }),
           ),
       ),
     )
@@ -180,78 +182,73 @@ export async function run(interaction: ChatInputCommandInteraction): Promise<voi
     components: await getContainers(isPreviewBool, previewArraySelected),
     flags: ["Ephemeral", "IsComponentsV2"],
   });
-  const collector = reply.createMessageComponentCollector({ time: COLLECTOR_DURATION });
-  collector.on("collect", async replyInteraction => {
-    switch (replyInteraction.customId) {
-      case "preview_bool": {
-        isPreviewBool = !isPreviewBool;
-        await safeEdit({
-          interaction: replyInteraction,
-          editOptions: {
-            components: await getContainers(isPreviewBool, previewArraySelected),
-          },
-        });
 
-        break;
-      }
-      case "preview_select": {
-        previewArraySelected = [...(replyInteraction as AnySelectMenuInteraction).values];
-        await safeEdit({
-          interaction: replyInteraction,
-          editOptions: {
-            components: await getContainers(isPreviewBool, previewArraySelected),
-          },
-        });
-
-        break;
-      }
-      case "preview_text": {
-        const modal = new ModalBuilder()
-          .setCustomId(safeCustomId("modal_test"))
-          .setTitle("•  Change the setting!")
-          .addLabelComponents(
-            new LabelBuilder().setLabel("Value").setTextInputComponent(
-              new TextInputBuilder()
-                .setCustomId("setting")
-                .setPlaceholder("Type in the value")
-                .setMaxLength(MAX_INPUT_CHARS)
-                .setStyle(TextInputStyle.Paragraph)
-                .setRequired(true)
-                .setValue((previewText as string | number | undefined)?.toString() ?? ""),
-            ),
-          );
-
-        const modalInteraction = await modalSubmit(replyInteraction, modal, "help/settings");
-        if (modalInteraction) {
-          previewText = modalInteraction.fields.getTextInputValue("setting");
-          await safeReply({
-            interaction: modalInteraction,
-            replyOptions: {
-              content:
-                "Changed the value! Click ’Edit’ again to see if it saved or not.\n-# Note that real PSE will be more descriptive and validate the data.",
-              flags: ["Ephemeral"],
-            },
-          });
+  collect(
+    interaction,
+    reply,
+    async (replyInteraction: ButtonInteraction | AnySelectMenuInteraction) => {
+      switch (replyInteraction.customId) {
+        case "preview_bool": {
+          isPreviewBool = !isPreviewBool;
           await safeEdit({
             interaction: replyInteraction,
             editOptions: {
               components: await getContainers(isPreviewBool, previewArraySelected),
             },
           });
+
+          break;
         }
+        case "preview_select": {
+          previewArraySelected = [...(replyInteraction as AnySelectMenuInteraction).values];
+          await safeEdit({
+            interaction: replyInteraction,
+            editOptions: {
+              components: await getContainers(isPreviewBool, previewArraySelected),
+            },
+          });
 
-        break;
+          break;
+        }
+        case "preview_text": {
+          const modal = new ModalBuilder()
+            .setCustomId(safeCustomId("modal_test"))
+            .setTitle("•  Change the setting!")
+            .addLabelComponents(
+              new LabelBuilder().setLabel("Value").setTextInputComponent(
+                new TextInputBuilder()
+                  .setCustomId("setting")
+                  .setPlaceholder("Type in the value")
+                  .setMaxLength(MAX_INPUT_CHARS)
+                  .setStyle(TextInputStyle.Paragraph)
+                  .setRequired(true)
+                  .setValue((previewText as string | number | undefined)?.toString() ?? ""),
+              ),
+            );
+
+          const modalInteraction = await modalSubmit(replyInteraction, modal, "help/settings");
+          if (modalInteraction) {
+            previewText = modalInteraction.fields.getTextInputValue("setting");
+            await safeReply({
+              interaction: modalInteraction,
+              replyOptions: {
+                content:
+                  "Changed the value! Click ’Edit’ again to see if it saved or not.\n-# Note that real PSE will be more descriptive and validate the data.",
+                flags: ["Ephemeral"],
+              },
+            });
+            await safeEdit({
+              interaction: replyInteraction,
+              editOptions: {
+                components: await getContainers(isPreviewBool, previewArraySelected),
+              },
+            });
+          }
+
+          break;
+        }
+        // No default
       }
-      // No default
-    }
-  });
-
-  collector.on("end", async () => {
-    try {
-      await interaction.deleteReply();
-    } catch (error) {
-      if (Error.isError(error) && error.message.toLowerCase().includes("unknown message")) return;
-      throw error;
-    }
-  });
+    },
+  );
 }

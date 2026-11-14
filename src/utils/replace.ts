@@ -2,22 +2,24 @@ import type { Guild, User } from "discord.js";
 import { mention } from "./mention";
 import { randomize } from "./randomize";
 import { safeMember } from "./safeThings";
-import type { Mentionable, Replacements } from "./types";
-
-const emojis =
-  Math.round(Math.random() * 100) <= 5
-    ? ["⌨️", "💻", "🖥️"]
-    : ["💖", "💝", "💓", "💗", "💘", "💟", "💕", "💞"];
+import type { Mentionable, Replacements } from "types";
+import { MADE_WITH_EMOJI } from "./constants";
 
 export function replace(
   text: string,
   replaceText?: { text: string; replacement: string | number }[],
 ): string {
   const replacements = replaceText ?? [
-    { text: "(madeWith)", replacement: `Made with ${randomize(emojis)} by the Sokora team` },
+    {
+      text: "(madeWith)",
+      replacement: `Made with ${randomize(MADE_WITH_EMOJI())} by the Sokora team`,
+    },
     { text: "(leftArrow)", replacement: process.env.LEFT_ARROW ?? "⬅️" },
     { text: "(rightArrow)", replacement: process.env.RIGHT_ARROW ?? "➡️" },
-    { text: "(discord)", replacement: process.env.DISCORD ?? "🏠" },
+    {
+      text: "(discord)",
+      replacement: process.env.DISCORD ? `<:discord:${process.env.DISCORD}>` : "🏠",
+    },
   ];
   for (const mention of replacements)
     if (text.includes(mention.text))
@@ -28,10 +30,10 @@ export function replace(
 
 /**
  * Takes a string with dynamic `(variables)` and replaces them with the string they represent.
- * @param {string} text String to have its variables replaced.
- * @param {Guild} guild Guild.
- * @param {User} user User.
- * @returns {string} String with values replaced. The function is async because it depends on `fetchOwner()`.
+ * @param text - String to have its variables replaced.
+ * @param guild - Guild.
+ * @param user - User.
+ * @returns String with values replaced. The function is async because it depends on `fetchOwner()`.
  */
 export async function replaceVariables(text: string, guild: Guild, user: User): Promise<string> {
   const replacementVariables: Replacements = [
@@ -53,9 +55,7 @@ export async function replaceVariables(text: string, guild: Guild, user: User): 
 
   text = text.replaceAll(
     /\((\d+), (user|role|default_timestamp|simple_timestamp|detailed_timestamp|channel)\)/g,
-    (_, id: string, indicator: string) => {
-      return mention(id, indicator.toUpperCase() as Mentionable);
-    },
+    (_, id: string, indicator: string) => mention(id, indicator.toUpperCase() as Mentionable),
   );
 
   return replace(text, replacementVariables);

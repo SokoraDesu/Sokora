@@ -5,7 +5,7 @@ import {
   type Case,
   type ModType,
 } from "database/moderation";
-import type { TypeOfDefinition } from "database/types";
+import type { TypeOfDefinition } from "types";
 import {
   ContainerBuilder,
   SlashCommandSubcommandBuilder,
@@ -13,11 +13,9 @@ import {
   type ButtonInteraction,
   type ChatInputCommandInteraction,
   type Client,
-  type InteractionResponse,
-  type Message,
   type User,
 } from "discord.js";
-import { buttonCheck, errorEmbed } from "embeds/errorEmbed";
+import { errorEmbed } from "embeds/errorEmbed";
 import ms from "enhanced-ms";
 import { capitalize } from "utils/capitalize";
 import { colorize, Sokolors } from "utils/colorize";
@@ -26,7 +24,12 @@ import { mention } from "utils/mention";
 import { handlePages, pagedButtons } from "utils/pagination";
 import { pluralOrNot } from "utils/pluralOrNot";
 import { randomize } from "utils/randomize";
-import { safeEdit, safeMember, safeUser } from "utils/safeThings";
+import { safeChannel, safeEdit, safeMember, safeUser } from "utils/safeThings";
+import { isButtonErrory } from "utils/buttonCheck";
+
+// IDEA(v0.4)(@ZakaHaceCosas): figure out how to MVC this
+// since cases are DB i think i won't make a case feature, but instead move all the filtering done here to cases model
+// and keep this UI-code only
 
 async function generateContainer(options: {
   client: Client;
@@ -42,10 +45,14 @@ async function generateContainer(options: {
   const actionsEmojis: Record<ModType, string> = {
     WARN: "⚠️",
     MUTE: "🔇",
+    UNMUTE: "🔊",
     KICK: "📤",
     BAN: "🔨",
-    UNBAN: "🔓",
-    UNMUTE: "🔊",
+    UNBAN: "🔧",
+    CLEAR: "🧹",
+    LOCK: "🔒",
+    UNLOCK: "🔓",
+    SLOWDOWN: "⏳",
   };
 
   const nothingMessage = [
@@ -61,14 +68,16 @@ async function generateContainer(options: {
   let fields = await Promise.all(
     displayedCases.map(async c => {
       const value = [
-        `**Moderator**: ${(await safeUser(client, c.moderator)).username}`,
+        `**Moderator**: ${(await safeUser(client, c.moderator_id)).username}`,
         c.reason ? `**Reason**: ${c.reason}` : "*No reason provided*",
         `**Time of action**: ${mention(c.timestamp.valueOf(), "SIMPLE_TIMESTAMP")}`,
       ];
       let title = `**${actionsEmojis[c.type as ModType]} • ${capitalize(c.type.toLowerCase())} #${c.id}**`;
 
-      if (!user) title += ` • ${await safeUser(client, c.userID)}`;
-      if (c.expiresAt) value.push(`**Duration**: ${ms(Number(c.expiresAt), "fullPrecision")}`);
+      if (!user)
+        title += ` • ${c.type === "SLOWDOWN" || c.type === "CLEAR" ? await safeChannel(client, c.target_id) : await safeUser(client, c.target_id)}`;
+
+      if (c.expires_at) value.push(`**Duration**: ${ms(Number(c.expires_at), "fullPrecision")}`);
 
       return new TextDisplayBuilder().setContent([title, value.join("\n")].join("\n"));
     }),
@@ -94,8 +103,7 @@ async function generateContainer(options: {
     )
     .setAccentColor(await colorize({ hue: Sokolors.Blue }));
 
-  if (id) container.addTextDisplayComponents(fields[0]);
-  else container.addTextDisplayComponents(fields);
+  container.addTextDisplayComponents(id ? [fields[0]] : fields);
 
   const pages = Math.ceil(cases.length / 5);
   if (pages > 1) container.addActionRowComponents(pagedButtons(pages, page, disabled));
@@ -118,8 +126,8 @@ export const data = new SlashCommandSubcommandBuilder()
   .addNumberOption(number =>
     number.setName("id").setDescription("The ID of a specific case that you want to see."),
   )
-  .addStringOption(string =>
-    string
+  .addStringOption(string => {
+    return string
       .setName("type")
       .setDescription("The specific type of action you’d like to see.")
       .setChoices(
@@ -147,17 +155,15 @@ export const data = new SlashCommandSubcommandBuilder()
           name: "Unmutes",
           value: "UNMUTE",
         },
-      ),
-  )
+      );
+  })
   .addNumberOption(option => option.setName("page").setDescription("Page number to display."));
 
-export async function run(
-  interaction: ChatInputCommandInteraction,
-): Promise<undefined | InteractionResponse | Message> {
+export async function run(interaction: ChatInputCommandInteraction): Promise<void> {
   const guild = interaction.guild;
   if (!guild) return;
   if (!(await safeMember(guild, interaction.user.id)).permissions.has("ModerateMembers"))
-    return await errorEmbed({
+    return await errorEmbed(false, {
       interaction,
       title: "You can’t execute this command.",
       reason: "You need the **Moderate Members** permission.",
@@ -195,7 +201,7 @@ export async function run(
   if (pages <= 1) return;
   const collector = reply.createMessageComponentCollector({ time: COLLECTOR_DURATION });
   collector.on("collect", async (buttonInteraction: ButtonInteraction) => {
-    if (await buttonCheck({ i: buttonInteraction, interaction, reply })) return;
+    if (await isButtonErrory({ i: buttonInteraction, interaction, reply })) return;
     collector.resetTimer({ time: COLLECTOR_DURATION });
     if (buttonInteraction.customId == "please") return;
 
