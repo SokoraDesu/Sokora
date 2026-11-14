@@ -19,7 +19,7 @@ import { safeChannel, safeMember } from "./safeThings";
  * @param dm - Whether or not should the bot send a DM to the user.
  * @param dmOptions - Options for sending a DM to the user.
  * @returns Log message.
- * TODO(v0.4): improve the shape of this a little, and review where i'm using this
+ * TODO(v0.4.1): improve the shape of this a little, and review where i'm using this
  */
 export async function logChannel(
   guild: Guild,

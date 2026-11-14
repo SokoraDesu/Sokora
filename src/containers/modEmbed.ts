@@ -5,6 +5,7 @@ import {
   ThumbnailBuilder,
   ContainerBuilder,
   type ChatInputCommandInteraction,
+  type User,
 } from "discord.js";
 import ms from "enhanced-ms";
 import { mention } from "utils/mention";
@@ -21,26 +22,43 @@ function produceGeneralValues(modAction: ModEmbedOptions): string[] {
   return generalValues;
 }
 
-function produceVerb(action: ModType, slowdownValue?: number): string {
-  if (action == "SLOWDOWN" && slowdownValue == 0) return "Removed slowdown";
+function produceVerb(action: ModType, hasRemovedSlowdown: boolean, isPast: boolean): string {
+  if (hasRemovedSlowdown && action == "SLOWDOWN")
+      return isPast ? "slowdown (setting it to zero)" : "Removed slowdown from";
+    
 
-  const verbAction = (
-    {
-      MUTE: "Muted",
-      UNMUTE: "Unmuted",
-      WARN: "Warned",
-      KICK: "Kicked",
-      BAN: "Banned",
-      UNBAN: "Unbanned",
-      LOCK: "Locked",
-      UNLOCK: "Unlocked",
-      SLOWDOWN: "Slowed",
-      CLEAR: "Cleared",
-    } as Record<typeof action, string>
-  )[action];
+  const dict = {
+    MUTE: "Muted",
+    UNMUTE: "Unmuted",
+    WARN: "Warned",
+    KICK: "Kicked",
+    BAN: "Banned",
+    UNBAN: "Unbanned",
+    LOCK: "Locked",
+    UNLOCK: "Unlocked",
+    SLOWDOWN: "Slowed down",
+    CLEAR: "Cleared",
+  } as Record<typeof action, string>;
+
+  const editedDict = {
+    MUTE: "mute",
+    UNMUTE: "unmute",
+    WARN: "warning",
+    KICK: "kick",
+    BAN: "ban",
+    UNBAN: "unban",
+    LOCK: "channel lock",
+    UNLOCK: "channen unlock",
+    SLOWDOWN: "slowdown",
+    CLEAR: "clear",
+  } as Record<typeof action, string>;
+
+  const verbAction = (isPast ? editedDict : dict)[action];
 
   return verbAction;
 }
+
+const isUser = (thing: object): thing is User => Object.hasOwn(thing, "displayAvatarURL");
 
 /**
  * Sends a container containing information about a moderation action.
@@ -49,15 +67,16 @@ function produceVerb(action: ModType, slowdownValue?: number): string {
  * @returns A container with action info (or an errorEmbed if something goes wrong).
  */
 async function buildModEmbed(modAction: ModEmbedOptions): Promise<ContainerBuilder> {
-  // FIXME(@MrSerge01): if you look at Discord i kinda broke the rendering of some actions
-  const { guild, target, previousCaseId, caseId, action, channel, customText } = modAction;
-
-  // FIXME(v0.4): have to get this to somehow produce removed slowdown
-  const verb = produceVerb(action);
+  const { guild, target, previousCaseId, caseId, action, customText } = modAction;
+  const verb = produceVerb(
+    action,
+    modAction.expiresAt ? false : true,
+    previousCaseId ? true : false,
+  );
   const generalValues = produceGeneralValues(modAction);
   const serverAvatar = (guild.icon ? guild.iconURL() : undefined) ?? undefined;
-  const avatar = target ? target.displayAvatarURL() : serverAvatar;
-  let title = `${previousCaseId ? "Edited a " : ""}${previousCaseId ? verb?.toLowerCase() : verb}${previousCaseId ? " on" : ""} ${target ? mention(target.id, "USER") : ""}`;
+  const avatar = target && isUser(target) ? target.displayAvatarURL() : serverAvatar;
+  let title = `${previousCaseId ? "Edited a " : ""}${previousCaseId ? verb?.toLowerCase() : verb}${previousCaseId ? " on" : ""} ${target ? (isUser(target) ? mention(target.id, "USER") : mention(target.id, "CHANNEL")) : ""}`;
 
   if (previousCaseId ?? caseId) title += `  •  #${previousCaseId ?? caseId}`;
 
@@ -65,7 +84,7 @@ async function buildModEmbed(modAction: ModEmbedOptions): Promise<ContainerBuild
     new TextDisplayBuilder().setContent(`**${customText?.logTitle ?? title}**`),
     new TextDisplayBuilder().setContent(generalValues.join("\n")),
     new TextDisplayBuilder().setContent(
-      `-# ${target ? `User ID: ${target.id}` : `Channel ID: ${channel}`} • ${mention(Date.now(), "DEFAULT_TIMESTAMP")}`,
+      `-# ${isUser(target) ? `User ID: ${target.id}` : `Channel ID: ${target.id}`} • ${mention(Date.now(), "DEFAULT_TIMESTAMP")}`,
     ),
   ];
 
@@ -111,7 +130,7 @@ export async function modEmbed(
     options.guild,
     { components: [container], flags: "IsComponentsV2" },
     options.shouldDm,
-    options.target
+    options.target && isUser(options.target)
       ? {
           isSilent: options.isSilent ?? false,
           user: options.target,

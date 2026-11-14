@@ -140,17 +140,16 @@ export type ModActionPayload = {
   shouldDm?: boolean;
   expiresAt?: Temporal.Instant;
   previousCaseId?: number;
+  channel?: Channel;
 } & (
   | {
       action: Exclude<ModType, "CLEAR" | "LOCK" | "UNLOCK" | "SLOWDOWN">;
       target: User;
-      channel?: Channel;
       isSilent: boolean;
     }
   | {
       action: "CLEAR" | "LOCK" | "UNLOCK" | "SLOWDOWN";
-      target?: undefined;
-      channel: Channel;
+      target: Channel;
     }
 );
 

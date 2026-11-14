@@ -88,7 +88,7 @@ async function method(
     error: null,
     guild: target.guild,
     action: "CLEAR",
-    channel: target,
+    target,
     caseId,
     moderator,
     title: `Cleared ${deletedAmount} ${pluralOrNot("message", deletedAmount)}${targetUser ? ` from ${mention(targetUser.id, "USER")}` : ""}`,

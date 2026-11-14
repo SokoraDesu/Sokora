@@ -1,6 +1,7 @@
 import { isModError, ModErrorCode, type FeatureError, type ModActionResult } from "types";
 import { dekominator } from "./kominator";
 import { pluralOrNot } from "./pluralOrNot";
+import type { User } from "discord.js";
 
 /**
  * Gives you an error with the Error type.
@@ -84,7 +85,7 @@ function modErrorToFeatureError(value: ModActionResult): FeatureError {
 
   if (error.code == ModErrorCode.TargetOutside)
     return {
-      title: `You can’t ${action.toLowerCase()} ${target?.displayName}.`,
+      title: `You can’t ${action.toLowerCase()} ${(target as User).displayName}.`,
       reason: "This user isn’t in this server.",
     };
 
@@ -96,7 +97,7 @@ function modErrorToFeatureError(value: ModActionResult): FeatureError {
 
   if (error.code == ModErrorCode.NotApiModeratable)
     return {
-      title: `You can’t ${action.toLowerCase()} ${target?.displayName}.`,
+      title: `You can’t ${action.toLowerCase()} ${(target as User).displayName}.`,
       reason: [
         "The member cannot be moderated by Sokora.\n",
         "**There are three reasons as to why this error might occur:**",
@@ -108,7 +109,7 @@ function modErrorToFeatureError(value: ModActionResult): FeatureError {
 
   if (error.code == ModErrorCode.RolePosSame || error.code == ModErrorCode.TargetRolePosHigher)
     return {
-      title: `You can’t ${action.toLowerCase()} ${target?.displayName}.`,
+      title: `You can’t ${action.toLowerCase()} ${(target as User).displayName}.`,
       reason: `The member has ${error.code == ModErrorCode.RolePosSame ? "the same" : "a higher"} role position ${error.code == ModErrorCode.RolePosSame ? "as" : "than"} you.`,
     };
 

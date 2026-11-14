@@ -16,7 +16,7 @@ import { mention } from "utils/mention";
 import { pagedButtons } from "utils/pagination";
 import { safeRole } from "utils/safeThings";
 
-// TODO(v0.4): check if i can MVC/improve/refactor this or not
+// TODO: check if i can MVC/improve/refactor this or not
 export async function newsEmbed(
   guild: Guild,
   newsOptions: {

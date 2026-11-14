@@ -10,7 +10,11 @@ import { colorize, Sokolors } from "utils/colorize";
 import { logChannel } from "utils/logChannel";
 import { safeUser } from "utils/safeThings";
 
-interface Options { guild: Guild; title: string; text: string }
+interface Options {
+  guild: Guild;
+  title: string;
+  text: string;
+}
 
 async function buildLogEmbed(options: Options): Promise<ContainerBuilder> {
   const { title, text, guild } = options;
@@ -53,15 +57,15 @@ export async function logEmbed(
 
   if (!userPayload) return;
 
-    const newContainer = await buildLogEmbed({ ...userPayload, guild: payload.guild });
+  const newContainer = await buildLogEmbed({ ...userPayload, guild: payload.guild });
 
-    try {
-      const dmChannel = await userPayload.user.createDM();
-      await dmChannel.send({
-        components: [newContainer],
-        flags: "IsComponentsV2",
-      });
-    } catch {
-      // ignore
-    }
+  try {
+    const dmChannel = await userPayload.user.createDM();
+    await dmChannel.send({
+      components: [newContainer],
+      flags: "IsComponentsV2",
+    });
+  } catch {
+    // ignore
   }
+}

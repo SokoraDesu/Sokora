@@ -52,7 +52,7 @@ async function method(
   return ok({
     title: "Unlocked channel.",
     reason,
-    channel,
+    target: channel,
     error: null,
     moderator,
     caseId,

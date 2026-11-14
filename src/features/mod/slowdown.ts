@@ -52,11 +52,16 @@ async function method(
       : "Removed the slowdown",
     reason,
     moderator,
-    channel,
+    target: channel,
     guild,
     error: null,
     action: "SLOWDOWN",
     caseId,
+    expiresAt: timeMillisec
+      ? Temporal.Now.instant().add({
+          milliseconds: timeMillisec,
+        })
+      : undefined,
   });
 }
 

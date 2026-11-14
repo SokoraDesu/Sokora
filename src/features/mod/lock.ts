@@ -57,7 +57,7 @@ async function method(
     moderator,
     guild,
     action: "LOCK",
-    channel,
+    target: channel,
   });
 }
 
